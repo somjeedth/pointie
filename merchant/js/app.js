@@ -4,6 +4,7 @@ import { esc, toast, bigStampCard, starsHtml, cardBg, cardBgStyle, letterHtml, i
 import { morphChildren, runMount } from '../../js/dom.js';
 import qrcode from './vendor/qrcode.js';
 import * as api from './api.js';
+import { TIERS, tierById } from '../../js/data.js';
 
 const root = document.getElementById('m-app');
 const go = (p) => { if (location.hash !== '#' + p) location.hash = p; else render(true); };
@@ -471,7 +472,8 @@ let promoDraft = null;
 function promosView(me, shop) {
   if (!promoDraft || promoDraft._id !== shop.id) {
     promoDraft = { _id: shop.id, promo: !!shop.promo, promoText: shop.promoText || '', promoUntil: shop.promoUntil || '', double: shop.promoRule?.type === 'double', days: [...(shop.promoRule?.days || [])],
-      hasEvent: !!shop.event, evTitle: shop.event?.title || '', evDate: shop.event?.date || '', evTime: shop.event?.time || '14:00' };
+      hasEvent: !!shop.event, evTitle: shop.event?.title || '', evDate: shop.event?.date || '', evTime: shop.event?.time || '14:00',
+      tpActive: !!shop.tierPromo?.active, tpTier: shop.tierPromo?.minTier || 'pro', tpText: shop.tierPromo?.text || '' };
   }
   const p = promoDraft;
   const evPreview = p.hasEvent && p.evTitle ? (() => { const d = p.evDate ? new Date(p.evDate) : null; return { day: d ? d.getDate() : '?', mon: d ? TH_M[d.getMonth()] : '' }; })() : null;
@@ -493,13 +495,22 @@ function promosView(me, shop) {
             <label class="field"><span>ชื่อกิจกรรม</span><input class="inp" name="evTitle" value="${esc(p.evTitle)}" maxlength="60" placeholder="เช่น เวิร์กช็อปดริปกาแฟ"></label>
             <div class="row2"><label class="field"><span>วันที่</span><input class="inp" type="date" name="evDate" value="${esc(p.evDate)}"></label><label class="field"><span>เวลา</span><input class="inp" type="time" name="evTime" value="${esc(p.evTime)}"></label></div>` : ''}
           </div>
+          <div class="panel form">
+            <button type="button" class="toggle" data-act="tgTier"><span class="switch ${p.tpActive ? 'on' : ''}"></span>โปรสำหรับสมาชิกระดับสูง</button>
+            <p class="sub">สิทธิ์พิเศษเฉพาะลูกค้าที่ไปร้านต่างๆ บ่อย (เลเวลคำนวณจากการไปร้านจริงและรีวิว แก้เองไม่ได้)</p>
+            ${p.tpActive ? `
+            <div class="field"><span>ระดับขั้นต่ำ</span><div class="seg">${TIERS.filter((x) => x.id !== 'explorer').map((x) => `<button type="button" class="${p.tpTier === x.id ? 'on' : ''}" data-act="tpTier" data-v="${x.id}">${x.name} (Lv.${x.min}+)</button>`).join('')}</div></div>
+            <label class="field"><span>สิทธิ์ที่ได้</span><input class="inp" name="tpText" value="${esc(p.tpText)}" maxlength="60" placeholder="เช่น ท็อปปิ้งฟรี 1 อย่าง"></label>
+            <small class="sub">ลูกค้าจะแสดงบัตรสมาชิก (หน้าโปรไฟล์ในแอพ) ที่มีระดับกับพนักงาน</small>` : ''}
+          </div>
           <div class="actions"><button class="btn btn-primary">บันทึกโปรและกิจกรรม</button></div>
         </form>
         <div class="preview"><div class="phone">
           <span class="xs muted semi">พรีวิวในหน้าแรกของลูกค้า</span>
           ${p.promo && p.promoText ? `<div class="card event"><div class="date"><b>${p.double && p.days.length === 1 ? 'ทุก' : '★'}</b><span>${p.double && p.days.length === 1 ? 'วัน' + DAYS_FULL[p.days[0]] : 'โปร'}</span></div><div class="col" style="flex:1;min-width:0;gap:3px"><span class="tag" style="background:var(--soft);color:var(--accent)">โปร</span><span class="semi">${esc(p.promoText)}</span><span class="small muted">${esc(shop.name)}</span></div></div>` : ''}
           ${evPreview ? `<div class="card event"><div class="date"><b>${evPreview.day}</b><span>${evPreview.mon}</span></div><div class="col" style="flex:1;min-width:0;gap:3px"><span class="tag" style="background:var(--teal-soft);color:var(--teal)">กิจกรรม</span><span class="semi">${esc(p.evTitle)}</span><span class="small muted">${esc(shop.name)}</span></div></div>` : ''}
-          ${!(p.promo && p.promoText) && !evPreview ? '<p class="small muted">ยังไม่มีโปรหรือกิจกรรม</p>' : ''}
+          ${p.tpActive && p.tpText ? `<span class="xs muted semi">พรีวิวในหน้าร้าน</span><div class="tier-promo" style="--tc:${tierById(p.tpTier).color}"><span class="tp-badge">${tierById(p.tpTier).name}+</span><div class="col" style="gap:2px;flex:1"><b>${esc(p.tpText)}</b><span class="xs muted">สำหรับสมาชิก Lv.${tierById(p.tpTier).min} ขึ้นไป</span></div></div>` : ''}
+          ${!(p.promo && p.promoText) && !evPreview && !(p.tpActive && p.tpText) ? '<p class="small muted">ยังไม่มีโปรหรือกิจกรรม</p>' : ''}
         </div></div>
       </div>`,
     mount(r) {
@@ -514,14 +525,18 @@ function promosView(me, shop) {
           const d = p.evDate ? new Date(p.evDate) : null;
           event = { title: p.evTitle.trim(), date: p.evDate, time: p.evTime, day: d ? String(d.getDate()) : '★', mon: d ? TH_M[d.getMonth()] : 'เร็วๆ นี้', when: d ? `${DAYS[d.getDay()]} ${d.getDate()} ${TH_M[d.getMonth()]} · ${p.evTime}` : p.evTime };
         }
+        if (p.tpActive && !p.tpText.trim()) { toast('ใส่สิทธิ์ที่สมาชิกได้ก่อนนะ'); return; }
         promoDraft = null;
-        act(api.saveShop(shop.id, { promo: p.promo, promoText: p.promoText.trim(), promoUntil: p.promoUntil.trim(), promoRule: p.double ? { type: 'double', days: p.days } : null, event }), 'บันทึกแล้ว ลูกค้าจะเห็นในแอพทันที');
+        const tierPromo = { active: p.tpActive, minTier: p.tpTier, text: p.tpText.trim() };
+        act(api.saveShop(shop.id, { promo: p.promo, promoText: p.promoText.trim(), promoUntil: p.promoUntil.trim(), promoRule: p.double ? { type: 'double', days: p.days } : null, event, tierPromo }), 'บันทึกแล้ว ลูกค้าจะเห็นในแอพทันที');
       });
     },
     actions: {
       tgPromo() { promoDraft.promo = !promoDraft.promo; rerender(); },
       tgDouble() { promoDraft.double = !promoDraft.double; rerender(); },
       tgEvent() { promoDraft.hasEvent = !promoDraft.hasEvent; rerender(); },
+      tgTier() { promoDraft.tpActive = !promoDraft.tpActive; rerender(); },
+      tpTier(el) { promoDraft.tpTier = el.dataset.v; rerender(); },
       day(el) { const d = +el.dataset.d; promoDraft.days = promoDraft.days.includes(d) ? promoDraft.days.filter((x) => x !== d) : [...promoDraft.days, d]; rerender(); },
     },
   };
@@ -614,15 +629,17 @@ function customersView(me, shop, q) {
     ready: ['ครบรอแลก', (c) => c.left <= 0],
     new: ['ลูกค้าใหม่ (14 วัน)', (c) => Date.now() - new Date(c.first) < 14 * DAY],
     lapsed: ['หายไปนาน (21 วัน+)', (c) => Date.now() - new Date(c.last) > 21 * DAY],
+    pro: ['Pro ขึ้นไป', (c) => c.lv >= 10],
   };
   const list = all.filter(F[custFilter][1]);
   return {
     html: head('ลูกค้า', `${all.length} คนเคยแตะรับแสตมป์ที่ร้าน · แสดงเฉพาะชื่อเล่น ไม่แสดงเบอร์โทร`) +
       `<div class="seg">${Object.entries(F).map(([k, [l, fn]]) => `<button class="${custFilter === k ? 'on' : ''}" data-act="filter" data-k="${k}">${l} · ${all.filter(fn).length}</button>`).join('')}</div>
-      <div class="panel"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>ลูกค้า</th><th class="num">มาแล้ว</th><th>บัตรปัจจุบัน</th><th class="num">แลกแล้ว</th><th>มาครั้งแรก</th><th>ล่าสุด</th></tr></thead><tbody>
+      <div class="panel"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>ลูกค้า</th><th>ระดับ</th><th class="num">มาแล้ว</th><th>บัตรปัจจุบัน</th><th class="num">แลกแล้ว</th><th>มาครั้งแรก</th><th>ล่าสุด</th></tr></thead><tbody>
       ${list.length ? list.slice(0, 200).map((c) => `<tr><td><div class="row" style="gap:8px"><span class="initials sm" style="border-radius:50%;width:30px;height:30px">${esc(c.nick[0])}</span>${esc(c.nick)}${c.demo ? '' : ' <span class="pill green" style="font-size:10px">จากแอพ</span>'}</div></td>
+        <td><span class="tier-tag" style="--tc:${tierById(c.tier).color}">${c.lv ? `Lv.${c.lv} ` : ''}${tierById(c.tier).name}</span></td>
         <td class="num">${c.visits}</td><td><div class="row" style="gap:8px"><div class="bar" style="width:80px;height:6px"><i style="width:${Math.min(100, (c.have / c.need) * 100)}%"></i></div><span class="small">${c.have}/${c.need}</span></div></td>
-        <td class="num">${c.redeemed}</td><td class="small muted">${fmtDT(c.first)}</td><td class="small">${ago(c.last)}</td></tr>`).join('') : '<tr><td colspan="6" class="muted">ไม่มีลูกค้าในกลุ่มนี้</td></tr>'}
+        <td class="num">${c.redeemed}</td><td class="small muted">${fmtDT(c.first)}</td><td class="small">${ago(c.last)}</td></tr>`).join('') : '<tr><td colspan="7" class="muted">ไม่มีลูกค้าในกลุ่มนี้</td></tr>'}
       </tbody></table></div></div>`,
     actions: { filter(el) { custFilter = el.dataset.k; rerender(); } },
   };
@@ -687,7 +704,15 @@ root.addEventListener('click', (e) => {
   const fn = current?.view.actions?.[act];
   if (fn) { e.preventDefault(); fn(el, e); }
 });
-window.addEventListener('hashchange', () => render(false));
+// Show the page straight away from cache, then refresh it with the latest server data.
+let navSeq = 0;
+window.addEventListener('hashchange', async () => {
+  render(false);
+  if (!api.isRemote() || !api.currentMerchant()?.shopId) return;
+  const seq = ++navSeq;
+  try { await api.refresh(); } catch { return; }
+  if (seq === navSeq) render(true);
+});
 window.addEventListener('storage', (e) => { if (e.key && e.key.startsWith('pointie.')) render(true); }); // live updates from the customer app tab
 
 try { const t = JSON.parse(localStorage.getItem('pointie.theme') || '"dark"'); document.documentElement.dataset.theme = t; } catch { /* ignore */ }

@@ -174,3 +174,5 @@ textarea.inp { height: auto; min-height: 90px; padding: 10px 14px; resize: verti
 .size-spec { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 12px; background: var(--soft); font-size: 12px; }
 .size-spec b { font-size: 14px; color: var(--accent); }
 .size-spec span { color: var(--muted); }
+
+.tier-tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; color: var(--tc); background: color-mix(in srgb, var(--tc) 16%, transparent); white-space: nowrap; }

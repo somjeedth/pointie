@@ -45,6 +45,8 @@ create table if not exists public.customers (
   updated_at  timestamptz not null default now()
 );
 
+alter table public.customers add column if not exists bonus_xp int not null default 0;  -- demo/admin grants
+
 create table if not exists public.cards (
   customer_id    uuid not null references public.customers(id) on delete cascade,
   shop_id        text not null references public.shops(id) on delete cascade,
@@ -185,6 +187,50 @@ begin
   return public.my_state();
 end $$;
 
+-- ---------------------------------------------------------------- XP / levels / tiers
+-- XP is computed on the server from verifiable activity, so levels can carry real perks:
+--   20 per visit (stamp) · 30 per review · 50 sign-up · 30 preferences · weekly missions
+--   (5 stamps +50, 1 review +30, 3 new cafés +100) · bonus_xp (demo/admin)
+create or replace function public._level_info(p_xp int) returns jsonb
+language plpgsql immutable as $$
+declare lv int := 1; rest int := greatest(coalesce(p_xp, 0), 0); need int;
+begin
+  loop
+    need := greatest(100, 150 * lv - 550);
+    exit when rest < need;
+    rest := rest - need; lv := lv + 1;
+  end loop;
+  return jsonb_build_object('xp', coalesce(p_xp, 0), 'lv', lv, 'inLevel', rest, 'need', need,
+    'tier', case when lv >= 15 then 'legend' when lv >= 10 then 'pro' when lv >= 5 then 'regular' else 'explorer' end);
+end $$;
+
+create or replace function public._xp_of(u uuid) returns int
+language sql stable security definer set search_path = public as $$
+  with c as (select coalesce(sum(visits), 0) as v from cards where customer_id = u),
+  r as (select count(*) as n from reviews where customer_id = u and not sample),
+  cu as (select coalesce(bonus_xp, 0) as bonus, coalesce((profile #>> '{user,prefsDone}')::boolean, false) as prefs from customers where id = u),
+  wk as (
+    select date_trunc('week', created_at at time zone 'Asia/Bangkok') as w,
+           coalesce(sum(n) filter (where type = 'stamp'), 0) as stamps,
+           count(*) filter (where type = 'review') as reviews
+    from events where customer_id = u group by 1),
+  firsts as (
+    select date_trunc('week', min(created_at) at time zone 'Asia/Bangkok') as w, shop_id
+    from events where customer_id = u and type = 'stamp' group by shop_id),
+  cafes as (select f.w, count(*) as n from firsts f join shops s on s.id = f.shop_id and s.data->>'cat' = 'cafe' group by f.w),
+  missions as (select coalesce(sum(case when stamps >= 5 then 50 else 0 end + case when reviews >= 1 then 30 else 0 end), 0) as x from wk),
+  cafe_missions as (select coalesce(sum(case when n >= 3 then 100 else 0 end), 0) as x from cafes)
+  select case when cu.bonus is null then 0
+              else (20 * c.v + 30 * r.n + 50 + case when cu.prefs then 30 else 0 end + cu.bonus + missions.x + cafe_missions.x)::int end
+  from c cross join r cross join missions cross join cafe_missions left join cu on true
+$$;
+
+create or replace function public._level_of(u uuid) returns jsonb
+language sql stable security definer set search_path = public as $$ select public._level_info(public._xp_of(u)) $$;
+
+create or replace function public.my_level() returns jsonb
+language sql stable security definer set search_path = public as $$ select public._level_of(public._require_uid()) $$;
+
 -- Everything the customer app needs about "me".
 create or replace function public.my_state() returns jsonb
 language plpgsql stable security definer set search_path = public as $$
@@ -200,15 +246,19 @@ begin
                         order by created_at desc) from (select * from redemptions where customer_id = u order by created_at desc limit 50) r), '[]'::jsonb),
     'reviews', coalesce((select jsonb_agg(jsonb_build_object('shopId', shop_id, 'stars', stars, 'text', text, 'date', (created_at at time zone 'Asia/Bangkok')::date, 'reply', reply))
                         from reviews where customer_id = u), '[]'::jsonb),
-    'today', public._bkk_today()
+    'today', public._bkk_today(),
+    'level', public._level_of(u)
   );
 end $$;
 
-create or replace function public.save_profile(p_profile jsonb, p_nick text default null) returns void
+drop function if exists public.save_profile(jsonb, text);
+create or replace function public.save_profile(p_profile jsonb, p_nick text default null) returns jsonb
 language plpgsql security definer set search_path = public as $$
+declare u uuid := public._require_uid();
 begin
   update customers set profile = coalesce(p_profile, profile), nick = coalesce(nullif(left(p_nick, 20), ''), nick), updated_at = now()
-  where id = public._require_uid();
+  where id = u;
+  return public._level_of(u);
 end $$;
 
 -- Tap: one stamp per shop per Bangkok day; x2 on promo days; token = stand link (optional).
@@ -218,7 +268,7 @@ declare
   u uuid := public._require_uid();
   s shops; c cards; cu customers;
   today date := public._bkk_today();
-  need int; add_n int := 1; before int; is_new boolean := false;
+  need int; add_n int := 1; before int; is_new boolean := false; tier_bonus int := 0; lvl jsonb;
 begin
   select * into cu from customers where id = u;
   if not found then return jsonb_build_object('ok', false, 'reason', 'no_profile'); end if;
@@ -242,6 +292,10 @@ begin
      and (s.data #> '{promoRule,days}') @> to_jsonb(extract(dow from today)::int) then
     add_n := 2;
   end if;
+  -- Regular tier and above: +1 bonus stamp on the first visit to a shop
+  if is_new and public._level_of(u)->>'tier' <> 'explorer' then
+    tier_bonus := 1; add_n := add_n + 1;
+  end if;
   before := c.have;
   update cards set have = least(need, have + add_n), visits = visits + 1, last_at = today, last_stamp = today
   where customer_id = u and shop_id = p_shop returning * into c;
@@ -250,7 +304,8 @@ begin
   values (p_shop, u, u::text, cu.nick, 'stamp', c.have - before, c.have);
 
   return jsonb_build_object('ok', true, 'added', c.have - before, 'have', c.have, 'need', need, 'visits', c.visits,
-                            'full', c.have >= need, 'isNewShop', is_new, 'today', today);
+                            'full', c.have >= need, 'isNewShop', is_new, 'today', today, 'tierBonus', tier_bonus,
+                            'level', public._level_of(u));
 end $$;
 
 -- Redeem a full card → pending redemption with a 4-digit code for staff.
@@ -286,12 +341,12 @@ begin
   select * into cu from customers where id = u;
   existed := exists (select 1 from reviews where shop_id = p_shop and customer_id = u);
   insert into reviews (shop_id, customer_id, nick, lv, stars, text)
-  values (p_shop, u, cu.nick, (cu.profile->>'lv')::int, p_stars, left(trim(p_text), 500))
+  values (p_shop, u, cu.nick, (public._level_of(u)->>'lv')::int, p_stars, left(trim(p_text), 500))
   on conflict (shop_id, customer_id) do update set stars = excluded.stars, text = excluded.text, nick = excluded.nick, lv = excluded.lv, updated_at = now();
   if not existed then
     insert into events (shop_id, customer_id, customer_key, nick, type, stars) values (p_shop, u, u::text, cu.nick, 'review', p_stars);
   end if;
-  return jsonb_build_object('ok', true, 'updated', existed);
+  return jsonb_build_object('ok', true, 'updated', existed, 'level', public._level_of(u));
 end $$;
 
 -- Demo only: give the signed-in user the sample cards from the design (sample shops only).
@@ -305,6 +360,7 @@ begin
                ('plant', 2, 2, '2026-09-14', 12), ('book', 2, 2, '2026-10-01', 6)) as x(shop, have, visits, first, ago)
   join shops s on s.id = x.shop and s.sample
   on conflict (customer_id, shop_id) do nothing;
+  update customers set bonus_xp = 670 where id = u;  -- design demo: Lv.7, 340/500 XP
   return public.my_state();
 end $$;
 
@@ -372,7 +428,9 @@ begin
     'redemptions', coalesce((select jsonb_agg(jsonb_build_object('id', id, 'nick', nick, 'reward', reward, 'code', code, 'status', status, 'at', created_at, 'confirmedAt', confirmed_at) order by created_at desc)
                         from (select * from redemptions where shop_id = sid order by created_at desc limit 200) r), '[]'::jsonb),
     'reviews', coalesce((select jsonb_agg(jsonb_build_object('id', id, 'nick', nick, 'stars', stars, 'text', text, 'reply', reply, 'sample', sample, 'at', created_at) order by sample, created_at desc)
-                        from reviews where shop_id = sid), '[]'::jsonb)
+                        from reviews where shop_id = sid), '[]'::jsonb),
+    'levels', coalesce((select jsonb_object_agg(x.customer_id::text, public._level_of(x.customer_id) - 'xp' - 'inLevel' - 'need')
+                        from (select distinct customer_id from events where shop_id = sid and customer_id is not null) x), '{}'::jsonb)
   );
 end $$;
 
@@ -433,7 +491,7 @@ declare f record;
 begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
            where n.nspname = 'public' and p.proname in (
-             '_uid','_require_uid','_bkk_today','_token','_my_shop_id','_shop_json','get_catalog','check_stand','customer_upsert','my_state','save_profile','collect_stamp','redeem_card','submit_review','seed_demo_cards','delete_my_account',
+             '_uid','_require_uid','_bkk_today','_token','_level_info','_xp_of','_level_of','my_level','_my_shop_id','_shop_json','get_catalog','check_stand','customer_upsert','my_state','save_profile','collect_stamp','redeem_card','submit_review','seed_demo_cards','delete_my_account',
              'merchant_create_shop','merchant_claim_sample','merchant_samples_available','merchant_bundle','merchant_update_shop',
              'merchant_add_stand','merchant_update_stand','merchant_delete_stand','merchant_find_redemption','merchant_set_redemption','merchant_reply_review')
   loop
@@ -442,7 +500,7 @@ begin
 end $$;
 grant execute on function public.get_catalog(), public.check_stand(text, text), public.merchant_samples_available() to anon, authenticated;
 grant execute on function
-  public.customer_upsert(text, text, jsonb), public.my_state(), public.save_profile(jsonb, text),
+  public.customer_upsert(text, text, jsonb), public.my_state(), public.save_profile(jsonb, text), public.my_level(),
   public.collect_stamp(text, text), public.redeem_card(text), public.submit_review(text, int, text), public.seed_demo_cards(),
   public.delete_my_account(),
   public.merchant_create_shop(text, text, text, text), public.merchant_claim_sample(text),

@@ -123,15 +123,33 @@ export const LEVEL_TITLES = [
 ];
 export const levelTitle = (lv) => LEVEL_TITLES.filter(([n]) => lv >= n).pop()[1];
 export const xpNeed = (lv) => Math.max(100, 150 * lv - 550);
+// Member tiers by level. Perks marked (server) are enforced by Supabase functions.
+export const TIERS = [
+  { id: 'explorer', name: 'Explorer', th: 'นักสำรวจ', min: 1, color: '#A9A9A9', perks: ['สะสมแสตมป์ทุกร้านในบัตรเดียว', 'ภารกิจรายสัปดาห์ รับ XP'] },
+  { id: 'regular', name: 'Regular', th: 'ขาประจำ', min: 5, color: '#3CC7B2', perks: ['+1 แสตมป์โบนัส ครั้งแรกที่ไปร้านใหม่'] },
+  { id: 'pro', name: 'Pro', th: 'มือโปร', min: 10, color: '#A592FF', perks: ['ใช้โปรสมาชิก Pro ของร้านได้'] },
+  { id: 'legend', name: 'Legend', th: 'ตำนาน', min: 15, color: '#FFC83D', perks: ['ใช้โปรระดับ Legend ของร้านได้', 'กรอบนามบัตรทอง'] },
+];
+export const tierFor = (lv) => [...TIERS].reverse().find((t) => lv >= t.min) || TIERS[0];
+export const tierById = (id) => TIERS.find((t) => t.id === id) || TIERS[0];
+export const nextTier = (lv) => TIERS.find((t) => t.min > lv) || null;
+// Perks of a tier include everything below it.
+export const tierPerks = (id) => TIERS.slice(0, TIERS.findIndex((t) => t.id === id) + 1).flatMap((t) => t.perks);
+
 export const LEVEL_UNLOCKS = {
   2: [['frame', 'ปักหมุด Badge', 'โชว์บนนามบัตรได้ 1 อัน']],
   3: [['frame', 'กรอบนามบัตรใหม่', 'ลายจุดส้ม']],
-  5: [['star', 'ปักหมุด Badge +1', 'โชว์ได้ 2 อัน']],
+  5: [['star', 'ระดับ Regular', '+1 แสตมป์ ร้านใหม่ครั้งแรก'], ['frame', 'ปักหมุด Badge +1', 'โชว์ได้ 2 อัน']],
   6: [['star', 'ปักหมุด Badge +1', 'โชว์ได้ 3 อัน']],
   8: [['frame', 'กรอบนามบัตรใหม่', 'ลายส้มทอง'], ['star', 'ปักหมุด Badge +1', 'โชว์ได้ 4 อัน']],
-  10: [['frame', 'กรอบนามบัตรตำนาน', 'ลายทองประกาย']],
+  10: [['star', 'ระดับ Pro', 'ใช้โปรสมาชิก Pro ของร้าน'], ['frame', 'ป้าย Pro', 'บนนามบัตรและรีวิว']],
+  15: [['star', 'ระดับ Legend', 'ใช้โปรระดับ Legend'], ['frame', 'กรอบนามบัตรทอง', 'ลายทองประกาย']],
 };
-export const unlocksFor = (lv) => LEVEL_UNLOCKS[lv] || [['star', 'ภารกิจใหม่', 'ปลดล็อกภารกิจระดับ ' + lv], ['frame', 'XP Boost', '+10% สัปดาห์นี้']];
+export const unlocksFor = (lv) => {
+  if (LEVEL_UNLOCKS[lv]) return LEVEL_UNLOCKS[lv];
+  const nt = nextTier(lv);
+  return nt ? [['star', `ใกล้ระดับ ${nt.name}`, `อีก ${nt.min - lv} เลเวล`], ['frame', 'ฉายาใหม่', levelTitle(lv)]] : [['star', 'ระดับสูงสุดแล้ว', 'Legend'], ['frame', 'ฉายา', levelTitle(lv)]];
+};
 
 export const BADGES = [
   { id: 'coffee', name: 'คอกาแฟตัวจริง', kind: 'cup', tone: 'soft', test: (s) => catVisits(s, 'cafe') >= 10 },

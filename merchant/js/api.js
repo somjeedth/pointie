@@ -2,7 +2,8 @@
 //  - Supabase (remote): one `merchant_bundle` call fills an in-memory cache that
 //    the (synchronous) views read; every write is an RPC followed by a refresh.
 //  - localStorage demo (local): shares data with the customer app on the same origin.
-import { BASE_SHOPS, SAMPLE_REVIEWS, CAT } from '../../js/data.js';
+import { BASE_SHOPS, SAMPLE_REVIEWS, CAT, tierFor, xpNeed } from '../../js/data.js';
+const levelFromXp = (xp) => { let lv = 1; while (xp >= xpNeed(lv)) { xp -= xpNeed(lv); lv += 1; } return lv; };
 import {
   loadCatalog, patchShop, newShopId, blankShop, mergeShop, loadEvents, saveEvents, updateEvent,
 } from '../../js/catalog.js';
@@ -215,11 +216,19 @@ export function customers(shopId) {
     if (!e.customer) continue;
     const c = map.get(e.customer) || { id: e.customer, nick: e.nick || 'ลูกค้า', visits: 0, have: 0, redeemed: 0, first: e.at, last: e.at, demo: !!e.demo };
     if (e.nick) c.nick = e.nick;
+    if (e.lv) c.lv = e.lv;
     if (e.type === 'stamp') { c.visits++; c.have = e.have ?? Math.min(need, c.have + (e.n || 1)); c.last = e.at; }
     if (e.type === 'redeem') { c.have = 0; c.redeemed++; }
     map.set(e.customer, c);
   }
-  return [...map.values()].map((c) => ({ ...c, need, left: need - c.have })).sort((a, b) => b.last.localeCompare(a.last));
+  const lvOf = (c) => {
+    if (remoteMode && R?.levels?.[c.id]) return R.levels[c.id];
+    if (c.lv) return { lv: c.lv, tier: tierFor(c.lv).id };
+    // demo/sample customers: estimate from visits (20 XP each + sign-up bonus)
+    const lv = levelFromXp(50 + 20 * c.visits * 3);
+    return { lv, tier: tierFor(lv).id, estimated: true };
+  };
+  return [...map.values()].map((c) => ({ ...c, need, left: need - c.have, ...lvOf(c) })).sort((a, b) => b.last.localeCompare(a.last));
 }
 
 // ---------------- redemptions ----------------

@@ -3,7 +3,7 @@ import { icon } from './icons.js';
 import {
   esc, go, toast, nav, avatarHtml, toneStyle, cardBg, cardBgStyle, letterHtml, cardEn, stampGrid, starsHtml, sheet, backBtn,
 } from './ui.js';
-import { SHOPS, CAT, shopById, MISSIONS, BADGES, xpNeed, levelTitle, unlocksFor, totalVisits, catVisitStats, STYLES } from './data.js';
+import { SHOPS, CAT, shopById, MISSIONS, BADGES, xpNeed, levelTitle, unlocksFor, totalVisits, catVisitStats, STYLES, TIERS, tierFor, nextTier } from './data.js';
 import {
   store, missionProgress, daysLeftInWeek, cardFor, thMonthYear, thDateTime, agoText, togglePin, pinSlots,
   markNotificationsRead, setTheme, logout, deleteAccount, resetDemo, DEMO_PHONE, prettyPhone, myReview,
@@ -55,11 +55,11 @@ export function home() {
       <a class="level-card" href="#/profile">
         <div class="ring"></div>
         <div class="between">
-          <div class="row" style="gap:10px"><div class="lv">Lv.${u.lv}</div><div><div class="bold" style="font-size:17px">${levelTitle(u.lv)}</div><div class="small semi">อีก ${need - u.xp} XP จะเลเวลอัป</div></div></div>
+          <div class="row" style="gap:10px"><div class="lv">Lv.${u.lv}</div><div><div class="bold" style="font-size:17px">${levelTitle(u.lv)} <span class="tier-chip">${tierFor(u.lv).name}</span></div><div class="small semi">อีก ${need - u.xp} XP จะเลเวลอัป</div></div></div>
           ${u.streak > 0 ? `<div class="streak">${icon('flame', 16)}<span>${u.streak} สัปดาห์ติด</span></div>` : ''}
         </div>
         <div class="bar"><i style="width:${Math.round((u.xp / need) * 100)}%"></i></div>
-        <div class="between xs semi"><span>${u.xp} / ${need} XP</span><span>Lv.${u.lv + 1} ปลดล็อก${esc(unlocksFor(u.lv + 1)[0][1])}</span></div>
+        <div class="between xs semi"><span>${u.xp} / ${need} XP</span><span>${nextTier(u.lv) ? `อีก ${nextTier(u.lv).min - u.lv} เลเวลถึงระดับ ${nextTier(u.lv).name}` : 'ระดับสูงสุด Legend'}</span></div>
       </a>
       <${fullCard ? `a href="#/cards?shop=${fullCard[0]}"` : 'div'} class="pointie-says" style="text-decoration:none;color:inherit">
         <img src="img/pointie-point.png" alt="Pointie">
@@ -432,7 +432,7 @@ export function profile() {
       <div class="member ${u.frame === 'gold' ? 'frame-gold' : ''}">
         <div class="ring"></div>
         <div class="between xs bold" style="letter-spacing:.08em"><span>MEMBER CARD</span><span class="row" style="gap:4px;letter-spacing:0"><img src="img/app-icon.png" alt="" style="width:18px;height:18px;border-radius:5px">Pointie</span></div>
-        <div class="row">${avatarHtml(u)}<div class="col" style="gap:2px;min-width:0"><b style="font-size:22px;line-height:1.2">${esc(u.nick)}</b><span class="small semi">@${esc(u.handle)}</span><span class="lvpill">Lv.${u.lv} · ${levelTitle(u.lv)}</span></div></div>
+        <div class="row">${avatarHtml(u)}<div class="col" style="gap:2px;min-width:0"><b style="font-size:22px;line-height:1.2">${esc(u.nick)}</b><span class="small semi">@${esc(u.handle)}</span><span class="row" style="gap:6px;flex-wrap:wrap"><span class="lvpill">Lv.${u.lv} · ${levelTitle(u.lv)}</span><span class="lvpill">${tierFor(u.lv).name}</span></span></div></div>
         ${styleTags.length ? `<div class="row xs bold" style="gap:6px;flex-wrap:wrap">${styleTags.map((t) => `<span>#${t}</span>`).join('')}</div>` : ''}
         <div class="bar"><i style="width:${Math.round((u.xp / need) * 100)}%"></i></div>
         <div class="between xs semi"><span>${u.xp} / ${need} XP</span><span>สมาชิกตั้งแต่ ${thMonthYear(u.joined)}</span></div>
@@ -445,6 +445,13 @@ export function profile() {
         <a href="#/badges" style="text-decoration:none;color:inherit;display:contents"><div><b>${earned.length}</b><span>Badge</span></div></a>
         <a href="#/reviews" style="text-decoration:none;color:inherit;display:contents"><div><b>${me.reviews.length}</b><span>รีวิว</span></div></a>
       </div>
+      <section class="col">
+        <div class="section-h"><h2>ระดับสมาชิก</h2><span class="pill soft">${tierFor(u.lv).name}</span></div>
+        <div class="tiers">${TIERS.map((t) => { const cur = tierFor(u.lv).id === t.id; const got = u.lv >= t.min; return `<div class="tier ${cur ? 'cur' : ''} ${got ? '' : 'locked'}" style="--tc:${t.color}">
+          <div class="between"><b>${t.name} <span class="muted small" style="font-weight:500">${t.th}</span></b><span class="xs semi muted">${cur ? 'ระดับของคุณ' : got ? 'ผ่านแล้ว' : `Lv.${t.min}+`}</span></div>
+          <ul>${t.perks.map((x) => `<li>${got ? icon('check', 13, 3) : icon('lock', 13)}<span>${esc(x)}</span></li>`).join('')}</ul></div>`; }).join('')}</div>
+        <p class="xs muted">XP นับจากการไปร้านจริง รีวิว และภารกิจรายสัปดาห์ · ระดับสูงขึ้นได้สิทธิ์ของระดับก่อนหน้าด้วย</p>
+      </section>
       <section class="col">
         <div class="section-h"><h2>Badge ที่เก็บได้ <span class="muted small">${earned.length}/${BADGES.length}</span></h2><a class="link" href="#/badges">ดูทั้งหมด</a></div>
         <div class="badges">${shown.map((b) => { const got = me.badges.includes(b.id); return `<a href="#/badges" class="badge ${got ? '' : 'locked'}" style="text-decoration:none;color:inherit"><span class="bi" style="${got ? toneStyle(b.tone) : ''}">${got ? badgeIcon(b.kind) : icon('lock', 22)}</span><span>${b.name}</span></a>`; }).join('')}</div>

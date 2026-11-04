@@ -2,7 +2,7 @@
 // Two backends: Supabase (remote, the real one) and a self-contained localStorage demo.
 // In remote mode the server owns cards, redemptions and reviews; the game state
 // (XP, missions, badges, prefs) lives in the customer's `profile` JSON and is synced.
-import { SHOPS, shopById, xpNeed, MISSIONS, BADGES, XP, levelTitle, replaceShops } from './data.js';
+import { SHOPS, shopById, xpNeed, MISSIONS, BADGES, XP, levelTitle, replaceShops, tierFor } from './data.js';
 import { logEvent } from './catalog.js';
 import * as remote from './remote.js';
 
@@ -120,6 +120,7 @@ function schedulePush() {
   pushTimer = setTimeout(() => {
     const me = store.me; if (!me) return;
     remote.rpc('customer', 'save_profile', { p_profile: profilePayload(me), p_nick: me.user.nick || null })
+      .then((lvl) => { if (lvl?.lv && syncLevel(lvl)) { save(); window.dispatchEvent(new Event('rerender')); } })
       .catch((e) => console.warn('[pointie] save_profile failed', e));
   }, 700);
 }
@@ -141,6 +142,7 @@ function hydrate(st) {
   acc.reviews = (st.reviews || []).map((r) => ({ shopId: r.shopId, stars: r.stars, text: r.text, date: r.date, reply: r.reply }));
   acc.pending = prev?.pending || {};
   acc.remoteId = st.id;
+  if (st.level) Object.assign(acc.user, { lv: st.level.lv, xp: st.level.inLevel, totalXp: st.level.xp, tier: st.level.tier });
   store.accounts[phone] = acc;
   store.session = { phone };
 }
@@ -276,13 +278,27 @@ export function finishPrefs() {
 }
 
 // ---------- XP / levels ----------
+// Server-computed level (remote mode). Returns true when something changed.
+function syncLevel(info) {
+  const me = store.me; if (!me || !info) return false;
+  const u = me.user; const from = u.lv;
+  const changed = u.lv !== info.lv || u.xp !== info.inLevel;
+  Object.assign(u, { lv: info.lv, xp: info.inLevel, totalXp: info.xp, tier: info.tier });
+  if (info.lv > from) {
+    me.pending.levelUp = { from, to: info.lv, xp: info.inLevel, need: info.need, oldTitle: levelTitle(from), oldTier: tierFor(from).id };
+    if (info.lv >= 8) u.frame = 'gold';
+    notify(`เลเวลอัปเป็น Lv.${info.lv} · ${levelTitle(info.lv)}!`);
+  }
+  return changed;
+}
 export function addXp(n) {
+  if (remoteOk) return; // XP is computed by the server from real activity
   const u = store.me.user;
   const from = u.lv;
   u.xp += n;
   while (u.xp >= xpNeed(u.lv)) { u.xp -= xpNeed(u.lv); u.lv += 1; }
   if (u.lv > from) {
-    store.me.pending.levelUp = { from, to: u.lv, xp: u.xp, need: xpNeed(u.lv), oldTitle: levelTitle(from) };
+    store.me.pending.levelUp = { from, to: u.lv, xp: u.xp, need: xpNeed(u.lv), oldTitle: levelTitle(from), oldTier: tierFor(from).id };
     if (u.lv >= 8) u.frame = 'gold';
     notify(`เลเวลอัปเป็น Lv.${u.lv} · ${levelTitle(u.lv)}!`);
   }
@@ -374,20 +390,23 @@ export async function collectStamp(shopId, token) {
     if (!c) c = me.cards[shopId] = { have: 0, visits: 0, first: todayKey(), last: null, lastStamp: null, redeemedCount: 0 };
     const before = c.have;
     Object.assign(c, { have: r.have, visits: r.visits, last: todayKey(), lastStamp: todayKey() });
-    return stampRewards(me, shop, c, before, isNewShop);
+    const res = stampRewards(me, shop, c, before, isNewShop);
+    if (r.level) { const lvBefore = me.user.lv; syncLevel(r.level); res.leveled = me.user.lv > lvBefore; save(); }
+    return { ...res, tierBonus: r.tierBonus || 0 };
   }
   if (c && c.lastStamp === todayKey()) return { ok: false, reason: 'already' };
   if (c && c.have >= shop.card.need) return { ok: false, reason: 'full' };
   const isNewShop = !c;
   if (!c) c = me.cards[shopId] = { have: 0, visits: 0, first: todayKey(), last: null, lastStamp: null, redeemedCount: 0 };
-  const add = isDoubleDay(shop) ? 2 : 1;
+  const tierBonus = isNewShop && tierFor(me.user.lv).id !== 'explorer' ? 1 : 0; // Regular+ perk
+  const add = (isDoubleDay(shop) ? 2 : 1) + tierBonus;
   const before = c.have;
   c.have = Math.min(shop.card.need, c.have + add);
   c.visits += 1;
   c.last = todayKey();
   c.lastStamp = todayKey();
-  logEvent({ type: 'stamp', shopId, customer: me.phone, nick: me.user.nick, n: c.have - before, have: c.have, visit: c.visits, firstVisit: isNewShop });
-  return stampRewards(me, shop, c, before, isNewShop);
+  logEvent({ type: 'stamp', shopId, customer: me.phone, nick: me.user.nick, lv: me.user.lv, n: c.have - before, have: c.have, visit: c.visits, firstVisit: isNewShop });
+  return { ...stampRewards(me, shop, c, before, isNewShop), tierBonus };
 }
 // XP, streak, missions and badges after a stamp (same for both backends).
 function stampRewards(me, shop, c, before, isNewShop) {
@@ -439,9 +458,11 @@ export async function addReview(shopId, stars, text) {
     try { r = await remote.rpc('customer', 'submit_review', { p_shop: shopId, p_stars: stars, p_text: text }); }
     catch (e) { return { ok: false, reason: 'server', message: e.message }; }
     if (!r.ok) return r;
-    if (existing) { Object.assign(existing, { stars, text, date: todayKey() }); commit(); return { ok: true, updated: true }; }
+    if (existing) { Object.assign(existing, { stars, text, date: todayKey() }); if (r.level) syncLevel(r.level); commit(); return { ok: true, updated: true }; }
     me.reviews.unshift({ shopId, stars, text, date: todayKey() });
-    me.week.reviews += 1; addXp(XP.review); checkMissions(); checkBadges(); commit();
+    me.week.reviews += 1; checkMissions(); checkBadges();
+    if (r.level) syncLevel(r.level);
+    commit();
     return { ok: true };
   }
   if (existing) { Object.assign(existing, { stars, text, date: todayKey() }); commit(); return { ok: true, updated: true }; }

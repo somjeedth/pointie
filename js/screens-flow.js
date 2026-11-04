@@ -4,7 +4,7 @@ import { icon } from './icons.js';
 import {
   esc, go, toast, bigStampCard, starsHtml, sheet, fireworks, playFireworks, cardBg, cardBgStyle, letterHtml, cardEn, stampGrid,
 } from './ui.js';
-import { shopById, CAT, SAMPLE_REVIEWS, MISSIONS, XP, levelTitle, unlocksFor } from './data.js';
+import { shopById, CAT, SAMPLE_REVIEWS, MISSIONS, XP, levelTitle, unlocksFor, tierFor, tierById } from './data.js';
 import {
   store, collectStamp, cardFor, canStampToday, untilMidnight, missionProgress, isDoubleDay, setPendingTap, pendingTap, clearPendingTap,
   hasVisited, myReview, addReview, toggleFav, redeem as doRedeem, thMonthYear, agoText, thDateTime, takeLevelUp, peekLevelUp, isRemote,
@@ -87,7 +87,7 @@ export function tap({ id }, query) {
           <img src="img/pointie-jump.png" alt="Pointie กระโดดดีใจ" style="height:72px;margin-top:-26px;flex:none">
           <div class="col" style="gap:4px;flex:1;min-width:0">
             <b style="font-size:18px">${r.isNewShop && Object.keys(me.cards).length === 1 ? 'ได้แสตมป์แรกแล้ว!' : 'ได้แสตมป์แล้ว!'}</b>
-            <div class="row" style="gap:6px;flex-wrap:wrap"><span class="pill primary">+${r.added} แสตมป์${r.added > 1 ? ' (x2)' : ''}</span><span class="pill violet">+${XP.stamp} XP</span><span class="pill dark">ภารกิจ ${mp}/${stampMission.goal}</span></div>
+            <div class="row" style="gap:6px;flex-wrap:wrap"><span class="pill primary">+${r.added} แสตมป์${r.added - (r.tierBonus || 0) > 1 ? ' (x2)' : ''}</span>${r.tierBonus ? `<span class="pill teal">โบนัส ${tierFor(me.user.lv).name} +${r.tierBonus}</span>` : ''}<span class="pill violet">+${XP.stamp} XP</span><span class="pill dark">ภารกิจ ${mp}/${stampMission.goal}</span></div>
             ${r.missions.length ? `<span class="xs semi green">ภารกิจสำเร็จ: ${r.missions.map((m) => esc(m.title)).join(', ')}</span>` : ''}
             ${r.badges.length ? `<span class="xs semi accent">ได้ Badge: ${r.badges.map((b) => esc(b.name)).join(', ')}</span>` : ''}
           </div>
@@ -242,6 +242,14 @@ export function storePage({ id }, query) {
         ${mine ? reviewItem({ initial: (me.user.nick || '?')[0], name: me.user.nick, lv: me.user.lv, ago: agoText(mine.date), visits: c?.visits || 1, stars: mine.stars, text: mine.text, reply: mine.reply ?? s.replies?.[me.phone] }, true) : ''}
         ${others.map((r) => reviewItem(r, false)).join('')}
       </section>
+      ${s.tierPromo?.active && s.tierPromo.text ? (() => {
+        const t = tierById(s.tierPromo.minTier); const ok = me.user.lv >= t.min;
+        return `<section class="col"><h2 class="h2">โปรสำหรับสมาชิก</h2>
+        <div class="tier-promo" style="--tc:${t.color}"><span class="tp-badge">${t.name}+</span>
+          <div class="col" style="gap:2px;flex:1"><b>${esc(s.tierPromo.text)}</b>
+          <span class="xs ${ok ? 'green' : 'muted'}">${ok ? `คุณใช้สิทธิ์ได้ · แสดงบัตรสมาชิก (หน้าโปรไฟล์) กับพนักงาน` : `ถึงระดับ ${t.name} (Lv.${t.min}) เพื่อปลดล็อก · ตอนนี้ Lv.${me.user.lv}`}</span></div>
+          ${ok ? icon('checkCircle', 22) : icon('lock', 20)}</div></section>`;
+      })() : ''}
       ${s.promo || s.event ? `<section class="col"><h2 class="h2">โปรและกิจกรรม</h2>
         ${s.promo ? `<div class="card row"><span class="tag" style="background:var(--soft);color:var(--accent)">โปร</span><span class="semi" style="flex:1">${esc(s.promoText)}</span><span class="xs muted">${s.promoUntil}</span></div>` : ''}
         ${s.event ? `<div class="card row"><span class="tag" style="background:var(--teal-soft);color:var(--teal)">กิจกรรม</span><span class="semi" style="flex:1">${esc(s.event.title)}</span><span class="xs muted">${s.event.when}</span></div>` : ''}</section>` : ''}
@@ -413,7 +421,7 @@ export function levelup() {
       <div id="lvT" style="position:relative;z-index:2;margin-top:14px;font-family:Kanit,sans-serif;font-style:italic;font-weight:800;font-size:56px;line-height:1;color:#FFD23F;text-shadow:0 4px 0 #8C2F1C;transition:transform .5s cubic-bezier(.2,1.6,.4,1) .1s,opacity .2s .1s;transform:scale(2.2) rotate(-10deg);opacity:0">LEVEL UP!</div>
       <div class="row" style="position:relative;z-index:2;justify-content:center;margin-top:12px;gap:10px"><span class="bold muted" style="font-size:20px">Lv.</span>
         <span class="lv-num"><span id="lvOld" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:38px;font-weight:700;transition:transform .45s cubic-bezier(.2,1.6,.4,1) .25s">${d.from}</span><span id="lvNew" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:38px;font-weight:700;transition:transform .45s cubic-bezier(.2,1.6,.4,1) .25s;transform:translateY(64px)">${d.to}</span></span></div>
-      <div id="lvRank" style="position:relative;z-index:2;margin-top:10px;font-size:18px;font-weight:700;transition:opacity .4s .45s,transform .4s .45s;opacity:0;transform:translateY(10px)">${levelTitle(d.to)} <span class="muted small" style="font-weight:500">· จาก${d.oldTitle}</span></div>
+      <div id="lvRank" style="position:relative;z-index:2;margin-top:10px;font-size:18px;font-weight:700;transition:opacity .4s .45s,transform .4s .45s;opacity:0;transform:translateY(10px)">${levelTitle(d.to)} <span class="muted small" style="font-weight:500">· จาก${d.oldTitle}</span>${d.oldTier && d.oldTier !== tierFor(d.to).id ? `<div style="margin-top:6px;color:${tierFor(d.to).color}">ขึ้นระดับ ${tierFor(d.to).name}!</div>` : ''}</div>
       <div style="position:relative;z-index:2;align-self:stretch;margin-top:18px" class="col"><div class="bar"><i id="lvBar" style="width:92%"></i></div><div class="between xs muted"><span id="lvXp">ก่อนหน้า</span><span id="lvNext">ถัดไป Lv.${d.to}</span></div></div>
       <div id="lvRewards" style="position:relative;z-index:2;align-self:stretch;margin-top:auto;display:flex;flex-direction:column;gap:12px;text-align:left;transition:opacity .45s,transform .45s cubic-bezier(.2,1.3,.4,1);opacity:0;transform:translateY(40px);pointer-events:none">
         <span class="xs muted semi">ปลดล็อกแล้ว</span>
