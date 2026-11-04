@@ -1,7 +1,7 @@
 // Main tab screens: Home, Map, Scan, My cards, Profile (+ sub pages).
 import { icon } from './icons.js';
 import {
-  esc, go, toast, nav, avatarHtml, toneStyle, cardBg, cardBgStyle, letterHtml, stampGrid, starsHtml, sheet, backBtn,
+  esc, go, toast, nav, avatarHtml, toneStyle, cardBg, cardBgStyle, letterHtml, cardEn, stampGrid, starsHtml, sheet, backBtn,
 } from './ui.js';
 import { SHOPS, CAT, shopById, MISSIONS, BADGES, xpNeed, levelTitle, unlocksFor, totalVisits, catVisitStats, STYLES } from './data.js';
 import {
@@ -346,7 +346,7 @@ export function cards(p, query) {
       <span class="bgfill ${cardBg(k)}" style="position:absolute;inset:0;border-radius:26px;${cardBgStyle(k)}"></span>
       ${full ? '<img class="peek" src="img/pointie-wink.png" alt="">' : ''}
       <span class="inner">
-        <span class="between"><span class="xs bold" style="letter-spacing:.08em">${esc(k.en)}</span>${full ? '<span class="full-tag">ครบแล้ว!</span>' : ''}</span>
+        <span class="between"><span class="xs bold" style="letter-spacing:.08em">${cardEn(k)}</span>${full ? '<span class="full-tag">ครบแล้ว!</span>' : ''}</span>
         ${letterHtml(k)}
         ${stampGrid(k, c.have, { sizeClass: k.need > 8 ? 'sm' : '' })}
         <span class="between small semi" style="margin-top:12px"><span><b style="font-size:16px">${c.have}</b>/${k.need}</span><span>${full ? 'พร้อมแลก' : `อีก ${k.need - c.have} ดวง`}</span></span>

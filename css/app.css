@@ -474,11 +474,7 @@ textarea.ta:focus, .input-wrap:focus-within { border-color: var(--primary); }
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
 
-/* uploaded card artwork (replaces the lettering) */
-.card-art { align-self: center; display: flex; align-items: center; justify-content: center; width: 100%; }
-.card-art img { display: block; max-width: 86%; max-height: 170px; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,.35)); }
-.stampcard .card-art { margin-top: 36px; }
-.bigcard .card-art { margin-top: 24px; }
-.bigcard .card-art img { max-height: 150px; }
-.minicard .card-art { justify-content: flex-start; }
-.minicard .card-art img { max-width: 100%; max-height: 52px; filter: none; }
+/* full-card artwork uploaded by the shop */
+.bg-art { background-color: #1a1a1a; background-size: cover; background-position: center top; background-repeat: no-repeat; }
+.art-space { flex: 1; min-height: 40px; }
+.minicard.bg-art .n, .bigcard .bg-art ~ .inner > .between, .stampcard .foot { text-shadow: 0 1px 3px rgba(0,0,0,.6); }

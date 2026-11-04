@@ -52,13 +52,18 @@ export function nav(active) {
   </nav>`;
 }
 
-export const cardBg = (card) => card.photo ? 'bg-photo' : 'bg-dots';
-export const cardBgStyle = (card) => card.photo ? '' : `background-color: ${card.bg};`;
-// Card artwork: the shop's uploaded image if any, otherwise its name in the card lettering.
+// Full-card artwork uploaded by the shop (recommended 1080 × 1560 px, ~2:3 portrait).
 export const isCardArt = (src) => typeof src === 'string' && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(src);
-export const letterHtml = (card, size) => isCardArt(card.art)
-  ? `<div class="card-art"><img src="${card.art}" alt=""></div>`
+export const hasArt = (card) => isCardArt(card.art);
+export const cardBg = (card) => hasArt(card) ? 'bg-art' : card.photo ? 'bg-photo' : 'bg-dots';
+export const cardBgStyle = (card) => hasArt(card)
+  ? `background-image: linear-gradient(rgba(0,0,0,0) 50%, rgba(0,0,0,.45) 100%), url('${card.art}');`
+  : card.photo ? '' : `background-color: ${card.bg};`;
+// Lettering is only drawn when there is no artwork (the art already carries the branding).
+export const letterHtml = (card, size) => hasArt(card)
+  ? '<div class="art-space"></div>'
   : `<div class="letter" style="color:${card.letter};${size ? `font-size:${size}px;` : ''}">${esc(card.l1)}<br><span class="l2">${esc(card.l2)}</span></div>`;
+export const cardEn = (card) => hasArt(card) ? '' : esc(card.en);
 
 export function stampGrid(card, have, { newIdx = -1, todayIdx = -1, sizeClass = '' } = {}) {
   const need = card.need;
@@ -77,9 +82,9 @@ export function bigStampCard(shop, have, opts = {}) {
   const c = shop.card;
   return `<div class="stampcard">
     <div class="bgfill ${cardBg(c)}" style="${cardBgStyle(c)}"></div>
-    ${c.photo ? '<div class="photo-tag">[รูปหน้าร้าน]</div>' : ''}
+    ${c.photo && !hasArt(c) ? '<div class="photo-tag">[รูปหน้าร้าน]</div>' : ''}
     <div class="shade"></div>
-    <div class="en">${esc(c.en)}</div>
+    <div class="en">${cardEn(c)}</div>
     ${letterHtml(c)}
     ${stampGrid(c, have, opts)}
     <div class="foot"><span><b>${have}</b>/${c.need} · ครบรับ${esc(c.reward)}</span><span class="muted2">${opts.foot || ''}</span></div>

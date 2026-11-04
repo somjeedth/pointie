@@ -168,6 +168,9 @@ textarea.inp { height: auto; min-height: 90px; padding: 10px 14px; resize: verti
 .print-area { display: none; }
 @media print { .print-area { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 40px; color: #000; background: #fff; text-align: center; font-family: 'IBM Plex Sans Thai', sans-serif; } }
 
-.art-up { display: flex; gap: 14px; align-items: center; }
-.art-thumb { width: 150px; height: 96px; border-radius: 14px; display: flex; align-items: center; justify-content: center; overflow: hidden; flex: none; }
-.art-thumb img { max-width: 88%; max-height: 82%; object-fit: contain; }
+.art-up { display: flex; gap: 16px; align-items: flex-start; }
+.art-thumb { position: relative; width: 120px; aspect-ratio: 1080 / 1560; border-radius: 14px; display: flex; align-items: center; justify-content: center; overflow: hidden; flex: none; }
+.art-thumb .safe-line { position: absolute; left: 0; right: 0; bottom: 0; height: 48%; border-top: 2px dashed rgba(255,255,255,.85); background: rgba(0,0,0,.35); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.size-spec { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 12px; background: var(--soft); font-size: 12px; }
+.size-spec b { font-size: 14px; color: var(--accent); }
+.size-spec span { color: var(--muted); }

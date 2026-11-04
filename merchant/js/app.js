@@ -308,7 +308,7 @@ function shopView(me, shop) {
 
 // ======================= card designer =======================
 // Downscale an uploaded image so it fits comfortably in storage (keeps transparency).
-function shrinkImage(file, maxW = 640, maxH = 400) {
+function shrinkImage(file, maxW = 720, maxH = 1040) {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file); const img = new Image();
     img.onload = () => {
@@ -316,8 +316,8 @@ function shrinkImage(file, maxW = 640, maxH = 400) {
       const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
       c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
       URL.revokeObjectURL(url);
-      let out = c.toDataURL('image/webp', 0.88);
-      if (!out.startsWith('data:image/webp')) out = c.toDataURL('image/png');
+      let out = c.toDataURL('image/webp', 0.82);
+      if (!out.startsWith('data:image/webp')) out = c.toDataURL('image/jpeg', 0.85);
       resolve(out);
     };
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('bad image')); };
@@ -336,24 +336,25 @@ function cardView(me, shop) {
     html: head('ออกแบบบัตรสะสม', 'พรีวิวด้านขวาคือหน้าตาที่ลูกค้าเห็นในแอพ') +
       `<div class="m-grid g-side">
         <form class="panel form" id="f">
-          <h2>ชื่อและรูปบนบัตร</h2>
-          <label class="field"><span>ชื่อภาษาอังกฤษ (บรรทัดบน)</span><input class="inp" name="en" value="${esc(c.en)}" maxlength="32"></label>
-          <div class="field"><span>รูปบนบัตร</span>
+          <h2>รูปบนบัตร (เต็มใบ)</h2>
+          <div class="field">
             <div class="art-up">
-              <div class="art-thumb ${cardBg(c)}" style="${cardBgStyle(c)}">${isCardArt(c.art) ? `<img src="${c.art}" alt="รูปบนบัตร">` : '<span class="xs" style="color:rgba(255,255,255,.7)">ยังไม่มีรูป</span>'}</div>
+              <div class="art-thumb ${cardBg(c)}" style="${cardBgStyle(c)}">${isCardArt(c.art) ? '<span class="safe-line" aria-hidden="true">ช่องแสตมป์</span>' : '<span class="xs" style="color:rgba(255,255,255,.75);text-align:center;padding:8px">ยังไม่มีรูป</span>'}</div>
               <div class="col" style="gap:8px">
                 <label class="btn btn-ghost btn-sm" style="height:40px;cursor:pointer">${icon('camera', 16)}${isCardArt(c.art) ? 'เปลี่ยนรูป' : 'อัปโหลดรูป'}<input type="file" accept="image/png,image/jpeg,image/webp" id="artFile" class="sr-only"></label>
                 ${isCardArt(c.art) ? `<button type="button" class="btn btn-danger btn-sm" style="height:40px" data-act="artRemove">${icon('trash', 16)}ลบรูป</button>` : ''}
+                <div class="size-spec"><b>ขนาดแนะนำ 1080 × 1560 px</b><span>แนวตั้ง สัดส่วนประมาณ 2:3 · JPG / PNG / WebP</span></div>
               </div>
             </div>
-            <small>แนะนำโลโก้หรือภาพ PNG พื้นหลังโปร่งใส ระบบย่อรูปให้อัตโนมัติ${isCardArt(c.art) ? '' : ' · ถ้ายังไม่ใส่รูป บัตรจะแสดงชื่อร้านแทน'}</small>
+            <small>รูปจะเต็มทั้งใบบัตร ครึ่งล่างมีช่องแสตมป์ทับ ให้วางโลโก้หรือข้อความสำคัญไว้ <b>ครึ่งบน</b> และเว้นขอบซ้าย-ขวาไว้เล็กน้อย เพราะบางหน้าจอจะตัดขอบรูปนิดหน่อย${isCardArt(c.art) ? '' : ' · ถ้ายังไม่ใส่รูป บัตรจะใช้สีพื้นและชื่อร้านด้านล่างแทน'}</small>
           </div>
+          ${isCardArt(c.art) ? '' : `<label class="field"><span>ชื่อภาษาอังกฤษ (บรรทัดบนของบัตร)</span><input class="inp" name="en" value="${esc(c.en)}" maxlength="32"></label>`}
           <h2 style="margin-top:6px">กติกา</h2>
           <div class="field"><span>จำนวนแสตมป์ที่ต้องสะสม</span><div class="seg">${[5, 6, 8, 10].map((n) => `<button type="button" class="${+c.need === n ? 'on' : ''}" data-act="need" data-n="${n}">${n} ดวง</button>`).join('')}</div></div>
           <label class="field"><span>รางวัลเมื่อครบ</span><input class="inp" name="reward" value="${esc(c.reward)}" maxlength="40"></label>
           <h2 style="margin-top:6px">หน้าตา</h2>
-          <div class="field"><span>พื้นหลัง</span><div class="seg"><button type="button" class="${!c.photo ? 'on' : ''}" data-act="style" data-v="dots">สีพื้น + ลายจุด</button><button type="button" class="${c.photo ? 'on' : ''}" data-act="style" data-v="photo">รูปหน้าร้าน</button></div></div>
-          ${c.photo ? '' : `<div class="field"><span>สีบัตร</span><div class="swatches">${BG_PRESETS.map((v) => `<button type="button" class="${c.bg === v ? 'on' : ''}" style="background:${v}" data-act="bg" data-v="${v}" aria-label="สี ${v}"></button>`).join('')}<input class="inp" type="color" name="bg" value="${esc(c.bg)}" aria-label="เลือกสีเอง"></div></div>`}
+          ${isCardArt(c.art) ? '' : `<div class="field"><span>พื้นหลัง (เมื่อยังไม่มีรูป)</span><div class="seg"><button type="button" class="${!c.photo ? 'on' : ''}" data-act="style" data-v="dots">สีพื้น + ลายจุด</button><button type="button" class="${c.photo ? 'on' : ''}" data-act="style" data-v="photo">รูปหน้าร้าน</button></div></div>`}
+          ${c.photo || isCardArt(c.art) ? '' : `<div class="field"><span>สีบัตร</span><div class="swatches">${BG_PRESETS.map((v) => `<button type="button" class="${c.bg === v ? 'on' : ''}" style="background:${v}" data-act="bg" data-v="${v}" aria-label="สี ${v}"></button>`).join('')}<input class="inp" type="color" name="bg" value="${esc(c.bg)}" aria-label="เลือกสีเอง"></div></div>`}
           ${isCardArt(c.art) ? '' : `<div class="field"><span>สีชื่อร้าน (ใช้เมื่อยังไม่มีรูป)</span><div class="swatches">${INK_PRESETS.map((v) => `<button type="button" class="${c.letter === v ? 'on' : ''}" style="background:${v}" data-act="ink" data-v="${v}" aria-label="สี ${v}"></button>`).join('')}<input class="inp" type="color" name="letter" value="${esc(c.letter)}" aria-label="เลือกสีเอง"></div></div>`}
           <div class="field"><span>ไอคอนแสตมป์</span><div class="seg"><button type="button" class="${c.glyph === 'cup' ? 'on' : ''}" data-act="glyph" data-v="cup">ถ้วยกาแฟ</button><button type="button" class="${c.glyph !== 'cup' ? 'on' : ''}" data-act="glyph" data-v="star">ดาว</button></div></div>
           <p class="small muted">${icon('alert', 14)} เปลี่ยนจำนวนดวงแล้ว บัตรที่ลูกค้าสะสมอยู่จะใช้กติกาใหม่ทันที (เวอร์ชันเดโม)</p>
