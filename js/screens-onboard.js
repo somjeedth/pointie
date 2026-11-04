@@ -37,7 +37,7 @@ export function welcome() {
         try { await loginDemo(); } catch (e) {
           console.warn('[pointie] demo sign-in failed', e);
           el.disabled = false; el.textContent = 'ลองใช้บัญชีตัวอย่าง';
-          toast('เข้าบัญชีตัวอย่างไม่ได้ ลองใหม่อีกครั้ง', 4000); return;
+          toast(serverErrorText(e.message), 9000); return;
         }
         toast('เข้าสู่ระบบด้วยบัญชีตัวอย่าง "มายด์"'); go(returnTo.take() || '/home');
       },
@@ -96,6 +96,15 @@ export function login() {
 let otpState = { code: '', status: 'normal', tries: 3 };
 let otpTimer;
 let verifying = false;
+// Explain the real reason a sign-in failed (raw message kept so it can be reported).
+export function serverErrorText(msg = '') {
+  if (/anonymous/i.test(msg)) return 'Supabase ยังไม่เปิด "Allow anonymous sign-ins" (Authentication → Sign In / Providers)';
+  if (/captcha/i.test(msg)) return 'Supabase เปิด CAPTCHA ไว้ แอพยังไม่รองรับ ให้ปิดที่ Authentication → Attack Protection';
+  if (/rate limit|too many/i.test(msg)) return 'ลองบ่อยเกินไป รอสักครู่แล้วลองใหม่';
+  if (/function .* does not exist|could not find the function/i.test(msg)) return 'ฐานข้อมูลยังไม่มีฟังก์ชันของ Pointie ให้รัน schema.sql ใหม่';
+  if (/timeout|failed to fetch|network/i.test(msg)) return 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่';
+  return `เข้าสู่ระบบไม่สำเร็จ: ${msg || 'ไม่ทราบสาเหตุ'}`;
+}
 export function otp() {
   const info = otpInfo();
   if (!info) { go('/login'); return { html: '' }; }
@@ -166,7 +175,7 @@ export function otp() {
         verifying = false;
         if (r.reason === 'server') {
           if (btn) { btn.disabled = false; btn.textContent = 'ยืนยัน'; }
-          toast('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองใหม่อีกครั้ง', 4000);
+          toast(serverErrorText(r.message), 9000);
           console.warn('[pointie] sign-in failed:', r.message);
           return;
         }
