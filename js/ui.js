@@ -40,13 +40,16 @@ export function steps(total, current) {
   return `<div class="steps" aria-label="ขั้นตอนที่ ${current} จาก ${total}">${s}</div>`;
 }
 
+// Centre "scan" button: the Pointie coin face ('face') or the face inside scan corners ('frame').
+export const SCAN_STYLE = 'frame';
+const SCAN_FRAME = '<svg class="scan-frame" viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" aria-hidden="true"><path d="M4 15V8a4 4 0 0 1 4-4h7M33 4h7a4 4 0 0 1 4 4v7M44 33v7a4 4 0 0 1-4 4h-7M15 44H8a4 4 0 0 1-4-4v-7"/></svg>';
 export function nav(active) {
   const item = (key, to, ic, label) =>
     `<a href="#${to}" class="${active === key ? 'on' : ''}" ${active === key ? 'aria-current="page"' : ''}>${icon(ic, 24)}<span>${label}</span></a>`;
   return `<nav class="nav" aria-label="เมนูหลัก">
     ${item('home', '/home', 'home', 'หน้าแรก')}
     ${item('map', '/map', 'map', 'แมพ')}
-    <a href="#/scan" class="scan"><span class="scan-btn">${icon('scan', 28, 2.4)}</span><span>สแกน</span></a>
+    <a href="#/scan" class="scan"><span class="scan-btn ${SCAN_STYLE}"><img class="scan-face" src="img/pointie-face.png" alt="">${SCAN_STYLE === 'frame' ? SCAN_FRAME : ''}</span><span>สแกน</span></a>
     ${item('cards', '/cards', 'card', 'บัตรของฉัน')}
     ${item('profile', '/profile', 'user', 'โปรไฟล์')}
   </nav>`;
