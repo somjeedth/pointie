@@ -1,6 +1,10 @@
-// App state, persistence (localStorage) and domain actions.
-import { SHOPS, shopById, xpNeed, MISSIONS, BADGES, XP, levelTitle } from './data.js';
+// App state, persistence and domain actions.
+// Two backends: Supabase (remote, the real one) and a self-contained localStorage demo.
+// In remote mode the server owns cards, redemptions and reviews; the game state
+// (XP, missions, badges, prefs) lives in the customer's `profile` JSON and is synced.
+import { SHOPS, shopById, xpNeed, MISSIONS, BADGES, XP, levelTitle, replaceShops } from './data.js';
 import { logEvent } from './catalog.js';
+import * as remote from './remote.js';
 
 const KEY_ACCOUNTS = 'pointie.accounts.v1';
 const KEY_SESSION = 'pointie.session.v1';
@@ -103,7 +107,67 @@ export function save() {
   safe.set(KEY_SESSION, store.session);
   safe.set(KEY_THEME, store.theme);
 }
-function commit() { save(); listeners.forEach((fn) => fn()); }
+function commit() { save(); listeners.forEach((fn) => fn()); if (remoteOk) schedulePush(); }
+
+// ---------- remote (Supabase) ----------
+let remoteOk = false;
+export const isRemote = () => remoteOk;
+const PROFILE_KEYS = ['favs', 'badges', 'pinned', 'week', 'notifications'];
+const profilePayload = (acc) => ({ user: acc.user, ...Object.fromEntries(PROFILE_KEYS.map((k) => [k, k === 'notifications' ? acc[k].slice(0, 30) : acc[k]])) });
+let pushTimer;
+function schedulePush() {
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => {
+    const me = store.me; if (!me) return;
+    remote.rpc('customer', 'save_profile', { p_profile: profilePayload(me), p_nick: me.user.nick || null })
+      .catch((e) => console.warn('[pointie] save_profile failed', e));
+  }, 700);
+}
+// Server state → local account object (keeps the same shape the screens use).
+function hydrate(st) {
+  const phone = st.phone || `u:${st.id}`;
+  const prev = store.accounts[phone];
+  const base = blankProfile(phone);
+  const prof = st.profile || {};
+  const acc = { ...base };
+  for (const k of PROFILE_KEYS) if (prof[k] !== undefined) acc[k] = prof[k];
+  acc.user = { ...base.user, ...(prof.user || {}) };
+  if (st.nick) acc.user.nick = st.nick;
+  acc.cards = {};
+  for (const [id, c] of Object.entries(st.cards || {})) {
+    acc.cards[id] = { have: c.have, visits: c.visits, first: c.first, last: c.last, lastStamp: c.lastStamp, redeemedCount: c.redeemedCount };
+  }
+  acc.redeemed = (st.redeemed || []).map((r) => ({ shopId: r.shopId, reward: r.reward, at: r.at, code: r.code, status: r.status }));
+  acc.reviews = (st.reviews || []).map((r) => ({ shopId: r.shopId, stars: r.stars, text: r.text, date: r.date, reply: r.reply }));
+  acc.pending = prev?.pending || {};
+  acc.remoteId = st.id;
+  store.accounts[phone] = acc;
+  store.session = { phone };
+}
+// Called once at start-up. Returns 'remote' | 'local' | 'fallback'.
+export async function bootRemote() {
+  if (!remote.configured()) return 'local';
+  try {
+    replaceShops(await remote.rpc('customer', 'get_catalog', undefined, 8000));
+    remoteOk = true;
+  } catch (e) {
+    console.warn('[pointie] Supabase unavailable, using local demo data', e);
+    return 'fallback';
+  }
+  try {
+    const s = await remote.session('customer');
+    const st = s ? await remote.rpc('customer', 'my_state') : null;
+    if (st) { hydrate(st); ensureWeek(); save(); } else { store.session = null; save(); }
+  } catch (e) { console.warn('[pointie] could not load profile', e); }
+  return 'remote';
+}
+async function ensureAnonSession(fresh = false) {
+  const c = remote.client('customer');
+  if (fresh) await c.auth.signOut().catch(() => {});
+  if (!fresh && await remote.session('customer')) return;
+  const { error } = await c.auth.signInAnonymously();
+  if (error) throw new remote.RemoteError(error.message, 'auth');
+}
 
 export function setTheme(t) { store.theme = t; save(); }
 
@@ -124,7 +188,7 @@ export function requestOtp(phone) {
   return code;
 }
 export const otpInfo = () => otp;
-export function verifyOtp(code) {
+export async function verifyOtp(code) {
   if (!otp) return { ok: false, reason: 'expired' };
   if (Date.now() > otp.expiresAt) return { ok: false, reason: 'expired' };
   if (code !== otp.code) {
@@ -133,6 +197,15 @@ export function verifyOtp(code) {
     return { ok: false, reason: 'wrong', tries: otp.tries };
   }
   const phone = otp.phone; otp = null;
+  if (remoteOk) {
+    try {
+      await ensureAnonSession();
+      let st = await remote.rpc('customer', 'my_state');
+      if (!st) st = await remote.rpc('customer', 'customer_upsert', { p_nick: '', p_phone: phone, p_profile: profilePayload(blankProfile(phone)) });
+      hydrate(st); ensureWeek(); commit();
+      return { ok: true, isNew: !store.me.user.setupDone };
+    } catch (e) { return { ok: false, reason: 'server', message: e.message }; }
+  }
   const isNew = !store.accounts[phone];
   if (isNew) store.accounts[phone] = phone === DEMO_PHONE ? demoProfile() : blankProfile(phone);
   store.session = { phone };
@@ -140,20 +213,37 @@ export function verifyOtp(code) {
   commit();
   return { ok: true, isNew: isNew && phone !== DEMO_PHONE };
 }
-export function loginDemo() {
+async function remoteDemo() {
+  await ensureAnonSession(true);
+  const p = demoProfile();
+  await remote.rpc('customer', 'customer_upsert', { p_nick: p.user.nick, p_phone: DEMO_PHONE, p_profile: profilePayload(p) });
+  hydrate(await remote.rpc('customer', 'seed_demo_cards'));
+  ensureWeek(); commit();
+}
+export async function loginDemo() {
+  if (remoteOk) return remoteDemo();
   if (!store.accounts[DEMO_PHONE]) store.accounts[DEMO_PHONE] = demoProfile();
   store.session = { phone: DEMO_PHONE };
   ensureWeek();
   commit();
 }
-export function resetDemo() {
+export async function resetDemo() {
+  if (remoteOk) return remoteDemo();
   store.accounts[DEMO_PHONE] = demoProfile();
   store.session = { phone: DEMO_PHONE };
   commit();
 }
-export function logout() { store.session = null; commit(); }
-export function deleteAccount() {
+export async function logout() {
+  if (remoteOk) { clearTimeout(pushTimer); await remote.client('customer').auth.signOut().catch(() => {}); if (store.session) delete store.accounts[store.session.phone]; }
+  store.session = null; save(); listeners.forEach((fn) => fn());
+}
+export async function deleteAccount() {
   if (!store.session) return;
+  if (remoteOk) {
+    clearTimeout(pushTimer);
+    await remote.rpc('customer', 'delete_my_account');
+    await remote.client('customer').auth.signOut().catch(() => {});
+  }
   delete store.accounts[store.session.phone];
   store.session = null;
   commit();
@@ -267,11 +357,25 @@ export function cardFor(shopId) { return store.me?.cards[shopId]; }
 export function canStampToday(shopId) { return cardFor(shopId)?.lastStamp !== todayKey(); }
 export const isDoubleDay = (shop) => !!(shop.promo && shop.promoRule?.type === 'double' && shop.promoRule.days?.includes(new Date().getDay()));
 
-export function collectStamp(shopId) {
+export async function collectStamp(shopId, token) {
   const me = store.me; const shop = shopById(shopId);
   if (!me || !shop) return { ok: false, reason: 'unknown' };
   ensureWeek();
   let c = me.cards[shopId];
+  if (remoteOk) {
+    let r;
+    try { r = await remote.rpc('customer', 'collect_stamp', { p_shop: shopId, p_token: token || null }); }
+    catch (e) { return { ok: false, reason: navigator.onLine ? 'server' : 'offline', message: e.message }; }
+    if (!r.ok) {
+      if (r.reason === 'already' && c) { c.lastStamp = todayKey(); commit(); }
+      return r;
+    }
+    const isNewShop = !c;
+    if (!c) c = me.cards[shopId] = { have: 0, visits: 0, first: todayKey(), last: null, lastStamp: null, redeemedCount: 0 };
+    const before = c.have;
+    Object.assign(c, { have: r.have, visits: r.visits, last: todayKey(), lastStamp: todayKey() });
+    return stampRewards(me, shop, c, before, isNewShop);
+  }
   if (c && c.lastStamp === todayKey()) return { ok: false, reason: 'already' };
   if (c && c.have >= shop.card.need) return { ok: false, reason: 'full' };
   const isNewShop = !c;
@@ -282,6 +386,12 @@ export function collectStamp(shopId) {
   c.visits += 1;
   c.last = todayKey();
   c.lastStamp = todayKey();
+  logEvent({ type: 'stamp', shopId, customer: me.phone, nick: me.user.nick, n: c.have - before, have: c.have, visit: c.visits, firstVisit: isNewShop });
+  return stampRewards(me, shop, c, before, isNewShop);
+}
+// XP, streak, missions and badges after a stamp (same for both backends).
+function stampRewards(me, shop, c, before, isNewShop) {
+  const shopId = shop.id;
   if (me.week.stamps === 0) me.user.streak += 1;
   me.week.stamps += c.have - before;
   if (isNewShop && shop.cat === 'cafe' && !me.week.newCafes.includes(shopId)) me.week.newCafes.push(shopId);
@@ -290,14 +400,22 @@ export function collectStamp(shopId) {
   const missions = checkMissions();
   const badges = checkBadges();
   if (c.have >= shop.card.need) notify(`บัตร${shop.name}ครบแล้ว! แลก${shop.card.reward}ได้เลย`);
-  logEvent({ type: 'stamp', shopId, customer: me.phone, nick: me.user.nick, n: c.have - before, have: c.have, visit: c.visits, firstVisit: isNewShop });
   commit();
   return { ok: true, added: c.have - before, have: c.have, full: c.have >= shop.card.need, visits: c.visits, missions, badges, leveled: me.user.lv > lvBefore, isNewShop };
 }
 
-export function redeem(shopId) {
+export async function redeem(shopId) {
   const me = store.me; const shop = shopById(shopId); const c = me.cards[shopId];
   if (!c || c.have < shop.card.need) return false;
+  if (remoteOk) {
+    let r;
+    try { r = await remote.rpc('customer', 'redeem_card', { p_shop: shopId }); } catch (e) { console.warn(e); return false; }
+    if (!r.ok) return false;
+    c.have = 0; c.redeemedCount += 1;
+    me.redeemed.unshift({ shopId, reward: r.reward, at: r.at, code: r.code, status: 'pending' });
+    checkBadges(); commit();
+    return { code: r.code };
+  }
   c.have = 0;
   c.redeemedCount += 1;
   const code = String(Math.floor(1000 + Math.random() * 9000));
@@ -311,11 +429,21 @@ export function redeem(shopId) {
 // ---------- reviews / favourites ----------
 export const hasVisited = (shopId) => !!cardFor(shopId)?.visits;
 export const myReview = (shopId) => store.me?.reviews.find((r) => r.shopId === shopId);
-export function addReview(shopId, stars, text) {
+export async function addReview(shopId, stars, text) {
   const me = store.me;
   if (!hasVisited(shopId)) return { ok: false };
   ensureWeek();
   const existing = myReview(shopId);
+  if (remoteOk) {
+    let r;
+    try { r = await remote.rpc('customer', 'submit_review', { p_shop: shopId, p_stars: stars, p_text: text }); }
+    catch (e) { return { ok: false, reason: 'server', message: e.message }; }
+    if (!r.ok) return r;
+    if (existing) { Object.assign(existing, { stars, text, date: todayKey() }); commit(); return { ok: true, updated: true }; }
+    me.reviews.unshift({ shopId, stars, text, date: todayKey() });
+    me.week.reviews += 1; addXp(XP.review); checkMissions(); checkBadges(); commit();
+    return { ok: true };
+  }
   if (existing) { Object.assign(existing, { stars, text, date: todayKey() }); commit(); return { ok: true, updated: true }; }
   me.reviews.unshift({ shopId, stars, text, date: todayKey() });
   logEvent({ type: 'review', shopId, customer: me.phone, nick: me.user.nick, stars });

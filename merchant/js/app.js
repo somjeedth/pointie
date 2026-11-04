@@ -8,6 +8,19 @@ import * as api from './api.js';
 const root = document.getElementById('m-app');
 const go = (p) => { if (location.hash !== '#' + p) location.hash = p; else render(true); };
 const rerender = () => render(true);
+// Run a save/update, show the outcome, then re-render with fresh data.
+async function act(p, okMsg) {
+  try {
+    const r = await p;
+    if (r === null) throw new Error('พื้นที่เก็บข้อมูลเต็ม ลองใช้รูปที่เล็กลง');
+    if (okMsg) toast(okMsg);
+    return true;
+  } catch (e) {
+    console.warn('[pointie]', e);
+    toast('ทำรายการไม่สำเร็จ: ' + (e.message || 'ลองใหม่อีกครั้ง'), 4000);
+    return false;
+  } finally { rerender(); }
+}
 const DAYS = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
 const DAYS_FULL = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'];
 const TH_M = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
@@ -34,7 +47,7 @@ const NAV = [
 ];
 function shell(active, me, shop, body) {
   const pending = api.redemptions(shop.id).filter((e) => e.status === 'pending').length;
-  const unreplied = api.reviews(shop.id).filter((r) => !shop.replies[r.key]).length;
+  const unreplied = api.reviews(shop.id).filter((r) => !r.reply).length;
   const badge = { redeem: pending, reviews: unreplied };
   return `<div class="m-shell" id="shell">
     <aside class="m-side" aria-label="เมนูร้านค้า">
@@ -66,7 +79,9 @@ function loginView() {
         <label class="field"><span>รหัสผ่าน</span><input class="inp" name="password" type="password" autocomplete="current-password" required></label>
         <p class="alert" id="err" hidden style="justify-content:flex-start"></p>
         <button class="btn btn-primary">เข้าสู่ระบบ</button>
-        <div class="demo-hint">ลองใช้บัญชีตัวอย่างของ <b>บ้านกาแฟริมคลอง</b><br><span class="muted">${api.DEMO.email} / ${api.DEMO.password}</span><br><button type="button" class="link" data-act="demo" style="margin-top:6px">เข้าด้วยบัญชีตัวอย่าง →</button></div>
+        ${api.isRemote()
+          ? '<div class="demo-hint">อยากลองก่อน? กด <b>สมัครร้านใหม่</b> แล้วเลือก "ใช้ร้านตัวอย่าง" จะได้ร้านพร้อมข้อมูล Dashboard ย้อนหลังไว้ทดลอง</div>'
+          : `<div class="demo-hint">ลองใช้บัญชีตัวอย่างของ <b>บ้านกาแฟริมคลอง</b><br><span class="muted">${api.DEMO.email} / ${api.DEMO.password}</span><br><button type="button" class="link" data-act="demo" style="margin-top:6px">เข้าด้วยบัญชีตัวอย่าง →</button></div>`}
         <p class="small muted center">ยังไม่มีบัญชีร้าน? <a class="link-u" href="#/signup">สมัครร้านใหม่</a></p>
       </form></div></div>`,
     mount(r) {
@@ -81,34 +96,80 @@ function loginView() {
     actions: { async demo() { await api.login(api.DEMO.email, api.DEMO.password); go('/dashboard'); } },
   };
 }
+// Shop fields shared by sign-up and "create your shop" (remote: can start from a sample shop).
+function shopFields() {
+  return `${api.isRemote() ? `<label class="field"><span>เริ่มจาก</span><select class="inp" name="sample" id="sampleSel"><option value="">ร้านใหม่ของฉัน</option></select>
+      <small>เลือกร้านตัวอย่างเพื่อทดลอง: ได้ร้านพร้อมบัตร โปร และข้อมูล Dashboard ย้อนหลัง</small></label>` : ''}
+    <fieldset class="form new-only" style="border:0;padding:0;margin:0">
+      <label class="field"><span>ชื่อร้าน (ภาษาไทย)</span><input class="inp" name="shopName" required maxlength="40" placeholder="เช่น ขนมปังบ้านสวน"></label>
+      <label class="field"><span>ชื่อร้าน (อังกฤษ) — ใช้บนบัตรสะสม</span><input class="inp" name="shopNameEn" required maxlength="30" placeholder="BAAN SUAN BAKERY"></label>
+      <div class="row2">
+        <label class="field"><span>หมวด</span><select class="inp" name="cat">${Object.entries(api.CAT).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('')}</select></label>
+        <label class="field"><span>ย่าน</span><input class="inp" name="area" value="อารีย์" maxlength="30"></label>
+      </div>
+    </fieldset>`;
+}
+function mountShopFields(r) {
+  const sel = r.querySelector('#sampleSel'); if (!sel) return;
+  const fs = r.querySelector('.new-only');
+  sel.addEventListener('change', () => { fs.disabled = !!sel.value; fs.style.opacity = sel.value ? 0.4 : 1; });
+  api.samplesAvailable().then((list) => {
+    for (const s of list || []) sel.insertAdjacentHTML('beforeend', `<option value="${esc(s.id)}">ร้านตัวอย่าง: ${esc(s.name)}</option>`);
+    if (!list?.length) sel.closest('.field').hidden = true;
+  }).catch(() => { sel.closest('.field').hidden = true; });
+}
+function showErr(r, msg) { const el = r.querySelector('#err'); el.textContent = msg; el.hidden = false; }
 function signupView() {
   return {
     html: `<div class="auth">
       <div class="hero"><img src="../img/pointie-point.png" alt=""><h1 class="h1">เปิดร้านบน Pointie</h1><p class="muted">ตั้งค่าเสร็จในไม่กี่นาที แล้ววางสแตนด์ NFC ให้ลูกค้าแตะรับแสตมป์ได้เลย</p></div>
       <div class="box"><form class="form" id="f">
         <h2 class="h1" style="font-size:24px">สมัครร้านใหม่</h2>
-        <label class="field"><span>ชื่อร้าน (ภาษาไทย)</span><input class="inp" name="shopName" required maxlength="40" placeholder="เช่น ขนมปังบ้านสวน"></label>
-        <label class="field"><span>ชื่อร้าน (อังกฤษ) — ใช้บนบัตรสะสม</span><input class="inp" name="shopNameEn" required maxlength="30" placeholder="BAAN SUAN BAKERY"></label>
-        <div class="row2">
-          <label class="field"><span>หมวด</span><select class="inp" name="cat">${Object.entries(api.CAT).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('')}</select></label>
-          <label class="field"><span>ย่าน</span><input class="inp" name="area" value="อารีย์" maxlength="30"></label>
-        </div>
+        ${shopFields()}
         <label class="field"><span>ชื่อผู้ดูแล</span><input class="inp" name="name" required maxlength="40"></label>
         <label class="field"><span>อีเมล</span><input class="inp" name="email" type="email" autocomplete="email" required></label>
         <label class="field"><span>รหัสผ่าน (อย่างน้อย 8 ตัว)</span><input class="inp" name="password" type="password" minlength="8" autocomplete="new-password" required></label>
         <p class="alert" id="err" hidden style="justify-content:flex-start"></p>
-        <button class="btn btn-primary">สร้างร้าน</button>
+        <button class="btn btn-primary" id="submit">สร้างร้าน</button>
         <p class="small muted center">มีบัญชีแล้ว? <a class="link-u" href="#/login">เข้าสู่ระบบ</a></p>
       </form></div></div>`,
     mount(r) {
+      mountShopFields(r);
       r.querySelector('#f').addEventListener('submit', async (e) => {
         e.preventDefault();
+        const btn = r.querySelector('#submit'); btn.disabled = true; btn.textContent = 'กำลังสร้างร้าน…';
         const res = await api.signup(Object.fromEntries(new FormData(e.target)));
-        if (!res.ok) { const el = r.querySelector('#err'); el.textContent = res.error; el.hidden = false; return; }
+        btn.disabled = false; btn.textContent = 'สร้างร้าน';
+        if (!res.ok) { showErr(r, res.error); return; }
         toast('สร้างร้านแล้ว! เริ่มจากตั้งค่าข้อมูลร้านและปักหมุดบนแมพ');
         go('/shop');
       });
     },
+  };
+}
+// Signed in (Supabase) but no shop yet — e.g. after confirming the e-mail.
+function createShopView(me) {
+  return {
+    html: `<div class="auth">
+      <div class="hero"><img src="../img/pointie-cheer.png" alt=""><h1 class="h1">อีกขั้นเดียว!</h1><p class="muted">${esc(me.email)}<br>ตั้งชื่อร้านของคุณเพื่อเริ่มใช้งาน</p></div>
+      <div class="box"><form class="form" id="f">
+        <h2 class="h1" style="font-size:24px">สร้างร้าน</h2>
+        ${shopFields()}
+        <p class="alert" id="err" hidden style="justify-content:flex-start"></p>
+        <button class="btn btn-primary" id="submit">สร้างร้าน</button>
+        <button type="button" class="btn btn-text" data-act="logout">ออกจากระบบ</button>
+      </form></div></div>`,
+    mount(r) {
+      mountShopFields(r);
+      r.querySelector('#f').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = r.querySelector('#submit'); btn.disabled = true;
+        try { await api.createShop(Object.fromEntries(new FormData(e.target))); }
+        catch (err) { btn.disabled = false; showErr(r, 'สร้างร้านไม่สำเร็จ: ' + err.message); return; }
+        toast('สร้างร้านแล้ว!'); go('/shop');
+      });
+    },
+    actions: { async logout() { await api.logout(); go('/login'); } },
   };
 }
 
@@ -195,8 +256,10 @@ function dashboardView(me, shop) {
 
 // ======================= redeem =======================
 let redeemCode = '';
+let lookup = { code: '', result: null };
 function redeemView(me, shop) {
-  const found = redeemCode.length === 4 ? api.findPending(shop.id, redeemCode) : null;
+  const found = redeemCode.length === 4 && lookup.code === redeemCode ? lookup.result : null;
+  const searching = redeemCode.length === 4 && lookup.code !== redeemCode;
   const list = api.redemptions(shop.id).slice(0, 30);
   return {
     html: head('ยืนยันแลกรางวัล', 'ให้ลูกค้ากด "แลกรางวัล" ในแอพ แล้วใส่รหัส 4 หลักที่ขึ้นบนจอลูกค้า') +
@@ -204,7 +267,7 @@ function redeemView(me, shop) {
         <div class="panel">
           <label class="field"><span>รหัสจากจอลูกค้า</span>
             <div class="code-in"><input class="inp" id="code" inputmode="numeric" maxlength="4" autocomplete="off" value="${esc(redeemCode)}" placeholder="••••"></div></label>
-          ${redeemCode.length === 4 ? (found
+          ${searching ? '<p class="sub">กำลังค้นหา…</p>' : redeemCode.length === 4 ? (found
             ? `<div class="card col" style="border-color:var(--primary)"><div class="row"><span class="initials" style="border-radius:50%">${esc(found.nick[0])}</span><div class="col" style="gap:0"><b style="font-size:18px">${esc(found.nick)}</b><span class="small muted">ขอแลกเมื่อ ${ago(found.at)}</span></div></div>
                 <div class="card-soft"><span class="xs muted">รางวัล</span><br><b style="font-size:18px">${esc(found.reward)}</b></div>
                 <div class="actions"><button class="btn btn-primary" data-act="confirm" data-id="${found.id}">${icon('check', 18, 3)}ยืนยันส่งมอบรางวัล</button><button class="btn btn-ghost" data-act="void" data-id="${found.id}">ไม่ถูกต้อง</button></div></div>`
@@ -218,12 +281,23 @@ function redeemView(me, shop) {
       </tbody></table></div></div>`,
     mount(r) {
       const inp = r.querySelector('#code');
-      inp.addEventListener('input', () => { const v = inp.value.replace(/\D/g, '').slice(0, 4); inp.value = v; if (v.length === 4 || redeemCode.length === 4) { redeemCode = v; rerender(); } else redeemCode = v; });
+      inp.addEventListener('input', async () => {
+        const v = inp.value.replace(/\D/g, '').slice(0, 4); inp.value = v;
+        const changed = v.length === 4 || redeemCode.length === 4;
+        redeemCode = v;
+        if (!changed) return;
+        rerender();
+        if (v.length === 4) {
+          let result = null;
+          try { result = await api.findPending(shop.id, v); } catch (e) { console.warn(e); toast('ค้นหาไม่สำเร็จ ลองใหม่อีกครั้ง'); }
+          if (redeemCode === v) { lookup = { code: v, result: result || null }; rerender(); }
+        }
+      });
       if (!redeemCode) inp.focus();
     },
     actions: {
-      confirm(el) { api.confirmRedeem(el.dataset.id, me.email); redeemCode = ''; toast('ยืนยันส่งมอบรางวัลแล้ว'); rerender(); },
-      void(el) { if (confirm('ทำเครื่องหมายว่ารายการนี้ไม่ถูกต้อง?')) { api.voidRedeem(el.dataset.id, me.email); redeemCode = ''; toast('ยกเลิกรายการแล้ว'); rerender(); } },
+      confirm(el) { el.disabled = true; const id = el.dataset.id; redeemCode = ''; lookup = { code: '', result: null }; act(api.confirmRedeem(id, me.email), 'ยืนยันส่งมอบรางวัลแล้ว'); },
+      void(el) { if (confirm('ทำเครื่องหมายว่ารายการนี้ไม่ถูกต้อง?')) { const id = el.dataset.id; redeemCode = ''; lookup = { code: '', result: null }; act(api.voidRedeem(id, me.email), 'ยกเลิกรายการแล้ว'); } },
     },
   };
 }
@@ -282,8 +356,8 @@ function shopView(me, shop) {
         e.preventDefault();
         const fd = Object.fromEntries(new FormData(form));
         const t = (v) => { const [h, m] = v.split(':').map(Number); return h + (m >= 30 ? 0.5 : 0); };
-        api.saveShop(shop.id, { name: fd.name.trim(), initials: fd.initials.trim() || fd.name.slice(0, 2), cat: fd.cat, area: fd.area.trim(), address: fd.address.trim(), phone: fd.phone.trim(), hours: fd.hours.trim(), closed: fd.closed.trim(), summary: fd.summary.trim(), openAt: t(fd.openT), closeAt: t(fd.closeT) });
-        shopDraft = null; toast('บันทึกข้อมูลร้านแล้ว'); rerender();
+        act(api.saveShop(shop.id, { name: fd.name.trim(), initials: fd.initials.trim() || fd.name.slice(0, 2), cat: fd.cat, area: fd.area.trim(), address: fd.address.trim(), phone: fd.phone.trim(), hours: fd.hours.trim(), closed: fd.closed.trim(), summary: fd.summary.trim(), openAt: t(fd.openT), closeAt: t(fd.closeT) }), 'บันทึกข้อมูลร้านแล้ว');
+        shopDraft = null;
       });
       const map = r.querySelector('#pinmap'), pin = r.querySelector('#pin');
       let drag = false;
@@ -302,7 +376,7 @@ function shopView(me, shop) {
         pin.style.left = `${(shopDraft.x / 390) * 100}%`; pin.style.top = `${shopDraft.y - MAP_Y0}px`;
       });
     },
-    actions: { savePin() { api.saveShop(shop.id, { x: shopDraft.x, y: shopDraft.y }); toast('บันทึกตำแหน่งแล้ว ลูกค้าจะเห็นหมุดใหม่บนแมพ'); shopDraft = null; rerender(); } },
+    actions: { savePin() { const pos = { x: shopDraft.x, y: shopDraft.y }; shopDraft = null; act(api.saveShop(shop.id, pos), 'บันทึกตำแหน่งแล้ว ลูกค้าจะเห็นหมุดใหม่บนแมพ'); } },
   };
 }
 
@@ -377,8 +451,7 @@ function cardView(me, shop) {
         e.preventDefault();
         const { _id, ...card } = cardDraft;
         if (!card.reward.trim()) { toast('กรอกรางวัลเมื่อครบก่อนนะ'); return; }
-        if (!api.saveShop(shop.id, { card: { ...card, need: +card.need } })) { toast('บันทึกไม่ได้ พื้นที่เก็บข้อมูลเต็ม ลองใช้รูปที่เล็กลง'); return; }
-        cardDraft = null; toast('บันทึกบัตรแล้ว ลูกค้าจะเห็นบัตรใหม่ในแอพ'); rerender();
+        act(api.saveShop(shop.id, { card: { ...card, need: +card.need } }), 'บันทึกบัตรแล้ว ลูกค้าจะเห็นบัตรใหม่ในแอพ').then((ok) => { if (ok) { cardDraft = null; rerender(); } });
       });
     },
     actions: {
@@ -441,8 +514,8 @@ function promosView(me, shop) {
           const d = p.evDate ? new Date(p.evDate) : null;
           event = { title: p.evTitle.trim(), date: p.evDate, time: p.evTime, day: d ? String(d.getDate()) : '★', mon: d ? TH_M[d.getMonth()] : 'เร็วๆ นี้', when: d ? `${DAYS[d.getDay()]} ${d.getDate()} ${TH_M[d.getMonth()]} · ${p.evTime}` : p.evTime };
         }
-        api.saveShop(shop.id, { promo: p.promo, promoText: p.promoText.trim(), promoUntil: p.promoUntil.trim(), promoRule: p.double ? { type: 'double', days: p.days } : null, event });
-        promoDraft = null; toast('บันทึกแล้ว ลูกค้าจะเห็นในแอพทันที'); rerender();
+        promoDraft = null;
+        act(api.saveShop(shop.id, { promo: p.promo, promoText: p.promoText.trim(), promoUntil: p.promoUntil.trim(), promoRule: p.double ? { type: 'double', days: p.days } : null, event }), 'บันทึกแล้ว ลูกค้าจะเห็นในแอพทันที');
       });
     },
     actions: {
@@ -489,14 +562,14 @@ function standsView(me, shop) {
     mount(r) {
       r.querySelector('#add').addEventListener('submit', (e) => {
         e.preventDefault(); const name = new FormData(e.target).get('name').trim();
-        api.addStand(shop.id, name); toast('เพิ่มสแตนด์แล้ว'); rerender();
+        act(api.addStand(shop.id, name), 'เพิ่มสแตนด์แล้ว');
       });
     },
     actions: {
       async copy(el) { try { await navigator.clipboard.writeText(el.dataset.url); toast('คัดลอกลิงก์แล้ว'); } catch { toast('คัดลอกไม่ได้ ลองเลือกข้อความแทน'); } },
-      tgStand(el) { const s = shop.stands.find((x) => x.id === el.dataset.id); api.updateStand(shop.id, s.id, { active: !s.active }); toast(s.active ? 'ปิดสแตนด์แล้ว ลิงก์นี้จะใช้รับแสตมป์ไม่ได้' : 'เปิดสแตนด์แล้ว'); rerender(); },
-      rotate(el) { if (confirm('เปลี่ยนรหัสสแตนด์? QR/แท็กเดิมจะใช้ไม่ได้ ต้องพิมพ์หรือเขียนใหม่')) { api.rotateStand(shop.id, el.dataset.id); toast('เปลี่ยนรหัสแล้ว อย่าลืมพิมพ์ QR ใหม่'); rerender(); } },
-      delStand(el) { if (confirm('ลบสแตนด์นี้?')) { api.removeStand(shop.id, el.dataset.id); rerender(); } },
+      tgStand(el) { const s = shop.stands.find((x) => x.id === el.dataset.id); act(api.updateStand(shop.id, s.id, { active: !s.active }), s.active ? 'ปิดสแตนด์แล้ว ลิงก์นี้จะใช้รับแสตมป์ไม่ได้' : 'เปิดสแตนด์แล้ว'); },
+      rotate(el) { if (confirm('เปลี่ยนรหัสสแตนด์? QR/แท็กเดิมจะใช้ไม่ได้ ต้องพิมพ์หรือเขียนใหม่')) act(api.rotateStand(shop.id, el.dataset.id), 'เปลี่ยนรหัสแล้ว อย่าลืมพิมพ์ QR ใหม่'); },
+      delStand(el) { if (confirm('ลบสแตนด์นี้?')) act(api.removeStand(shop.id, el.dataset.id), 'ลบสแตนด์แล้ว'); },
       print(el) {
         const s = shop.stands.find((x) => x.id === el.dataset.id);
         const pa = document.getElementById('printArea');
@@ -518,12 +591,12 @@ function reviewsView(me, shop) {
       (list.length ? list.map((r) => `<div class="panel">
         <div class="between"><div class="row" style="gap:10px"><span class="initials sm" style="border-radius:50%">${esc(r.nick[0])}</span><div class="col" style="gap:0"><b>${esc(r.nick)}</b><span class="xs muted">${esc(r.date)}${r.sample ? ' · รีวิวตัวอย่าง' : ''}</span></div></div><span class="real">${icon('check', 11, 3)}ไปจริง</span></div>
         ${starsHtml(r.stars)}<p>${esc(r.text)}</p>
-        <form class="col reply" data-key="${esc(r.key)}" style="gap:8px"><textarea class="inp" name="reply" placeholder="ตอบกลับลูกค้า…" maxlength="300">${esc(shop.replies[r.key] || '')}</textarea>
-        <div class="actions"><button class="btn btn-primary btn-sm">${shop.replies[r.key] ? 'อัปเดตคำตอบ' : 'ตอบกลับ'}</button>${shop.replies[r.key] ? '<span class="status confirmed">ตอบแล้ว</span>' : ''}</div></form>
+        <form class="col reply" data-key="${esc(r.key)}" style="gap:8px"><textarea class="inp" name="reply" placeholder="ตอบกลับลูกค้า…" maxlength="300">${esc(r.reply || '')}</textarea>
+        <div class="actions"><button class="btn btn-primary btn-sm">${r.reply ? 'อัปเดตคำตอบ' : 'ตอบกลับ'}</button>${r.reply ? '<span class="status confirmed">ตอบแล้ว</span>' : ''}</div></form>
       </div>`).join('') : '<div class="panel"><p class="sub">ยังไม่มีรีวิว</p></div>'),
     mount(r) {
       r.querySelectorAll('form.reply').forEach((f) => f.addEventListener('submit', (e) => {
-        e.preventDefault(); api.reply(shop.id, f.dataset.key, new FormData(f).get('reply')); toast('บันทึกคำตอบแล้ว'); rerender();
+        e.preventDefault(); act(api.reply(shop.id, f.dataset.key, new FormData(f).get('reply')), 'บันทึกคำตอบแล้ว');
       }));
     },
   };
@@ -564,15 +637,15 @@ function settingsView(me, shop) {
         <button data-act="pause">${icon('lock')}ซ่อนร้านจากแอพลูกค้าชั่วคราว<span class="switch ${shop.paused ? 'on' : ''}" aria-hidden="true"></span></button>
         <button data-act="theme">${icon(document.documentElement.dataset.theme === 'dark' ? 'moon' : 'sun')}โหมดมืด<span class="switch ${document.documentElement.dataset.theme === 'dark' ? 'on' : ''}" aria-hidden="true"></span></button>
         <a href="${customerAppUrl()}" target="_blank" rel="noopener">${icon('share')}เปิดแอพลูกค้า<span class="chev">${icon('chev', 18)}</span></a>
-        <button data-act="resetDemo">${icon('refresh')}สร้างข้อมูลตัวอย่าง (Dashboard) ใหม่</button>
+        ${api.isRemote() ? '' : `<button data-act="resetDemo">${icon('refresh')}สร้างข้อมูลตัวอย่าง (Dashboard) ใหม่</button>`}
         <button data-act="logout" style="color:var(--red)">${icon('logout')}ออกจากระบบ</button>
       </div></div>
-      <p class="small muted" style="max-width:640px">เวอร์ชันเดโม: ข้อมูลร้านและกิจกรรมของลูกค้าเก็บในเบราว์เซอร์นี้ ใช้ร่วมกับแอพลูกค้าบนโดเมนเดียวกัน — เมื่อเชื่อม Supabase ข้อมูลจะซิงก์ข้ามเครื่องได้</p>`,
+      <p class="small muted" style="max-width:640px">${api.isRemote() ? 'ข้อมูลซิงก์กับเซิร์ฟเวอร์ (Supabase) — เห็นการแตะจากมือถือลูกค้าทุกเครื่อง' : 'เวอร์ชันเดโม: ข้อมูลร้านและกิจกรรมของลูกค้าเก็บในเบราว์เซอร์นี้ ใช้ร่วมกับแอพลูกค้าบนโดเมนเดียวกัน'}</p>`,
     actions: {
-      pause() { api.saveShop(shop.id, { paused: !shop.paused }); toast(shop.paused ? 'ร้านกลับมาแสดงในแอพแล้ว' : 'ซ่อนร้านจากแอพลูกค้าแล้ว'); rerender(); },
+      pause() { act(api.saveShop(shop.id, { paused: !shop.paused }), shop.paused ? 'ร้านกลับมาแสดงในแอพแล้ว' : 'ซ่อนร้านจากแอพลูกค้าแล้ว'); },
       theme() { const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = t; try { localStorage.setItem('pointie.theme', JSON.stringify(t)); } catch { /* ignore */ } rerender(); },
       resetDemo() { api.resetDemoData(); toast('สร้างข้อมูลตัวอย่างใหม่แล้ว'); go('/dashboard'); },
-      logout() { api.logout(); go('/login'); },
+      async logout() { await api.logout(); go('/login'); },
     },
   };
 }
@@ -589,6 +662,9 @@ function render(keep = false) {
   if (!me) {
     if (key !== 'signup') key = 'login';
     view = key === 'signup' ? signupView() : loginView();
+  } else if (!me.shopId || !api.getShop(me.shopId)) {
+    key = 'create-shop';
+    view = createShopView(me);
   } else {
     if (!VIEWS[key]) { location.replace('#/dashboard'); return; }
     const shop = api.getShop(me.shopId);
@@ -615,4 +691,14 @@ window.addEventListener('hashchange', () => render(false));
 window.addEventListener('storage', (e) => { if (e.key && e.key.startsWith('pointie.')) render(true); }); // live updates from the customer app tab
 
 try { const t = JSON.parse(localStorage.getItem('pointie.theme') || '"dark"'); document.documentElement.dataset.theme = t; } catch { /* ignore */ }
-api.ensureDemo().then(() => render(false));
+api.init().then((mode) => {
+  document.documentElement.dataset.backend = mode;
+  render(false);
+}).catch((e) => { console.error(e); render(false); });
+// Keep live data fresh (new taps, pending redemptions) while the page is open.
+setInterval(async () => {
+  if (!api.isRemote() || document.hidden || !api.currentMerchant()?.shopId) return;
+  if (!['dashboard', 'redeem', 'customers', 'reviews'].includes(current?.key)) return;
+  if (document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+  try { await api.refresh(); render(true); } catch { /* keep showing cached data */ }
+}, 30000);

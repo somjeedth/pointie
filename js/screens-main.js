@@ -528,12 +528,15 @@ export function settings() {
         <button data-act="logout">${icon('logout')}ออกจากระบบ</button>
         <button data-act="delete" style="color:var(--red)">${icon('trash')}ลบบัญชีและข้อมูลทั้งหมด</button>
       </div></div>
-      <p class="center xs muted">Pointie เวอร์ชันเว็บ · ข้อมูลเก็บในเครื่องนี้เท่านั้น</p>`,
+      <p class="center xs muted">Pointie เวอร์ชันเว็บ · ${document.documentElement.dataset.backend === 'remote' ? 'ข้อมูลซิงก์กับเซิร์ฟเวอร์' : 'โหมดเดโม ข้อมูลเก็บในเครื่องนี้เท่านั้น'}</p>`,
     actions: {
       theme() { setTheme(store.theme === 'dark' ? 'light' : 'dark'); window.dispatchEvent(new Event('themechange')); window.dispatchEvent(new Event('rerender')); },
-      resetDemo() { if (confirm('รีเซ็ตข้อมูลตัวอย่างกลับเป็นค่าเริ่มต้น?')) { resetDemo(); toast('รีเซ็ตข้อมูลแล้ว'); go('/home'); } },
-      logout() { logout(); toast('ออกจากระบบแล้ว'); go('/welcome'); },
-      delete() { if (confirm('ลบบัญชีนี้และข้อมูลทั้งหมดในเครื่อง? การกระทำนี้ย้อนกลับไม่ได้')) { deleteAccount(); toast('ลบบัญชีแล้ว'); go('/welcome'); } },
+      async resetDemo() { if (confirm('รีเซ็ตข้อมูลตัวอย่างกลับเป็นค่าเริ่มต้น?')) { try { await resetDemo(); toast('รีเซ็ตข้อมูลแล้ว'); } catch { toast('รีเซ็ตไม่สำเร็จ ลองใหม่อีกครั้ง'); } go('/home'); } },
+      async logout() { await logout(); toast('ออกจากระบบแล้ว'); go('/welcome'); },
+      async delete() {
+        if (!confirm('ลบบัญชีนี้และข้อมูลทั้งหมด (บัตร แสตมป์ รีวิว)? การกระทำนี้ย้อนกลับไม่ได้')) return;
+        try { await deleteAccount(); toast('ลบบัญชีแล้ว'); go('/welcome'); } catch { toast('ลบบัญชีไม่สำเร็จ ลองใหม่อีกครั้ง'); }
+      },
     },
   };
 }

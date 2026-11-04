@@ -1,4 +1,4 @@
-import { applyCatalog } from './catalog.js';
+import { applyCatalog, mergeShop } from './catalog.js';
 
 // Static catalogue: shops, badges, levels, preferences.
 
@@ -98,6 +98,11 @@ export const SHOPS = [
 export const BASE_SHOPS = JSON.parse(JSON.stringify(SHOPS)); // pristine defaults (merchant web)
 applyCatalog(SHOPS); // merchant edits (demo backend)
 export const shopById = (id) => SHOPS.find((s) => s.id === id);
+// Remote mode: swap the built-in list for the server catalogue (same shape).
+export function replaceShops(list) {
+  const norm = (list || []).map((s) => mergeShop({ ...s, card: s.card || {} }, null));
+  SHOPS.splice(0, SHOPS.length, ...norm);
+}
 
 export const SAMPLE_REVIEWS = {
   baan: [

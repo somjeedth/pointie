@@ -1,5 +1,5 @@
 // Router & bootstrap for the Pointie customer web app.
-import { store, ensureWeek, peekLevelUp } from './store.js';
+import { store, ensureWeek, peekLevelUp, bootRemote } from './store.js';
 import { nav, toast } from './ui.js';
 import { morphChildren, runMount } from './dom.js';
 import { welcome, login, otp, setup, invite, prefPlaces, prefStyle, prefLocation, returnTo, resetOtpScreen } from './screens-onboard.js';
@@ -118,7 +118,11 @@ window.addEventListener('themechange', applyTheme);
 window.addEventListener('offline', () => toast('ออฟไลน์อยู่ บางอย่างอาจยังบันทึกไม่ได้'));
 
 applyTheme();
-render(false);
+bootRemote().then((mode) => {
+  document.documentElement.dataset.backend = mode;
+  render(false);
+  if (mode === 'fallback') toast('ต่อเซิร์ฟเวอร์ไม่ได้ ตอนนี้ใช้ข้อมูลตัวอย่างในเครื่องไปก่อน', 4000);
+});
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

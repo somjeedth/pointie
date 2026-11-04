@@ -31,7 +31,17 @@ export function welcome() {
         <p class="muted small center">สมัครครั้งแรกหรือเข้าสู่ระบบ ใช้เบอร์เดียวกัน</p>
         <button class="btn btn-text" data-act="demo">ลองใช้บัญชีตัวอย่าง</button>
       </div>`,
-    actions: { demo() { loginDemo(); toast('เข้าสู่ระบบด้วยบัญชีตัวอย่าง "มายด์"'); go(returnTo.take() || '/home'); } },
+    actions: {
+      async demo(el) {
+        el.disabled = true; el.textContent = 'กำลังเตรียมบัญชีตัวอย่าง…';
+        try { await loginDemo(); } catch (e) {
+          console.warn('[pointie] demo sign-in failed', e);
+          el.disabled = false; el.textContent = 'ลองใช้บัญชีตัวอย่าง';
+          toast('เข้าบัญชีตัวอย่างไม่ได้ ลองใหม่อีกครั้ง', 4000); return;
+        }
+        toast('เข้าสู่ระบบด้วยบัญชีตัวอย่าง "มายด์"'); go(returnTo.take() || '/home');
+      },
+    },
   };
 }
 
@@ -85,6 +95,7 @@ export function login() {
 // ---------- A3 OTP ----------
 let otpState = { code: '', status: 'normal', tries: 3 };
 let otpTimer;
+let verifying = false;
 export function otp() {
   const info = otpInfo();
   if (!info) { go('/login'); return { html: '' }; }
@@ -146,9 +157,19 @@ export function otp() {
       return () => clearInterval(otpTimer);
     },
     actions: {
-      verify() {
-        if (otpState.code.length !== 6) return;
-        const r = verifyOtp(otpState.code);
+      async verify() {
+        if (otpState.code.length !== 6 || verifying) return;
+        verifying = true;
+        const btn = document.getElementById('verify');
+        if (btn) { btn.disabled = true; btn.textContent = 'กำลังตรวจสอบ…'; }
+        const r = await verifyOtp(otpState.code);
+        verifying = false;
+        if (r.reason === 'server') {
+          if (btn) { btn.disabled = false; btn.textContent = 'ยืนยัน'; }
+          toast('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองใหม่อีกครั้ง', 4000);
+          console.warn('[pointie] sign-in failed:', r.message);
+          return;
+        }
         if (r.ok) {
           otpState = { code: '', status: 'normal', tries: 3 };
           if (r.isNew || !store.me.user.setupDone) go('/setup');

@@ -7,7 +7,7 @@ import {
 import { shopById, CAT, SAMPLE_REVIEWS, MISSIONS, XP, levelTitle, unlocksFor } from './data.js';
 import {
   store, collectStamp, cardFor, canStampToday, untilMidnight, missionProgress, isDoubleDay, setPendingTap, pendingTap, clearPendingTap,
-  hasVisited, myReview, addReview, toggleFav, redeem as doRedeem, thMonthYear, agoText, thDateTime, takeLevelUp, peekLevelUp,
+  hasVisited, myReview, addReview, toggleFav, redeem as doRedeem, thMonthYear, agoText, thDateTime, takeLevelUp, peekLevelUp, isRemote,
 } from './store.js';
 import { returnTo } from './screens-onboard.js';
 import { openText, mapsUrl } from './screens-main.js';
@@ -16,6 +16,7 @@ const brandBar = () => `<div class="topbar"><div class="brand"><img src="img/app
 
 // ================= TAP / COLLECT =================
 let tapResult = null; // { shopId, res }
+const standOffShops = new Set(); // shops whose stand link the server rejected this session
 export function tap({ id }, query) {
   const shop = shopById(id);
   if (!shop) { toast('ไม่พบร้านนี้'); go('/home'); return { html: '' }; }
@@ -38,7 +39,8 @@ export function tap({ id }, query) {
 
   const standTok = query.get('s');
   const stand = standTok && shop.stands.find((x) => x.token === standTok);
-  if (standTok && (!stand || !stand.active)) {
+  // Remote mode: the server checks the stand when stamping (tokens are never sent to the browser).
+  if (standOffShops.has(`${id}|${standTok}`) || (standTok && !isRemote() && (!stand || !stand.active))) {
     return { html: `${brandBar().replace('nfc-ok', 'nfc-ok" style="color:var(--red)')}<div class="col center" style="align-items:center;gap:10px;margin-top:40px"><img src="img/pointie-wow.png" alt="" style="height:140px"><h1 class="h1" style="font-size:22px">สแตนด์นี้ปิดใช้งานแล้ว</h1><p class="muted small">ลองแตะสแตนด์อื่นของ ${esc(shop.name)} หรือแจ้งพนักงานร้าน</p></div><a class="btn btn-primary spacer" href="#/home">กลับหน้าแรก</a>` };
   }
   const justDone = tapResult && tapResult.shopId === id ? tapResult.res : null;
@@ -98,11 +100,21 @@ export function tap({ id }, query) {
     };
   }
 
-  const collect = () => {
+  let busy = false;
+  const collect = async (btn) => {
+    if (busy) return;
     if (!navigator.onLine) { setPendingTap(id); go('/offline/' + id); return; }
-    const res = collectStamp(id);
+    busy = true;
+    const b = btn instanceof Element ? btn : document.querySelector('[data-act="collect"]');
+    if (b) { b.disabled = true; b.querySelector('span:last-child').textContent = 'กำลังบันทึก…'; }
+    const res = await collectStamp(id, standTok);
+    busy = false;
     if (!res.ok) {
-      if (res.reason === 'already') toast('วันนี้รับแสตมป์ร้านนี้แล้ว');
+      if (res.reason === 'offline') { setPendingTap(id); go('/offline/' + id); return; }
+      if (res.reason === 'stand_off') standOffShops.add(`${id}|${standTok}`);
+      else if (res.reason === 'already') toast('วันนี้รับแสตมป์ร้านนี้แล้ว');
+      else if (res.reason === 'full') toast('บัตรครบแล้ว แลกรางวัลก่อนนะ');
+      else toast('บันทึกแสตมป์ไม่สำเร็จ ลองใหม่อีกครั้ง');
       window.dispatchEvent(new Event('rerender'));
       return;
     }
@@ -163,15 +175,18 @@ export function storePage({ id }, query) {
   const me = store.me; const c = cardFor(id); const k = s.card;
   const fav = me.favs.includes(id);
   const mine = myReview(id);
-  const sample = SAMPLE_REVIEWS[id] || [];
+  // Remote catalogue carries the public reviews (real + sample, with shop replies); local demo uses samples.
+  const others = Array.isArray(s.reviews)
+    ? s.reviews.filter((r) => !(me.remoteId && r.customerId === me.remoteId)).map((r) => ({ initial: (r.nick || '?')[0], name: r.nick || 'ลูกค้า', lv: r.lv || 1, ago: agoText(String(r.at).slice(0, 10)), stars: r.stars, text: r.text, reply: r.reply }))
+    : (SAMPLE_REVIEWS[id] || []).map((r, i) => ({ ...r, reply: s.replies?.['sample:' + i] }));
   const left = k.need - (c?.have || 0);
   const tags = s.tags.map(([l, n, pos]) => `<span class="pill ${pos ? 'green' : 'soft'}" style="font-size:13px;padding:6px 12px;font-weight:600">${l} · ${n}</span>`).join('');
-  const replyHtml = (key) => s.replies?.[key] ? `<div class="card-soft" style="padding:10px 12px;border-radius:12px"><span class="xs bold accent">ร้านตอบกลับ</span><p class="small">${esc(s.replies[key])}</p></div>` : '';
-  const reviewItem = (r, isMine, key) => `<div class="card review">
+  const replyHtml = (text) => text ? `<div class="card-soft" style="padding:10px 12px;border-radius:12px"><span class="xs bold accent">ร้านตอบกลับ</span><p class="small">${esc(text)}</p></div>` : '';
+  const reviewItem = (r, isMine) => `<div class="card review">
       <div class="row" style="gap:10px"><span class="initials sm" style="border-radius:50%">${esc(r.initial)}</span>
-        <div class="col" style="gap:0;flex:1"><span><b>${esc(r.name)}</b> <span class="pill violet" style="font-size:11px;padding:0 6px">Lv.${r.lv}</span>${isMine ? ' <span class="pill soft" style="font-size:11px;padding:0 6px">ของฉัน</span>' : ''}</span>
-        <span class="xs muted">${r.ago} · มาแล้ว ${r.visits} ครั้ง</span></div><span class="real">${icon('check', 11, 3)}ไปจริง</span></div>
-      ${starsHtml(r.stars)}<p class="small">${esc(r.text)}</p>${replyHtml(key)}</div>`;
+        <div class="col" style="gap:0;flex:1"><span><b>${esc(r.name)}</b> <span class="pill violet" style="font-size:11px;padding:0 6px">Lv.${esc(r.lv)}</span>${isMine ? ' <span class="pill soft" style="font-size:11px;padding:0 6px">ของฉัน</span>' : ''}</span>
+        <span class="xs muted">${esc(r.ago)}${r.visits ? ` · มาแล้ว ${r.visits} ครั้ง` : ''}</span></div><span class="real">${icon('check', 11, 3)}ไปจริง</span></div>
+      ${starsHtml(r.stars)}<p class="small">${esc(r.text)}</p>${replyHtml(r.reply)}</div>`;
   const open = openText(s);
   const html = `
     <div class="cover ${cardBg(k)}" style="${cardBgStyle(k)}">
@@ -224,8 +239,8 @@ export function storePage({ id }, query) {
       </section>
       <section class="col">
         <div class="section-h"><h2>รีวิวล่าสุด</h2></div>
-        ${mine ? reviewItem({ initial: (me.user.nick || '?')[0], name: me.user.nick, lv: me.user.lv, ago: agoText(mine.date), visits: c?.visits || 1, stars: mine.stars, text: mine.text }, true, me.phone) : ''}
-        ${sample.map((r, i) => reviewItem(r, false, 'sample:' + i)).join('')}
+        ${mine ? reviewItem({ initial: (me.user.nick || '?')[0], name: me.user.nick, lv: me.user.lv, ago: agoText(mine.date), visits: c?.visits || 1, stars: mine.stars, text: mine.text, reply: mine.reply ?? s.replies?.[me.phone] }, true) : ''}
+        ${others.map((r) => reviewItem(r, false)).join('')}
       </section>
       ${s.promo || s.event ? `<section class="col"><h2 class="h2">โปรและกิจกรรม</h2>
         ${s.promo ? `<div class="card row"><span class="tag" style="background:var(--soft);color:var(--accent)">โปร</span><span class="semi" style="flex:1">${esc(s.promoText)}</span><span class="xs muted">${s.promoUntil}</span></div>` : ''}
@@ -269,13 +284,15 @@ export function storePage({ id }, query) {
         document.querySelectorAll('#starIn button').forEach((b) => b.classList.toggle('on', +b.dataset.n <= reviewDraft.stars));
         document.getElementById('revSubmit').disabled = false;
       },
-      submitReview() {
+      async submitReview(el) {
         const text = reviewDraft.text.trim();
         if (!reviewDraft.stars) return;
         if (text.length < 5) { toast('เขียนอีกนิดนะ อย่างน้อย 5 ตัวอักษร'); return; }
-        const r = addReview(id, reviewDraft.stars, text);
+        el.disabled = true; el.textContent = 'กำลังส่ง…';
+        const r = await addReview(id, reviewDraft.stars, text);
+        if (!r.ok) { el.disabled = false; el.textContent = 'ส่งรีวิว'; toast(r.reason === 'not_visited' ? 'รีวิวได้เฉพาะร้านที่ไปจริง' : 'ส่งรีวิวไม่สำเร็จ ลองใหม่อีกครั้ง'); return; }
         document.getElementById('reviewSheet')?.remove();
-        if (r.ok) toast(r.updated ? 'แก้ไขรีวิวแล้ว' : `ขอบคุณสำหรับรีวิว! +${XP.review} XP`);
+        toast(r.updated ? 'แก้ไขรีวิวแล้ว' : `ขอบคุณสำหรับรีวิว! +${XP.review} XP`);
         if (peekLevelUp()) go('/levelup'); else window.dispatchEvent(new Event('rerender'));
       },
     },
@@ -361,10 +378,11 @@ export function redeemPage({ id }) {
       return () => { redeemTimers.forEach(clearTimeout); };
     },
     actions: {
-      redeem() {
+      async redeem(el) {
         if (!confirm(`ยืนยันแลก "${k.reward}" ต่อหน้าพนักงาน?`)) return;
-        const res = doRedeem(id);
-        if (!res) { toast('แลกไม่สำเร็จ ลองใหม่อีกครั้ง'); return; }
+        el.disabled = true;
+        const res = await doRedeem(id);
+        if (!res) { el.disabled = false; toast('แลกไม่สำเร็จ ลองใหม่อีกครั้ง'); return; }
         redeemInfo = { shopId: id, at: new Date().toISOString(), code: res.code };
         document.getElementById('rCode').textContent = res.code;
         document.querySelector('#rRubber span.xs').textContent = thDateTime(redeemInfo.at);

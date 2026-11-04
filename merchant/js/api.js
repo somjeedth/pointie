@@ -1,10 +1,49 @@
-// Merchant data layer (demo backend on localStorage, same origin as the
-// customer app). Replace the bodies here with Supabase calls later; views
-// only use the exported functions.
+// Merchant data layer. Two backends behind the same functions:
+//  - Supabase (remote): one `merchant_bundle` call fills an in-memory cache that
+//    the (synchronous) views read; every write is an RPC followed by a refresh.
+//  - localStorage demo (local): shares data with the customer app on the same origin.
 import { BASE_SHOPS, SAMPLE_REVIEWS, CAT } from '../../js/data.js';
 import {
   loadCatalog, patchShop, newShopId, blankShop, mergeShop, loadEvents, saveEvents, updateEvent,
 } from '../../js/catalog.js';
+import * as remote from '../../js/remote.js';
+
+let remoteMode = false;
+let R = null; // cached merchant_bundle()
+let remoteEmail = null;
+export const isRemote = () => remoteMode;
+const call = (name, args) => remote.rpc('merchant', name, args);
+
+// Start-up: decide the backend and load the signed-in merchant's data.
+export async function init() {
+  if (remote.configured()) {
+    try {
+      await remote.rpc('merchant', 'merchant_samples_available', undefined, 8000); // reachability check (anon ok)
+      remoteMode = true;
+    } catch (e) { console.warn('[pointie] Supabase unavailable, merchant web in local demo mode', e); }
+  }
+  if (!remoteMode) { await ensureDemo(); return 'local'; }
+  const s = await remote.session('merchant');
+  remoteEmail = s?.user?.email || null;
+  if (s) await refresh().catch((e) => { if (!/no_shop/.test(e.message)) console.warn(e); });
+  return 'remote';
+}
+export async function refresh() {
+  if (!remoteMode) return;
+  try { R = await call('merchant_bundle', { p_days: 30 }); }
+  catch (e) { R = null; throw e; }
+}
+export async function samplesAvailable() { return remoteMode ? call('merchant_samples_available') : []; }
+export async function createShop({ shopName, shopNameEn, cat, area, sample }) {
+  if (sample) await call('merchant_claim_sample', { p_shop: sample });
+  else await call('merchant_create_shop', { p_name: shopName, p_name_en: shopNameEn, p_cat: cat, p_area: area });
+  await refresh();
+}
+const errText = (m) => ({
+  'Invalid login credentials': 'อีเมลหรือรหัสผ่านไม่ถูกต้อง',
+  'Email not confirmed': 'ยังไม่ได้ยืนยันอีเมล เปิดลิงก์ในอีเมลก่อนนะ',
+  'User already registered': 'อีเมลนี้มีบัญชีแล้ว',
+}[m] || m);
 
 const KEY_MERCHANTS = 'pointie.merchants.v1';
 const KEY_SESSION = 'pointie.merchant.session.v1';
@@ -36,19 +75,35 @@ export async function ensureDemo() {
 }
 export const session = () => read(KEY_SESSION, null);
 export function currentMerchant() {
+  if (remoteMode) return remoteEmail ? { email: remoteEmail, shopId: R?.shop?.id || null, role: 'owner' } : null;
   const s = session(); if (!s) return null;
   const m = read(KEY_MERCHANTS, {})[s.email];
   return m ? { email: s.email, ...m } : null;
 }
 export async function login(email, password) {
   email = email.trim().toLowerCase();
+  if (remoteMode) {
+    const { data, error } = await remote.client('merchant').auth.signInWithPassword({ email, password });
+    if (error) return { ok: false, error: errText(error.message) };
+    remoteEmail = data.user?.email || email;
+    await refresh().catch(() => {});
+    return { ok: true };
+  }
   const m = read(KEY_MERCHANTS, {})[email];
   if (!m || m.hash !== await hash(email, password)) return { ok: false, error: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' };
   write(KEY_SESSION, { email });
   return { ok: true };
 }
-export async function signup({ email, password, name, shopName, shopNameEn, cat, area }) {
+export async function signup({ email, password, name, shopName, shopNameEn, cat, area, sample }) {
   email = email.trim().toLowerCase();
+  if (remoteMode) {
+    const { data, error } = await remote.client('merchant').auth.signUp({ email, password, options: { data: { name: (name || '').trim() } } });
+    if (error) return { ok: false, error: errText(error.message) };
+    if (!data.session) return { ok: false, confirm: true, error: 'ส่งอีเมลยืนยันไปที่ ' + email + ' แล้ว เปิดลิงก์ในอีเมล แล้วกลับมาเข้าสู่ระบบเพื่อสร้างร้าน' };
+    remoteEmail = data.user?.email || email;
+    try { await createShop({ shopName, shopNameEn, cat, area, sample }); } catch (e) { return { ok: false, error: 'สร้างร้านไม่สำเร็จ: ' + e.message }; }
+    return { ok: true, shopId: R?.shop?.id };
+  }
   const all = read(KEY_MERCHANTS, {});
   if (all[email]) return { ok: false, error: 'อีเมลนี้มีบัญชีแล้ว' };
   const id = newShopId(shopNameEn || email.split('@')[0]);
@@ -60,29 +115,47 @@ export async function signup({ email, password, name, shopName, shopNameEn, cat,
   write(KEY_SESSION, { email });
   return { ok: true, shopId: id };
 }
-export function logout() { try { localStorage.removeItem(KEY_SESSION); } catch { /* ignore */ } }
+export async function logout() {
+  if (remoteMode) { await remote.client('merchant').auth.signOut().catch(() => {}); R = null; remoteEmail = null; return; }
+  try { localStorage.removeItem(KEY_SESSION); } catch { /* ignore */ }
+}
 
 // ---------------- shop ----------------
 export function getShop(id) {
+  if (remoteMode) {
+    if (!R?.shop) return null;
+    const s = mergeShop({ ...R.shop, card: R.shop.card || {} }, null);
+    s.stands = R.stands || [];
+    return s;
+  }
   const base = BASE_SHOPS.find((s) => s.id === id);
   return mergeShop(base ? JSON.parse(JSON.stringify(base)) : null, loadCatalog().shops[id]);
 }
-export const saveShop = (id, patch) => patchShop(id, patch);
+export async function saveShop(id, patch) {
+  if (remoteMode) { await call('merchant_update_shop', { p_patch: patch }); await refresh(); return true; }
+  return patchShop(id, patch);
+}
 export { CAT };
 
 // ---------------- stands (NFC / QR) ----------------
 const token = () => Math.random().toString(36).slice(2, 8);
-export function addStand(shopId, name) {
+export async function addStand(shopId, name) {
+  if (remoteMode) { await call('merchant_add_stand', { p_name: name || '' }); return refresh(); }
   const s = getShop(shopId);
   const stands = [...s.stands, { id: token(), token: token(), name: name || `สแตนด์ ${s.stands.length + 1}`, active: true, createdAt: new Date().toISOString() }];
   patchShop(shopId, { stands });
 }
-export function updateStand(shopId, standId, patch) {
+export async function updateStand(shopId, standId, patch) {
+  if (remoteMode) { await call('merchant_update_stand', { p_id: standId, p_active: patch.active ?? null, p_rotate: false }); return refresh(); }
   const s = getShop(shopId);
   patchShop(shopId, { stands: s.stands.map((x) => (x.id === standId ? { ...x, ...patch } : x)) });
 }
-export function rotateStand(shopId, standId) { updateStand(shopId, standId, { token: token(), rotatedAt: new Date().toISOString() }); }
-export function removeStand(shopId, standId) {
+export async function rotateStand(shopId, standId) {
+  if (remoteMode) { await call('merchant_update_stand', { p_id: standId, p_active: null, p_rotate: true }); return refresh(); }
+  return updateStand(shopId, standId, { token: token(), rotatedAt: new Date().toISOString() });
+}
+export async function removeStand(shopId, standId) {
+  if (remoteMode) { await call('merchant_delete_stand', { p_id: standId }); return refresh(); }
   const s = getShop(shopId);
   patchShop(shopId, { stands: s.stands.filter((x) => x.id !== standId) });
 }
@@ -94,7 +167,10 @@ export const tapUrl = (shopId, stand) => {
 // ---------------- events / analytics ----------------
 const DAY = 86400000;
 const dayKey = (d) => { const x = new Date(d); return `${x.getFullYear()}-${x.getMonth()}-${x.getDate()}`; };
-export function shopEvents(shopId) { return loadEvents().filter((e) => e.shopId === shopId); }
+export function shopEvents(shopId) {
+  if (remoteMode) return (R?.events || []).map((e) => ({ ...e, shopId }));
+  return loadEvents().filter((e) => e.shopId === shopId);
+}
 
 export function stats(shopId, days = 30) {
   const ev = shopEvents(shopId);
@@ -125,7 +201,7 @@ export function stats(shopId, days = 30) {
   return {
     taps: inWin.length, tapsPrev: inPrev.length, today, customers: custWin.size, newCustomers: newC,
     returnRate: custWin.size ? Math.round((returning / custWin.size) * 100) : 0,
-    redeems: redeems.length, pendingRedeems: ev.filter((e) => e.type === 'redeem' && e.status === 'pending').length,
+    redeems: redeems.length, pendingRedeems: redemptions(shopId).filter((e) => e.status === 'pending').length,
     rating: reviews.length ? reviews.reduce((a, e) => a + e.stars, 0) / reviews.length : null, reviews: reviews.length,
     series, heat,
   };
@@ -148,27 +224,40 @@ export function customers(shopId) {
 
 // ---------------- redemptions ----------------
 export function redemptions(shopId) {
+  if (remoteMode) return R?.redemptions || [];
   return shopEvents(shopId).filter((e) => e.type === 'redeem').sort((a, b) => b.at.localeCompare(a.at));
 }
-export function findPending(shopId, code) {
+export async function findPending(shopId, code) {
+  if (remoteMode) return call('merchant_find_redemption', { p_code: code });
   return redemptions(shopId).find((e) => e.code === code && e.status === 'pending' && Date.now() - +new Date(e.at) < DAY);
 }
-export const confirmRedeem = (eventId, by) => updateEvent(eventId, { status: 'confirmed', confirmedAt: new Date().toISOString(), confirmedBy: by });
-export const voidRedeem = (eventId, by) => updateEvent(eventId, { status: 'void', confirmedAt: new Date().toISOString(), confirmedBy: by });
+export async function confirmRedeem(id, by) {
+  if (remoteMode) { await call('merchant_set_redemption', { p_id: id, p_status: 'confirmed' }); return refresh(); }
+  return updateEvent(id, { status: 'confirmed', confirmedAt: new Date().toISOString(), confirmedBy: by });
+}
+export async function voidRedeem(id, by) {
+  if (remoteMode) { await call('merchant_set_redemption', { p_id: id, p_status: 'void' }); return refresh(); }
+  return updateEvent(id, { status: 'void', confirmedAt: new Date().toISOString(), confirmedBy: by });
+}
 
 // ---------------- reviews ----------------
+const TH_M = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+const fmtDate = (iso) => { const d = new Date(iso); return `${d.getDate()} ${TH_M[d.getMonth()]} ${d.getFullYear()}`; };
 export function reviews(shopId) {
+  if (remoteMode) return (R?.reviews || []).map((r) => ({ key: r.id, nick: r.nick || 'ลูกค้า', stars: r.stars, text: r.text, date: fmtDate(r.at), sample: r.sample, reply: r.reply || '' }));
+  const replies = getShop(shopId)?.replies || {};
   const out = [];
   const accounts = read(KEY_ACCOUNTS, {});
   for (const [phone, acc] of Object.entries(accounts)) {
     for (const r of acc.reviews || []) {
-      if (r.shopId === shopId) out.push({ key: phone, nick: acc.user?.nick || 'ลูกค้า', stars: r.stars, text: r.text, date: r.date, real: true });
+      if (r.shopId === shopId) out.push({ key: phone, nick: acc.user?.nick || 'ลูกค้า', stars: r.stars, text: r.text, date: r.date, real: true, reply: replies[phone] || '' });
     }
   }
-  (SAMPLE_REVIEWS[shopId] || []).forEach((r, i) => out.push({ key: 'sample:' + i, nick: r.name, stars: r.stars, text: r.text, date: r.ago, sample: true }));
+  (SAMPLE_REVIEWS[shopId] || []).forEach((r, i) => out.push({ key: 'sample:' + i, nick: r.name, stars: r.stars, text: r.text, date: r.ago, sample: true, reply: replies['sample:' + i] || '' }));
   return out;
 }
-export function reply(shopId, key, text) {
+export async function reply(shopId, key, text) {
+  if (remoteMode) { await call('merchant_reply_review', { p_id: key, p_reply: text }); return refresh(); }
   const s = getShop(shopId);
   const replies = { ...s.replies };
   if (text.trim()) replies[key] = text.trim(); else delete replies[key];
