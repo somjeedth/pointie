@@ -8,7 +8,9 @@
 -- direct table access from the public API is denied.
 -- =====================================================================
 
-create extension if not exists pgcrypto;
+-- No extensions needed: tokens use gen_random_uuid() (built into PostgreSQL 13+).
+create or replace function public._token() returns text
+language sql volatile as $$ select substr(replace(gen_random_uuid()::text, '-', ''), 1, 10) $$;
 
 -- ---------------------------------------------------------------- tables
 create table if not exists public.shops (
@@ -26,12 +28,13 @@ create table if not exists public.stands (
   id          uuid primary key default gen_random_uuid(),
   shop_id     text not null references public.shops(id) on delete cascade,
   name        text not null default 'สแตนด์',
-  token       text not null unique default encode(gen_random_bytes(5), 'hex'),
+  token       text not null unique default public._token(),
   active      boolean not null default true,
   created_at  timestamptz not null default now(),
   rotated_at  timestamptz
 );
 create index if not exists stands_shop_idx on public.stands(shop_id);
+alter table public.stands alter column token set default public._token();
 
 create table if not exists public.customers (
   id          uuid primary key references auth.users(id) on delete cascade,
@@ -393,7 +396,7 @@ $$;
 create or replace function public.merchant_update_stand(p_id uuid, p_active boolean, p_rotate boolean default false) returns void
 language sql security definer set search_path = public as $$
   update stands set active = coalesce(p_active, active),
-                    token = case when p_rotate then encode(gen_random_bytes(5), 'hex') else token end,
+                    token = case when p_rotate then public._token() else token end,
                     rotated_at = case when p_rotate then now() else rotated_at end
   where id = p_id and shop_id = public._my_shop_id()
 $$;
@@ -430,7 +433,7 @@ declare f record;
 begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
            where n.nspname = 'public' and p.proname in (
-             '_uid','_require_uid','_bkk_today','_my_shop_id','_shop_json','get_catalog','check_stand','customer_upsert','my_state','save_profile','collect_stamp','redeem_card','submit_review','seed_demo_cards','delete_my_account',
+             '_uid','_require_uid','_bkk_today','_token','_my_shop_id','_shop_json','get_catalog','check_stand','customer_upsert','my_state','save_profile','collect_stamp','redeem_card','submit_review','seed_demo_cards','delete_my_account',
              'merchant_create_shop','merchant_claim_sample','merchant_samples_available','merchant_bundle','merchant_update_shop',
              'merchant_add_stand','merchant_update_stand','merchant_delete_stand','merchant_find_redemption','merchant_set_redemption','merchant_reply_review')
   loop
