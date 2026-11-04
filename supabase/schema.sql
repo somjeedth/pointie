@@ -166,6 +166,18 @@ language sql stable security definer set search_path = public as $$
   from shops s where not s.paused and s.data ? 'name'
 $$;
 
+-- Live platform numbers for the public landing page (real activity only — no samples/demo).
+create or replace function public.public_stats() returns jsonb
+language sql stable security definer set search_path = public as $$
+  select jsonb_build_object(
+    'shops',       (select count(*) from shops where not sample and not paused and owner_id is not null),
+    'customers',   (select count(*) from customers),
+    'stamps',      (select coalesce(sum(n), 0) from events where type = 'stamp' and not demo and customer_id is not null),
+    'redemptions', (select count(*) from redemptions where customer_id is not null),
+    'reviews',     (select count(*) from reviews where not sample)
+  )
+$$;
+
 -- Is this stand link usable? (anyone) → 'ok' | 'off' | 'unknown'
 create or replace function public.check_stand(p_shop text, p_token text) returns text
 language sql stable security definer set search_path = public as $$
@@ -491,14 +503,14 @@ declare f record;
 begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
            where n.nspname = 'public' and p.proname in (
-             '_uid','_require_uid','_bkk_today','_token','_level_info','_xp_of','_level_of','my_level','_my_shop_id','_shop_json','get_catalog','check_stand','customer_upsert','my_state','save_profile','collect_stamp','redeem_card','submit_review','seed_demo_cards','delete_my_account',
+             '_uid','_require_uid','_bkk_today','_token','_level_info','_xp_of','_level_of','my_level','public_stats','_my_shop_id','_shop_json','get_catalog','check_stand','customer_upsert','my_state','save_profile','collect_stamp','redeem_card','submit_review','seed_demo_cards','delete_my_account',
              'merchant_create_shop','merchant_claim_sample','merchant_samples_available','merchant_bundle','merchant_update_shop',
              'merchant_add_stand','merchant_update_stand','merchant_delete_stand','merchant_find_redemption','merchant_set_redemption','merchant_reply_review')
   loop
     execute format('revoke execute on function %s from public, anon, authenticated', f.sig);
   end loop;
 end $$;
-grant execute on function public.get_catalog(), public.check_stand(text, text), public.merchant_samples_available() to anon, authenticated;
+grant execute on function public.get_catalog(), public.check_stand(text, text), public.merchant_samples_available(), public.public_stats() to anon, authenticated;
 grant execute on function
   public.customer_upsert(text, text, jsonb), public.my_state(), public.save_profile(jsonb, text), public.my_level(),
   public.collect_stamp(text, text), public.redeem_card(text), public.submit_review(text, int, text), public.seed_demo_cards(),

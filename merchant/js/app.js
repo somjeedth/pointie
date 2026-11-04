@@ -73,7 +73,7 @@ const head = (title, sub, right = '') => `<div class="m-head"><div><h1>${title}<
 function loginView() {
   return {
     html: `<div class="auth">
-      <div class="hero"><img src="../img/pointie-cheer.png" alt=""><h1 class="h1">Pointie สำหรับร้านค้า</h1><p class="muted">ดูลูกค้าประจำ ออกแบบบัตรสะสม ตั้งโปร และยืนยันการแลกรางวัล<br>ในที่เดียว</p></div>
+      <div class="hero"><img src="../img/pointie-cheer.png" alt=""><h1 class="h1">Pointie สำหรับร้านค้า</h1><p class="muted">ดูลูกค้าประจำ ออกแบบบัตรสะสม ตั้งโปร และยืนยันการแลกรางวัล<br>ในที่เดียว</p><a class="link-u" href="../business/">รู้จัก Pointie สำหรับร้านค้า →</a></div>
       <div class="box"><form class="form" id="f">
         <h2 class="h1" style="font-size:24px">เข้าสู่ระบบร้านค้า</h2>
         <label class="field"><span>อีเมล</span><input class="inp" name="email" type="email" autocomplete="email" required></label>

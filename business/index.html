@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0b0b">
+  <title>Pointie สำหรับร้านค้า — บัตรสะสมแต้มดิจิทัล แตะเดียวลูกค้ากลับมา</title>
+  <meta name="description" content="บัตรสะสมแต้มดิจิทัลสำหรับร้านค้าไทย ลูกค้าแตะ NFC หรือสแกน QR รับแสตมป์ ไม่ต้องโหลดแอพ ร้านเห็นตัวเลขลูกค้าประจำ อัตรากลับมาซ้ำ และการแลกรางวัลทุกวัน">
+  <meta property="og:title" content="Pointie สำหรับร้านค้า">
+  <meta property="og:description" content="แตะครั้งเดียว ลูกค้ากลับมาอีก — บัตรสะสมแต้มดิจิทัล ไม่ต้องโหลดแอพ">
+  <meta property="og:image" content="img/app-done.webp">
+  <link rel="icon" type="image/png" href="../img/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Kanit:ital,wght@1,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="landing.css">
+</head>
+<body>
+  <header class="nav" id="top">
+    <div class="wrap nav-in">
+      <a class="brand" href="#top"><img src="../img/app-icon.png" alt="">Pointie <span>สำหรับร้านค้า</span></a>
+      <nav class="links" aria-label="เมนู">
+        <a href="#how">วิธีทำงาน</a>
+        <a href="#features">ฟีเจอร์</a>
+        <a href="#metrics">ตัวเลขที่วัดได้</a>
+        <a href="#calc">คำนวณ</a>
+        <a href="#faq">คำถาม</a>
+      </nav>
+      <div class="nav-cta">
+        <a class="btn ghost sm" href="../merchant/#/login">เข้าสู่ระบบ</a>
+        <a class="btn primary sm" href="../merchant/#/signup">เริ่มใช้งาน</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <section class="hero">
+      <div class="glow" aria-hidden="true"></div>
+      <div class="wrap hero-in">
+        <div class="hero-copy">
+          <span class="eyebrow">บัตรสะสมแต้มดิจิทัลสำหรับร้านค้าไทย</span>
+          <h1>แตะครั้งเดียว<br><em>ลูกค้ากลับมาอีก</em></h1>
+          <p class="lead">ลูกค้าแตะมือถือที่สแตนด์ NFC หรือสแกน QR รับแสตมป์ได้ทันที ไม่ต้องโหลดแอพ ไม่ต้องพิมพ์บัตรกระดาษ ส่วนร้านเห็นว่าใครคือลูกค้าประจำ และกลับมาบ่อยแค่ไหนทุกวัน</p>
+          <div class="cta-row">
+            <a class="btn primary lg" href="../merchant/#/signup">สร้างร้านของคุณ</a>
+            <a class="btn ghost lg" href="../" target="_blank" rel="noopener">ลองแอพลูกค้า</a>
+          </div>
+          <ul class="ticks">
+            <li>ลูกค้าไม่ต้องโหลดแอพ</li>
+            <li>ออกแบบบัตรเองได้</li>
+            <li>ดูตัวเลขได้ทุกวัน</li>
+          </ul>
+        </div>
+        <div class="hero-visual" aria-hidden="true">
+          <figure class="phone p1"><img src="img/app-tap.webp" alt="" width="390" height="844"></figure>
+          <figure class="phone p2"><img src="img/app-done.webp" alt="" width="390" height="844"></figure>
+          <img class="mascot" src="../img/pointie-cheer.png" alt="">
+        </div>
+      </div>
+    </section>
+
+    <!-- Live numbers (only shown once they are meaningful) -->
+    <section class="live" id="live" hidden>
+      <div class="wrap">
+        <p class="live-title"><span class="dot"></span>Pointie ตอนนี้ <small>ตัวเลขจริงจากระบบ อัปเดตทุกครั้งที่เปิดหน้า</small></p>
+        <div class="live-grid" id="liveGrid"></div>
+      </div>
+    </section>
+
+    <!-- Product facts -->
+    <section class="facts">
+      <div class="wrap facts-grid">
+        <div><b>0</b><span>แอพที่ลูกค้าต้องโหลด<br>เปิดจากการแตะได้เลย</span></div>
+        <div><b>1</b><span>แสตมป์ต่อวันต่อร้าน<br>ระบบกันโกงให้อัตโนมัติ</span></div>
+        <div><b>4</b><span>หลัก รหัสยืนยันแลกรางวัล<br>พนักงานตรวจได้ในวินาทีเดียว</span></div>
+        <div><b>5–10</b><span>ดวงต่อบัตร<br>ร้านตั้งรางวัลเองได้</span></div>
+      </div>
+    </section>
+
+    <!-- Problems -->
+    <section class="sec">
+      <div class="wrap">
+        <h2 class="h2">บัตรสะสมแต้มแบบเดิม<br>ร้านมองไม่เห็นอะไรเลย</h2>
+        <div class="grid3">
+          <article class="card"><span class="ic" data-icon="card"></span><h3>บัตรกระดาษหาย ลืมพก</h3><p>ลูกค้าสะสมไม่ครบ ไม่กลับมาแลก ส่วนร้านต้องพิมพ์บัตรใหม่ และตรายางก็ปลอมง่าย</p></article>
+          <article class="card"><span class="ic" data-icon="user"></span><h3>ไม่รู้ว่าใครคือลูกค้าประจำ</h3><p>ไม่รู้ว่ามีคนกลับมากี่คน มาช่วงไหน และใครหายไปนานแล้ว</p></article>
+          <article class="card"><span class="ic" data-icon="tag"></span><h3>โปรส่งไม่ถึงคนที่ใช่</h3><p>ลดราคาให้ทุกคนเท่ากัน ทั้งที่คนที่ใกล้ครบบัตร หรือคนที่ไม่ได้มานาน ควรได้ข้อเสนอต่างกัน</p></article>
+        </div>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section class="sec alt" id="how">
+      <div class="wrap">
+        <span class="eyebrow">วิธีทำงาน</span>
+        <h2 class="h2">เริ่มได้ใน 3 ขั้นตอน</h2>
+        <ol class="steps">
+          <li>
+            <div class="step-img"><img src="img/merchant-card.webp" alt="หน้าออกแบบบัตรสะสมของร้าน" loading="lazy"></div>
+            <b>1. ตั้งค่าร้านและออกแบบบัตร</b>
+            <p>ใส่รูปบนบัตร เลือกจำนวนดวงกับรางวัล แล้วปักหมุดร้านบนแมพ ดูพรีวิวแบบที่ลูกค้าจะเห็นได้ทันที</p>
+          </li>
+          <li>
+            <div class="step-img stand"><div class="stand-box"><img src="../img/pointie-face.png" alt=""><span>แตะมือถือ หรือสแกน QR<br>เพื่อรับแสตมป์</span><div class="qr" aria-hidden="true"></div></div></div>
+            <b>2. วางสแตนด์ NFC / QR ที่เคาน์เตอร์</b>
+            <p>สร้างลิงก์สแตนด์ แล้วพิมพ์ QR หรือเขียนลงแท็ก NFC ถ้าแท็กหายก็ปิดหรือเปลี่ยนรหัสได้ทันที</p>
+          </li>
+          <li>
+            <div class="step-img"><img src="img/app-done.webp" alt="หน้าจอลูกค้าได้รับแสตมป์" loading="lazy"></div>
+            <b>3. ลูกค้าแตะ สะสม แลกรางวัล</b>
+            <p>ลูกค้าแตะแล้วได้แสตมป์ ครบเมื่อไรก็โชว์รหัส 4 หลักให้พนักงานยืนยันการแลก ทุกครั้งที่แตะจะขึ้นใน Dashboard ของร้าน</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="sec" id="features">
+      <div class="wrap">
+        <span class="eyebrow">ฟีเจอร์</span>
+        <h2 class="h2">ครบทุกอย่างที่ร้านต้องใช้</h2>
+        <div class="grid4">
+          <article class="feat"><h3>บัตรออกแบบเอง</h3><p>ใส่รูปเต็มใบ ตั้ง 5–10 ดวง และรางวัลของร้านเอง</p></article>
+          <article class="feat"><h3>NFC + QR</h3><p>iPhone และ Android แตะสแตนด์ได้ หรือสแกน QR แทนก็ได้</p></article>
+          <article class="feat"><h3>กันโกงในตัว</h3><p>ได้วันละ 1 ดวงต่อร้าน ทุกสแตนด์มีรหัสของตัวเอง และยืนยันการแลกด้วยรหัส 4 หลัก</p></article>
+          <article class="feat"><h3>โปรอัตโนมัติ</h3><p>ตั้งแสตมป์ x2 ตามวัน และกิจกรรมพิเศษ แล้วขึ้นป้าย "โปร" บนแมพ</p></article>
+          <article class="feat"><h3>โปรสำหรับสมาชิก</h3><p>ให้สิทธิ์พิเศษลูกค้าระดับ Regular / Pro / Legend ซึ่งเป็นคนที่ไปร้านต่างๆ บ่อยจริง</p></article>
+          <article class="feat"><h3>รีวิวจากคนที่มาจริง</h3><p>รีวิวได้เฉพาะลูกค้าที่เคยแตะรับแสตมป์ และร้านตอบกลับได้</p></article>
+          <article class="feat"><h3>อยู่บนแมพของลูกค้า</h3><p>ลูกค้าที่หาร้านใกล้ตัวจะเห็นร้านของคุณ พร้อมโปรที่กำลังจัด</p></article>
+          <article class="feat"><h3>Dashboard ทุกวัน</h3><p>ดูยอดแตะ ลูกค้าใหม่ ลูกค้าที่กลับมาซ้ำ และช่วงเวลาที่คนมาเยอะ</p></article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Metrics -->
+    <section class="sec dark" id="metrics">
+      <div class="wrap metrics">
+        <div>
+          <span class="eyebrow">ตัวเลขที่คุณวัดได้</span>
+          <h2 class="h2">รู้ว่าโปรแกรมสะสมแต้ม<br><em>ได้ผลจริงไหม</em></h2>
+          <ul class="mlist">
+            <li><b>อัตรากลับมาซ้ำ</b><span>ลูกค้ากี่ % กลับมามากกว่า 1 ครั้งใน 7 หรือ 30 วัน</span></li>
+            <li><b>ลูกค้าใหม่ เทียบกับลูกค้าที่กลับมา</b><span>ร้านกำลังได้คนใหม่ หรือรักษาคนเดิมได้ดี</span></li>
+            <li><b>จำนวนแตะรายวัน</b><span>เทียบกับช่วงก่อนหน้า เห็นผลของโปรแต่ละครั้ง</span></li>
+            <li><b>ช่วงเวลาที่คนมา</b><span>ตารางวันและชั่วโมง ใช้วางคนและวางโปรช่วงร้านเงียบ</span></li>
+            <li><b>ลูกค้าที่บัตรใกล้ครบ</b><span>ขาดอีก 1–2 ดวง เป็นกลุ่มที่ชวนกลับมาง่ายที่สุด</span></li>
+            <li><b>การแลกรางวัลและคะแนนรีวิว</b><span>ต้นทุนรางวัลที่จ่ายไปจริง และเสียงตอบรับจากคนที่มาจริง</span></li>
+          </ul>
+        </div>
+        <figure class="shot">
+          <img src="img/merchant-dashboard.webp" alt="Dashboard ของร้านค้า แสดงจำนวนแตะ ลูกค้า อัตรากลับมาซ้ำ และกราฟรายวัน" loading="lazy">
+          <figcaption>ภาพตัวอย่าง Dashboard (ข้อมูลจำลอง)</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- Calculator -->
+    <section class="sec alt" id="calc">
+      <div class="wrap calc">
+        <div>
+          <span class="eyebrow">คำนวณคร่าวๆ</span>
+          <h2 class="h2">ถ้าลูกค้ากลับมาเพิ่มอีกนิด<br>ร้านได้เท่าไร?</h2>
+          <p class="muted">ใส่ตัวเลขของร้านคุณ แล้วระบบจะประมาณรายได้ที่เพิ่มขึ้นและต้นทุนของรางวัลให้ เปิดใช้ Pointie แล้วดูตัวเลขจริงใน Dashboard ได้</p>
+        </div>
+        <form class="calc-box" id="calcForm" autocomplete="off">
+          <label><span>ลูกค้าต่อวัน</span><input type="number" name="cust" min="1" max="5000" value="60" inputmode="numeric"></label>
+          <label><span>ยอดเฉลี่ยต่อบิล (บาท)</span><input type="number" name="bill" min="1" max="100000" value="80" inputmode="numeric"></label>
+          <label><span>วันที่เปิดร้านต่อเดือน</span><input type="number" name="days" min="1" max="31" value="26" inputmode="numeric"></label>
+          <label><span>ลูกค้าที่ใช้บัตรสะสม (%)</span><input type="number" name="part" min="1" max="100" value="40" inputmode="numeric"></label>
+          <label><span>จำนวนดวงต่อบัตร</span><input type="number" name="need" min="3" max="20" value="10" inputmode="numeric"></label>
+          <label><span>ต้นทุนรางวัลต่อใบ (บาท)</span><input type="number" name="cost" min="0" max="10000" value="35" inputmode="numeric"></label>
+          <label class="full"><span>ลูกค้ากลับมาบ่อยขึ้น <b id="liftOut">10%</b></span><input type="range" name="lift" min="0" max="30" step="1" value="10"></label>
+          <div class="calc-out full" aria-live="polite">
+            <div><span>รายได้เพิ่ม / เดือน</span><b id="outRev">—</b></div>
+            <div><span>ต้นทุนรางวัล / เดือน</span><b id="outCost">—</b></div>
+            <div class="net"><span>เพิ่มสุทธิ / เดือน</span><b id="outNet">—</b></div>
+          </div>
+          <p class="fine full">เป็นการประมาณจากตัวเลขที่คุณใส่ ไม่ใช่การรับประกันผล: รายได้เพิ่ม = ลูกค้าต่อเดือน × % ใช้บัตร × % ที่กลับมาเพิ่ม × ยอดต่อบิล · ต้นทุนรางวัล = จำนวนครั้งที่สมาชิกมา ÷ จำนวนดวงต่อบัตร × ต้นทุนต่อใบ</p>
+        </form>
+      </div>
+    </section>
+
+    <!-- What customers get -->
+    <section class="sec">
+      <div class="wrap">
+        <span class="eyebrow">ลูกค้าของคุณได้อะไร</span>
+        <h2 class="h2">สนุกจนอยากกลับมาเก็บต่อ</h2>
+        <div class="screens">
+          <figure><img src="img/app-home.webp" alt="หน้าแรกของแอพลูกค้า: เลเวลและภารกิจรายสัปดาห์" loading="lazy"><figcaption>เลเวลและภารกิจรายสัปดาห์</figcaption></figure>
+          <figure><img src="img/app-cards.webp" alt="บัตรสะสมทุกร้านในแอพเดียว" loading="lazy"><figcaption>บัตรทุกร้านอยู่ในที่เดียว</figcaption></figure>
+          <figure><img src="img/app-map.webp" alt="แมพร้านใกล้ตัวพร้อมโปร" loading="lazy"><figcaption>หาร้านใกล้ตัวที่มีโปร</figcaption></figure>
+          <figure><img src="img/app-levelup.webp" alt="ฉลองเลเวลอัป" loading="lazy"><figcaption>เลเวลอัป ปลดล็อกสิทธิ์</figcaption></figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="sec alt" id="faq">
+      <div class="wrap faq">
+        <h2 class="h2">คำถามที่พบบ่อย</h2>
+        <details><summary>ลูกค้าต้องโหลดแอพไหม?</summary><p>ไม่ต้องครับ ลูกค้าแตะมือถือที่สแตนด์ NFC หรือสแกน QR แล้ว Pointie จะเปิดขึ้นในเบราว์เซอร์เลย สมัครด้วยเบอร์มือถือ และเพิ่มไว้ที่หน้าจอหลักแบบแอพได้</p></details>
+        <details><summary>iPhone แตะ NFC ได้ไหม?</summary><p>ได้ทั้ง iPhone และ Android แตะแท็ก NFC แล้วเปิดลิงก์ได้ทันที ถ้าเครื่องไหนไม่รองรับ ก็สแกน QR ที่อยู่บนสแตนด์เดียวกันแทนได้</p></details>
+        <details><summary>ต้องซื้ออุปกรณ์อะไรบ้าง?</summary><p>ใช้แค่สแตนด์ที่มี QR พิมพ์จากหน้า "จุดแตะ NFC / QR" ได้เลย ถ้าอยากให้แตะได้ ก็ซื้อแท็ก NFC เปล่ามาติดเพิ่ม แล้วเขียนลิงก์ลงแท็กจากหน้าเดียวกัน</p></details>
+        <details><summary>กันลูกค้าแตะซ้ำ หรือแชร์ลิงก์ต่อยังไง?</summary><p>ได้แสตมป์ร้านละ 1 ดวงต่อวัน ระบบตรวจที่เซิร์ฟเวอร์ ทุกสแตนด์มีรหัสของตัวเอง ถ้าถูกแชร์ต่อก็ปิดหรือเปลี่ยนรหัสได้ทันที ส่วนการแลกรางวัลต้องให้พนักงานใส่รหัส 4 หลักจากจอลูกค้าเพื่อยืนยัน</p></details>
+        <details><summary>ร้านเห็นข้อมูลอะไรของลูกค้าบ้าง?</summary><p>เห็นชื่อเล่น จำนวนครั้งที่มา บัตรปัจจุบัน และระดับสมาชิก แต่ไม่เห็นเบอร์โทร และลูกค้าลบบัญชีกับข้อมูลของตัวเองได้ทุกเมื่อ</p></details>
+        <details><summary>มีหลายสาขาใช้ได้ไหม?</summary><p>ตอนนี้ 1 บัญชีดูแลได้ 1 ร้าน แต่สร้างสแตนด์ได้หลายจุด ส่วนการแยกสถิติรายสาขาอยู่ในแผนพัฒนาถัดไป</p></details>
+      </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="final">
+      <div class="wrap final-in">
+        <img src="../img/pointie-point.png" alt="">
+        <div>
+          <h2>พร้อมให้ลูกค้ากลับมาอีกหรือยัง?</h2>
+          <p>สร้างร้าน ออกแบบบัตร แล้ววางสแตนด์ได้วันนี้เลย หรือจะลองด้วยร้านตัวอย่างพร้อมข้อมูล Dashboard ก่อนก็ได้</p>
+          <div class="cta-row"><a class="btn primary lg" href="../merchant/#/signup">เริ่มใช้งาน</a><a class="btn ghost lg on-dark" href="../" target="_blank" rel="noopener">ดูแอพลูกค้า</a></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap foot-in">
+      <span class="brand small"><img src="../img/app-icon.png" alt="">Pointie</span>
+      <span>แตะ · สะสม · เลเวลอัป</span>
+      <nav><a href="../">แอพลูกค้า</a><a href="../merchant/">เว็บร้านค้า</a><a href="../#/legal">ข้อกำหนดและความเป็นส่วนตัว</a></nav>
+    </div>
+  </footer>
+
+  <script src="../js/vendor/supabase.js"></script>
+  <script type="module" src="landing.js"></script>
+</body>
+</html>
