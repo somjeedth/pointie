@@ -7,7 +7,7 @@
   color-scheme: light;
 }
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+html { scroll-behavior: smooth; scroll-padding-top: 110px; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 'IBM Plex Sans Thai', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
 img { max-width: 100%; display: block; }
 a { color: inherit; }
@@ -238,3 +238,21 @@ em { font-style: normal; color: var(--primary); }
 .apply-done img { width: 150px; }
 .apply-done p { color: var(--muted); margin-bottom: 10px; }
 @media (max-width: 520px) { .apply .row2 { grid-template-columns: 1fr; } .apply-form { padding: 22px 18px; } }
+
+/* announcement ticker (scrolling banner) */
+.ticker { display: flex; overflow: hidden; height: 36px; align-items: center; background: linear-gradient(90deg, #FF6B1A, #FF8A3D 50%, #FF6B1A); color: #fff; text-decoration: none; font-size: 14px; white-space: nowrap; user-select: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
+.tk-track { display: flex; flex: none; animation: ticker 38s linear infinite; }
+.ticker:hover .tk-track, .ticker:focus-visible .tk-track { animation-play-state: paused; }
+.tk-item { display: inline-flex; align-items: center; gap: 10px; padding-right: 10px; }
+.tk-item img { width: 22px; height: 22px; border-radius: 50%; box-shadow: 0 0 0 2px rgba(255,255,255,.6); }
+.tk-item b { font-weight: 700; }
+.tk-item em { font-style: normal; font-weight: 700; color: #FFF3B0; }
+.tk-sep { opacity: .7; margin: 0 6px; }
+@keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+@media (prefers-reduced-motion: reduce) {
+  .ticker { justify-content: center; -webkit-mask-image: none; mask-image: none; }
+  .tk-track { animation: none !important; }
+  .tk-track + .tk-track, .tk-track .tk-item ~ .tk-item { display: none; }
+}
+@media (max-width: 720px) { .ticker { height: 32px; font-size: 13px; } .tk-track { animation-duration: 26s; } }
