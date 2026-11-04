@@ -1,6 +1,7 @@
 // Router & bootstrap for the Pointie customer web app.
 import { store, ensureWeek, peekLevelUp } from './store.js';
 import { nav, toast } from './ui.js';
+import { morphChildren, runMount } from './dom.js';
 import { welcome, login, otp, setup, invite, prefPlaces, prefStyle, prefLocation, returnTo, resetOtpScreen } from './screens-onboard.js';
 import { home, notifications, map, scan, cards, profile, badges, reviews, settings, legal } from './screens-main.js';
 import { tap, offline, storePage, redeemPage, levelup } from './screens-flow.js';
@@ -60,50 +61,6 @@ function resolve() {
   if (me && !me.user.setupDone && path !== '/setup' && !opt.open) return { redirect: '/setup' };
   if (me && LEVELUP_INTERCEPT.has(path) && peekLevelUp()) return { redirect: '/levelup' };
   return { fn, params: path.match(re).groups || {}, query, path };
-}
-
-// ---- In-place DOM patching ------------------------------------------------
-// Re-renders within the same screen patch the existing DOM instead of
-// replacing it, so CSS transitions actually run (carousel slide, pin select,
-// toggles), images aren't re-decoded and scroll position/focus are kept.
-function syncAttrs(from, to) {
-  for (const { name } of [...from.attributes]) if (!to.hasAttribute(name)) from.removeAttribute(name);
-  for (const { name, value } of [...to.attributes]) if (from.getAttribute(name) !== value) from.setAttribute(name, value);
-}
-function morph(from, to) {
-  if (from.nodeType !== to.nodeType || from.nodeName !== to.nodeName || (from.id || to.id) && from.id !== to.id) {
-    from.replaceWith(to); return;
-  }
-  if (from.nodeType === Node.TEXT_NODE || from.nodeType === Node.COMMENT_NODE) {
-    if (from.nodeValue !== to.nodeValue) from.nodeValue = to.nodeValue;
-    return;
-  }
-  syncAttrs(from, to);
-  if (from.tagName === 'INPUT' || from.tagName === 'TEXTAREA') {
-    if (document.activeElement !== from && from.value !== (to.value ?? '')) from.value = to.value ?? '';
-    if (from.tagName === 'INPUT') return;
-  }
-  morphChildren(from, to);
-}
-function morphChildren(from, to) {
-  const a = [...from.childNodes], b = [...to.childNodes];
-  b.forEach((nb, i) => { if (a[i]) morph(a[i], nb); else from.appendChild(nb); });
-  for (let i = b.length; i < a.length; i++) a[i].remove();
-}
-
-// Listeners added inside mount() are tied to this AbortController and dropped
-// on the next render, so patched (reused) elements never get duplicates.
-let mountAbort = null;
-function runMount(screen, root, ctx) {
-  mountAbort?.abort();
-  mountAbort = new AbortController();
-  const { signal } = mountAbort;
-  const orig = EventTarget.prototype.addEventListener;
-  EventTarget.prototype.addEventListener = function (type, fn, opts) {
-    const o = typeof opts === 'object' && opts ? { ...opts, signal } : { capture: !!opts, signal };
-    return orig.call(this, type, fn, o);
-  };
-  try { return screen.mount?.(root, ctx) || null; } finally { EventTarget.prototype.addEventListener = orig; }
 }
 
 function render(keepState = false) {

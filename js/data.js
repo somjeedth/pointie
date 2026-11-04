@@ -1,3 +1,5 @@
+import { applyCatalog } from './catalog.js';
+
 // Static catalogue: shops, badges, levels, preferences.
 
 export const CAT = {
@@ -93,6 +95,8 @@ export const SHOPS = [
     dist5: [80, 14, 4, 1, 1], photos: 22,
   },
 ];
+export const BASE_SHOPS = JSON.parse(JSON.stringify(SHOPS)); // pristine defaults (merchant web)
+applyCatalog(SHOPS); // merchant edits (demo backend)
 export const shopById = (id) => SHOPS.find((s) => s.id === id);
 
 export const SAMPLE_REVIEWS = {

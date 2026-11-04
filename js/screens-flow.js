@@ -36,6 +36,11 @@ export function tap({ id }, query) {
     };
   }
 
+  const standTok = query.get('s');
+  const stand = standTok && shop.stands.find((x) => x.token === standTok);
+  if (standTok && (!stand || !stand.active)) {
+    return { html: `${brandBar().replace('nfc-ok', 'nfc-ok" style="color:var(--red)')}<div class="col center" style="align-items:center;gap:10px;margin-top:40px"><img src="img/pointie-wow.png" alt="" style="height:140px"><h1 class="h1" style="font-size:22px">สแตนด์นี้ปิดใช้งานแล้ว</h1><p class="muted small">ลองแตะสแตนด์อื่นของ ${esc(shop.name)} หรือแจ้งพนักงานร้าน</p></div><a class="btn btn-primary spacer" href="#/home">กลับหน้าแรก</a>` };
+  }
   const justDone = tapResult && tapResult.shopId === id ? tapResult.res : null;
   const card = cardFor(id);
   const need = shop.card.need;
@@ -161,11 +166,12 @@ export function storePage({ id }, query) {
   const sample = SAMPLE_REVIEWS[id] || [];
   const left = k.need - (c?.have || 0);
   const tags = s.tags.map(([l, n, pos]) => `<span class="pill ${pos ? 'green' : 'soft'}" style="font-size:13px;padding:6px 12px;font-weight:600">${l} · ${n}</span>`).join('');
-  const reviewItem = (r, isMine) => `<div class="card review">
+  const replyHtml = (key) => s.replies?.[key] ? `<div class="card-soft" style="padding:10px 12px;border-radius:12px"><span class="xs bold accent">ร้านตอบกลับ</span><p class="small">${esc(s.replies[key])}</p></div>` : '';
+  const reviewItem = (r, isMine, key) => `<div class="card review">
       <div class="row" style="gap:10px"><span class="initials sm" style="border-radius:50%">${esc(r.initial)}</span>
         <div class="col" style="gap:0;flex:1"><span><b>${esc(r.name)}</b> <span class="pill violet" style="font-size:11px;padding:0 6px">Lv.${r.lv}</span>${isMine ? ' <span class="pill soft" style="font-size:11px;padding:0 6px">ของฉัน</span>' : ''}</span>
         <span class="xs muted">${r.ago} · มาแล้ว ${r.visits} ครั้ง</span></div><span class="real">${icon('check', 11, 3)}ไปจริง</span></div>
-      ${starsHtml(r.stars)}<p class="small">${esc(r.text)}</p></div>`;
+      ${starsHtml(r.stars)}<p class="small">${esc(r.text)}</p>${replyHtml(key)}</div>`;
   const open = openText(s);
   const html = `
     <div class="cover ${cardBg(k)}" style="${cardBgStyle(k)}">
@@ -218,8 +224,8 @@ export function storePage({ id }, query) {
       </section>
       <section class="col">
         <div class="section-h"><h2>รีวิวล่าสุด</h2></div>
-        ${mine ? reviewItem({ initial: (me.user.nick || '?')[0], name: me.user.nick, lv: me.user.lv, ago: agoText(mine.date), visits: c?.visits || 1, stars: mine.stars, text: mine.text }, true) : ''}
-        ${sample.map((r) => reviewItem(r)).join('')}
+        ${mine ? reviewItem({ initial: (me.user.nick || '?')[0], name: me.user.nick, lv: me.user.lv, ago: agoText(mine.date), visits: c?.visits || 1, stars: mine.stars, text: mine.text }, true, me.phone) : ''}
+        ${sample.map((r, i) => reviewItem(r, false, 'sample:' + i)).join('')}
       </section>
       ${s.promo || s.event ? `<section class="col"><h2 class="h2">โปรและกิจกรรม</h2>
         ${s.promo ? `<div class="card row"><span class="tag" style="background:var(--soft);color:var(--accent)">โปร</span><span class="semi" style="flex:1">${esc(s.promoText)}</span><span class="xs muted">${s.promoUntil}</span></div>` : ''}
@@ -316,6 +322,7 @@ export function redeemPage({ id }) {
         </div>
         <div id="doneLayer" role="status" style="position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;gap:12px;transition:opacity .4s,transform .4s cubic-bezier(.2,1.3,.4,1);opacity:0;transform:translateY(30px);pointer-events:none">
           <div class="card row" style="background:var(--green-soft);border-color:transparent"><span class="green">${icon('checkCircle', 28)}</span><div class="col" style="gap:0"><b>แลกสำเร็จ! ${esc(k.reward)}</b><span class="xs muted">ใช้ ${k.need} แสตมป์แล้ว · เริ่มสะสมใหม่ได้เลย</span></div></div>
+          <div class="card between"><span class="small">รหัสยืนยันสำหรับพนักงาน</span><b id="rCode" style="font-size:26px;letter-spacing:.2em;color:var(--accent)">${redeemInfo?.code || '----'}</b></div>
           <a class="btn btn-primary" href="#/cards">กลับไปบัตรของฉัน</a>
         </div>
       </div>
@@ -356,8 +363,10 @@ export function redeemPage({ id }) {
     actions: {
       redeem() {
         if (!confirm(`ยืนยันแลก "${k.reward}" ต่อหน้าพนักงาน?`)) return;
-        if (!doRedeem(id)) { toast('แลกไม่สำเร็จ ลองใหม่อีกครั้ง'); return; }
-        redeemInfo = { shopId: id, at: new Date().toISOString() };
+        const res = doRedeem(id);
+        if (!res) { toast('แลกไม่สำเร็จ ลองใหม่อีกครั้ง'); return; }
+        redeemInfo = { shopId: id, at: new Date().toISOString(), code: res.code };
+        document.getElementById('rCode').textContent = res.code;
         document.querySelector('#rRubber span.xs').textContent = thDateTime(redeemInfo.at);
         const apply = redeemApply;
         apply(1);

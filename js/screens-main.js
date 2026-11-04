@@ -19,7 +19,7 @@ export function home() {
   const me = store.me; const u = me.user;
   const need = xpNeed(u.lv);
   const unread = me.notifications.some((n) => !n.read);
-  const fullCard = Object.entries(me.cards).find(([id, c]) => c.have >= shopById(id).card.need);
+  const fullCard = Object.entries(me.cards).find(([id, c]) => shopById(id) && c.have >= shopById(id).card.need);
   const hasCards = Object.keys(me.cards).length > 0;
   const m1 = MISSIONS[0]; const left1 = m1.goal - missionProgress(m1.id);
   let tip;
@@ -39,7 +39,7 @@ export function home() {
   }).join('');
 
   const events = SHOPS.filter((s) => s.promo || s.event).flatMap((s) => [
-    s.promo && { day: s.id === 'baan' ? 'ทุก' : '★', mon: s.id === 'baan' ? 'วันพุธ' : 'โปร', tag: 'โปร', tone: 'soft', title: s.promoText, shop: s },
+    s.promo && { day: s.promoRule?.days?.length === 1 ? 'ทุก' : '★', mon: s.promoRule?.days?.length === 1 ? 'วัน' + ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'][s.promoRule.days[0]] : 'โปร', tag: 'โปร', tone: 'soft', title: s.promoText, shop: s },
     s.event && { day: s.event.day, mon: s.event.mon, tag: 'กิจกรรม', tone: 'teal', title: s.event.title, shop: s },
   ].filter(Boolean)).slice(0, 4);
 
@@ -329,9 +329,9 @@ export function cards(p, query) {
     return {
       nav: 'cards',
       html: `${head}${tabs}
-        ${me.redeemed.length ? me.redeemed.map((r) => { const s = shopById(r.shopId); return `<div class="card row">
+        ${me.redeemed.length ? me.redeemed.filter((r) => shopById(r.shopId)).map((r) => { const s = shopById(r.shopId); return `<div class="card row">
           <span class="initials ${cardBg(s.card)}" style="${cardBgStyle(s.card)}color:${s.card.letter}">${s.initials}</span>
-          <div class="col" style="gap:2px;flex:1"><b>${esc(r.reward)}</b><span class="small muted">${esc(s.name)}</span><span class="xs muted">แลกเมื่อ ${thDateTime(r.at)}</span></div>
+          <div class="col" style="gap:2px;flex:1"><b>${esc(r.reward)}</b><span class="small muted">${esc(s.name)}</span><span class="xs muted">แลกเมื่อ ${thDateTime(r.at)}${r.code ? ` · รหัส ${r.code}` : ''}</span></div>
           <span class="pill green">${icon('check', 12, 3)}ใช้แล้ว</span></div>`; }).join('') : '<div class="empty-note">ยังไม่เคยแลกรางวัล<br>สะสมแสตมป์ให้ครบแล้วกลับมาแลกที่นี่</div>'}`,
       actions: { tab(el) { cardsState.tab = el.dataset.k; cardsState.idx = 0; window.dispatchEvent(new Event('rerender')); } },
     };
@@ -423,7 +423,7 @@ export function profile() {
   const locked = BADGES.filter((b) => !me.badges.includes(b.id));
   const shown = [...earned, ...locked].slice(0, 8);
   const pinned = me.pinned.map((id) => BADGES.find((b) => b.id === id)).filter(Boolean);
-  const favIds = me.favs.length ? me.favs : Object.entries(me.cards).sort((a, b) => b[1].visits - a[1].visits).slice(0, 3).map(([id]) => id);
+  const favIds = (me.favs.length ? me.favs : Object.entries(me.cards).sort((a, b) => b[1].visits - a[1].visits).slice(0, 3).map(([id]) => id)).filter((id) => shopById(id));
   const stats = catVisitStats(me); const maxStat = Math.max(1, ...stats.map((s) => s.n));
   const styleTags = STYLES.filter(([k]) => u.prefs.styles.includes(k)).map(([, l]) => l);
   return {
@@ -491,10 +491,10 @@ export function badges() {
 // ================= MY REVIEWS (E8) =================
 export function reviews() {
   const me = store.me;
-  const pending = Object.entries(me.cards).filter(([id]) => !myReview(id)).sort((a, b) => (b[1].last || '').localeCompare(a[1].last || ''));
+  const pending = Object.entries(me.cards).filter(([id]) => shopById(id) && !myReview(id)).sort((a, b) => (b[1].last || '').localeCompare(a[1].last || ''));
   return {
     html: `<div class="topbar">${backBtn('/profile')}<h1>รีวิวของฉัน</h1></div>
-      ${me.reviews.length ? me.reviews.map((r) => { const s = shopById(r.shopId); return `<a class="card review" href="#/store/${s.id}" style="text-decoration:none;color:inherit">
+      ${me.reviews.length ? me.reviews.filter((r) => shopById(r.shopId)).map((r) => { const s = shopById(r.shopId); return `<a class="card review" href="#/store/${s.id}" style="text-decoration:none;color:inherit">
         <div class="between"><b>${esc(s.name)}</b><span class="real">${icon('check', 11, 3)}ไปจริง</span></div>
         <div class="row" style="gap:8px">${starsHtml(r.stars)}<span class="xs muted">${agoText(r.date)}</span></div><p class="small">${esc(r.text)}</p></a>`; }).join('')
       : `<div class="col" style="align-items:center;text-align:center;gap:8px">

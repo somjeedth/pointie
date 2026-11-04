@@ -1,5 +1,6 @@
 // App state, persistence (localStorage) and domain actions.
 import { SHOPS, shopById, xpNeed, MISSIONS, BADGES, XP, levelTitle } from './data.js';
+import { logEvent } from './catalog.js';
 
 const KEY_ACCOUNTS = 'pointie.accounts.v1';
 const KEY_SESSION = 'pointie.session.v1';
@@ -264,7 +265,7 @@ export function togglePin(id) {
 // ---------- stamps ----------
 export function cardFor(shopId) { return store.me?.cards[shopId]; }
 export function canStampToday(shopId) { return cardFor(shopId)?.lastStamp !== todayKey(); }
-export const isDoubleDay = (shop) => shop.id === 'baan' && new Date().getDay() === 3;
+export const isDoubleDay = (shop) => !!(shop.promo && shop.promoRule?.type === 'double' && shop.promoRule.days?.includes(new Date().getDay()));
 
 export function collectStamp(shopId) {
   const me = store.me; const shop = shopById(shopId);
@@ -289,6 +290,7 @@ export function collectStamp(shopId) {
   const missions = checkMissions();
   const badges = checkBadges();
   if (c.have >= shop.card.need) notify(`บัตร${shop.name}ครบแล้ว! แลก${shop.card.reward}ได้เลย`);
+  logEvent({ type: 'stamp', shopId, customer: me.phone, nick: me.user.nick, n: c.have - before, have: c.have, visit: c.visits, firstVisit: isNewShop });
   commit();
   return { ok: true, added: c.have - before, have: c.have, full: c.have >= shop.card.need, visits: c.visits, missions, badges, leveled: me.user.lv > lvBefore, isNewShop };
 }
@@ -298,10 +300,12 @@ export function redeem(shopId) {
   if (!c || c.have < shop.card.need) return false;
   c.have = 0;
   c.redeemedCount += 1;
-  me.redeemed.unshift({ shopId, reward: shop.card.reward, at: new Date().toISOString() });
+  const code = String(Math.floor(1000 + Math.random() * 9000));
+  const ev = logEvent({ type: 'redeem', shopId, customer: me.phone, nick: me.user.nick, reward: shop.card.reward, code, status: 'pending' });
+  me.redeemed.unshift({ shopId, reward: shop.card.reward, at: ev.at, code, eventId: ev.id });
   checkBadges();
   commit();
-  return true;
+  return { code };
 }
 
 // ---------- reviews / favourites ----------
@@ -314,6 +318,7 @@ export function addReview(shopId, stars, text) {
   const existing = myReview(shopId);
   if (existing) { Object.assign(existing, { stars, text, date: todayKey() }); commit(); return { ok: true, updated: true }; }
   me.reviews.unshift({ shopId, stars, text, date: todayKey() });
+  logEvent({ type: 'review', shopId, customer: me.phone, nick: me.user.nick, stars });
   me.week.reviews += 1;
   addXp(XP.review);
   checkMissions();
