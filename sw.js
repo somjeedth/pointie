@@ -1,5 +1,5 @@
 // Offline cache for the Pointie web app shell.
-const CACHE = 'pointie-v8';
+const CACHE = 'pointie-v9';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/app.js', 'js/dom.js', 'js/catalog.js', 'js/store.js', 'js/remote.js', 'js/config.js', 'js/vendor/supabase.js', 'js/data.js', 'js/ui.js', 'js/icons.js',

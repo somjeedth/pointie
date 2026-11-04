@@ -1,7 +1,7 @@
 /* Pointie — Customer web app */
 :root, [data-theme="dark"] {
   --bg: #000000; --surface: #161616; --soft: #2A1A10; --ink: #F7F7F7; --muted: #A9A9A9;
-  --line: #2A2A2A; --primary: #FF7A2E; --on-primary: #1B0C03; --accent: #FF9A5C; --track: #333333;
+  --line: #2A2A2A; --primary: #FF7A2E; --on-primary: #FFFFFF; --accent: #FF9A5C; --track: #333333;
   --gold: #FFC83D; --teal: #3CC7B2; --violet: #A592FF; --green: #4CC38A; --red: #FF6B6B;
   --teal-soft: #14302B; --green-soft: #17301F; --violet-soft: #2A2340; --gold-soft: #3A2F12;
   --red-soft: #2A1212; --lock-bg: #1F1F1F; --lock-fg: #8E8E8E; --disabled: #2A2A2A; --disabled-fg: #8E8E8E;
@@ -12,7 +12,7 @@
 }
 [data-theme="light"] {
   --bg: #FFF8F2; --surface: #FFFFFF; --soft: #FFEBDD; --ink: #2B1A10; --muted: #7A5A47;
-  --line: #F1DCCB; --primary: #FF6B1A; --on-primary: #2B1205; --accent: #C2410C; --track: #F6D9C4;
+  --line: #F1DCCB; --primary: #FF6B1A; --on-primary: #FFFFFF; --accent: #C2410C; --track: #F6D9C4;
   --gold: #E0A800; --teal: #0E7A6C; --violet: #6D4AFF; --green: #1A7F4E; --red: #D93636;
   --teal-soft: #DDF3EF; --green-soft: #E3F4EA; --violet-soft: #ECE7FF; --gold-soft: #FFF3C9;
   --red-soft: #FDE6E6; --lock-bg: #F3ECE6; --lock-fg: #8A7566; --disabled: #EADBCF; --disabled-fg: #9C8577;
