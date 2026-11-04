@@ -42,10 +42,10 @@ h1, h2, h3, p { margin: 0; }
   position: relative; width: 100%; max-width: 430px; height: 100dvh; margin: 0 auto;
   background: var(--bg); overflow: hidden;
 }
+/* Desktop: full-height centred column, no phone frame */
 @media (min-width: 600px) {
-  body { display: flex; align-items: center; justify-content: center; padding: 24px; }
-  .app { height: min(900px, calc(100dvh - 48px)); border-radius: 36px; box-shadow: 0 30px 80px rgba(0,0,0,.45), 0 0 0 10px #1a1a1a; }
-  [data-theme="light"] .app { box-shadow: 0 30px 80px rgba(120,60,20,.25), 0 0 0 10px #2b1a10; }
+  body { background: var(--bg); }
+  .app { max-width: 480px; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
 }
 .screen {
   position: absolute; inset: 0; display: flex; flex-direction: column;
