@@ -1,6 +1,10 @@
 // Pointie for business — live numbers, ROI calculator, small interactions.
 import { icon } from '../js/icons.js';
 import * as remote from '../js/remote.js';
+import { siteUrl } from '../js/sites.js';
+
+// Cross-site links → app.getpointie.com / store.getpointie.com in production
+document.querySelectorAll('[data-site]').forEach((a) => { a.href = siteUrl(a.dataset.site, a.dataset.path || ''); });
 
 const nf = new Intl.NumberFormat('th-TH');
 const baht = (n) => `฿${nf.format(Math.round(n))}`;

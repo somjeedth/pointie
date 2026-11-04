@@ -4,6 +4,7 @@ import { esc, toast, bigStampCard, starsHtml, cardBg, cardBgStyle, letterHtml, i
 import { morphChildren, runMount } from '../../js/dom.js';
 import qrcode from './vendor/qrcode.js';
 import * as api from './api.js';
+import { siteUrl } from '../../js/sites.js';
 import { TIERS, tierById } from '../../js/data.js';
 
 const root = document.getElementById('m-app');
@@ -32,7 +33,7 @@ const ago = (iso) => {
   const h = Math.round(m / 60); if (h < 24) return `${h} ชม.ที่แล้ว`;
   return `${Math.round(h / 24)} วันที่แล้ว`;
 };
-const customerAppUrl = (hash = '') => new URL('../', location.href).href + hash;
+const customerAppUrl = (hash = '') => siteUrl('app', hash);
 
 // ======================= layout =======================
 const NAV = [
@@ -52,7 +53,7 @@ function shell(active, me, shop, body) {
   const badge = { redeem: pending, reviews: unreplied };
   return `<div class="m-shell" id="shell">
     <aside class="m-side" aria-label="เมนูร้านค้า">
-      <div class="brand"><img src="../img/app-icon.png" alt="">Pointie <span class="pill soft" style="font-size:11px">ร้านค้า</span></div>
+      <div class="brand"><img src="/img/app-icon.png" alt="">Pointie <span class="pill soft" style="font-size:11px">ร้านค้า</span></div>
       <div class="shopname">ร้านของคุณ<b>${esc(shop.name)}</b>${shop.paused ? '<span class="status void">ซ่อนจากแอพ</span>' : ''}</div>
       <nav class="m-nav">${NAV.map(([k, l, ic]) => `<a href="#/${k}" class="${active === k ? 'on' : ''}" ${active === k ? 'aria-current="page"' : ''}>${icon(ic, 18)}${l}${badge[k] ? `<span class="badge-n">${badge[k]}</span>` : ''}</a>`).join('')}</nav>
       <div class="foot m-nav">
@@ -62,7 +63,7 @@ function shell(active, me, shop, body) {
     </aside>
     <div class="scrim" data-act="closeNav"></div>
     <div style="min-width:0">
-      <div class="m-top"><button class="icon-btn" data-act="openNav" aria-label="เมนู">${icon('filter')}</button><div class="brand" style="font-size:16px"><img src="../img/app-icon.png" alt="" style="width:28px;height:28px">${esc(shop.name)}</div></div>
+      <div class="m-top"><button class="icon-btn" data-act="openNav" aria-label="เมนู">${icon('filter')}</button><div class="brand" style="font-size:16px"><img src="/img/app-icon.png" alt="" style="width:28px;height:28px">${esc(shop.name)}</div></div>
       <main class="m-main">${body}</main>
     </div>
   </div>`;
@@ -73,7 +74,7 @@ const head = (title, sub, right = '') => `<div class="m-head"><div><h1>${title}<
 function loginView() {
   return {
     html: `<div class="auth">
-      <div class="hero"><img src="../img/pointie-cheer.png" alt=""><h1 class="h1">Pointie สำหรับร้านค้า</h1><p class="muted">ดูลูกค้าประจำ ออกแบบบัตรสะสม ตั้งโปร และยืนยันการแลกรางวัล<br>ในที่เดียว</p><a class="link-u" href="../business/">รู้จัก Pointie สำหรับร้านค้า →</a></div>
+      <div class="hero"><img src="/img/pointie-cheer.png" alt=""><h1 class="h1">Pointie สำหรับร้านค้า</h1><p class="muted">ดูลูกค้าประจำ ออกแบบบัตรสะสม ตั้งโปร และยืนยันการแลกรางวัล<br>ในที่เดียว</p><a class="link-u" href="${siteUrl('landing')}">รู้จัก Pointie สำหรับร้านค้า →</a></div>
       <div class="box"><form class="form" id="f">
         <h2 class="h1" style="font-size:24px">เข้าสู่ระบบร้านค้า</h2>
         <label class="field"><span>อีเมล</span><input class="inp" name="email" type="email" autocomplete="email" required></label>
@@ -123,7 +124,7 @@ function showErr(r, msg) { const el = r.querySelector('#err'); el.textContent = 
 function signupView() {
   return {
     html: `<div class="auth">
-      <div class="hero"><img src="../img/pointie-point.png" alt=""><h1 class="h1">เปิดร้านบน Pointie</h1><p class="muted">ตั้งค่าเสร็จในไม่กี่นาที แล้ววางสแตนด์ NFC ให้ลูกค้าแตะรับแสตมป์ได้เลย</p></div>
+      <div class="hero"><img src="/img/pointie-point.png" alt=""><h1 class="h1">เปิดร้านบน Pointie</h1><p class="muted">ตั้งค่าเสร็จในไม่กี่นาที แล้ววางสแตนด์ NFC ให้ลูกค้าแตะรับแสตมป์ได้เลย</p></div>
       <div class="box"><form class="form" id="f">
         <h2 class="h1" style="font-size:24px">สมัครร้านใหม่</h2>
         ${shopFields()}
@@ -152,7 +153,7 @@ function signupView() {
 function createShopView(me) {
   return {
     html: `<div class="auth">
-      <div class="hero"><img src="../img/pointie-cheer.png" alt=""><h1 class="h1">อีกขั้นเดียว!</h1><p class="muted">${esc(me.email)}<br>ตั้งชื่อร้านของคุณเพื่อเริ่มใช้งาน</p></div>
+      <div class="hero"><img src="/img/pointie-cheer.png" alt=""><h1 class="h1">อีกขั้นเดียว!</h1><p class="muted">${esc(me.email)}<br>ตั้งชื่อร้านของคุณเพื่อเริ่มใช้งาน</p></div>
       <div class="box"><form class="form" id="f">
         <h2 class="h1" style="font-size:24px">สร้างร้าน</h2>
         ${shopFields()}
@@ -568,7 +569,7 @@ function standsView(me, shop) {
             </div>
             <span class="xs muted">สร้างเมื่อ ${fmtDT(s.createdAt)}${s.rotatedAt ? ` · เปลี่ยนรหัสล่าสุด ${fmtDT(s.rotatedAt)}` : ''}</span>
           </div></div>`;
-      }).join('') : `<div class="panel center" style="align-items:center"><img src="../img/pointie-point.png" alt="" style="height:110px"><b>ยังไม่มีสแตนด์</b><p class="sub">เพิ่มสแตนด์แรก แล้วพิมพ์ QR หรือเขียนลงแท็ก NFC วางที่เคาน์เตอร์</p></div>`) +
+      }).join('') : `<div class="panel center" style="align-items:center"><img src="/img/pointie-point.png" alt="" style="height:110px"><b>ยังไม่มีสแตนด์</b><p class="sub">เพิ่มสแตนด์แรก แล้วพิมพ์ QR หรือเขียนลงแท็ก NFC วางที่เคาน์เตอร์</p></div>`) +
       `<div class="panel"><h2>วิธีเขียนลิงก์ลงแท็ก NFC</h2><div class="howto">
         <div><b class="n">1</b><span>${canNfc ? 'กด <b>เขียนลงแท็ก NFC</b> แล้วแตะแท็กเปล่าที่ด้านหลังมือถือ' : 'ใช้ Android Chrome กดปุ่ม <b>เขียนลงแท็ก NFC</b> ในหน้านี้ หรือใช้แอพ NFC Tools (iPhone/Android)'}</span></div>
         <div><b class="n">2</b><span>ถ้าใช้แอพอื่น: เลือก “เขียน URL” แล้ววางลิงก์ของสแตนด์</span></div>

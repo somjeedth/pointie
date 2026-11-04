@@ -8,6 +8,7 @@ import {
   loadCatalog, patchShop, newShopId, blankShop, mergeShop, loadEvents, saveEvents, updateEvent,
 } from '../../js/catalog.js';
 import * as remote from '../../js/remote.js';
+import { siteUrl } from '../../js/sites.js';
 
 let remoteMode = false;
 let R = null; // cached merchant_bundle()
@@ -160,10 +161,7 @@ export async function removeStand(shopId, standId) {
   const s = getShop(shopId);
   patchShop(shopId, { stands: s.stands.filter((x) => x.id !== standId) });
 }
-export const tapUrl = (shopId, stand) => {
-  const root = new URL('../', location.href).href;
-  return `${root}#/tap/${shopId}${stand ? `?s=${stand.token}` : ''}`;
-};
+export const tapUrl = (shopId, stand) => siteUrl('app', `#/tap/${shopId}${stand ? `?s=${stand.token}` : ''}`);
 
 // ---------------- events / analytics ----------------
 const DAY = 86400000;

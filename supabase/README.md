@@ -15,10 +15,11 @@ Dashboard → **Authentication**
 - **Sign In / Providers → Allow anonymous sign-ins: เปิด** — ลูกค้าใช้บัญชีแบบไม่ระบุตัวตนผูกกับเครื่อง (ระหว่างที่ยังไม่มี SMS OTP จริง)
 - **Sign In / Providers → Email**: เปิดไว้ (ร้านค้าเข้าด้วยอีเมล + รหัสผ่าน)
   - ถ้าเปิด **Confirm email** ร้านต้องกดลิงก์ในอีเมลก่อน แล้วกลับมาเข้าสู่ระบบเพื่อสร้างร้าน
-- **URL Configuration → Site URL**: `https://pointie-steel.vercel.app/merchant/` (ลิงก์ยืนยันอีเมลจะพากลับมาที่นี่)
+- **URL Configuration → Site URL**: `https://store.getpointie.com/` (ลิงก์ยืนยันอีเมลของร้านจะพากลับมาที่นี่)
+- **URL Configuration → Redirect URLs**: เพิ่ม `https://store.getpointie.com/**`, `https://app.getpointie.com/**` (และ `https://pointie-steel.vercel.app/**` ถ้ายังใช้)
 
 ## 3. ตรวจว่าใช้งานได้
-- เปิด `https://pointie-steel.vercel.app/` → ถ้าต่อสำเร็จ หน้า ตั้งค่า จะเขียนว่า "ข้อมูลซิงก์กับเซิร์ฟเวอร์"
+- เปิด `https://app.getpointie.com/` → ถ้าต่อสำเร็จ หน้า ตั้งค่า จะเขียนว่า "ข้อมูลซิงก์กับเซิร์ฟเวอร์"
 - ถ้าต่อไม่ได้ (ยังไม่ได้รัน SQL หรือเน็ตมีปัญหา) แอพจะสลับไปใช้ข้อมูลตัวอย่างในเครื่องเองโดยไม่พัง
 - บังคับใช้โหมดเดโมในเครื่องได้ด้วย `?local=1` ต่อท้ายลิงก์
 
