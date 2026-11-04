@@ -140,7 +140,7 @@ export function otp() {
         const i = otpInfo(); if (!i) return clearInterval(otpTimer);
         if (Date.now() > i.expiresAt && otpState.status !== 'expired') { otpState.status = 'expired'; ctx.rerender(); return; }
         const left = Math.max(0, 60 - Math.floor((Date.now() - i.sentAt) / 1000));
-        if (resendEl) resendEl.innerHTML = left > 0 ? `ส่งรหัสใหม่ได้ใน <b style="color:var(--ink)">0:${String(left).padStart(2, '0')}</b>` : '<button class="link" data-act="resend">ส่งรหัสใหม่</button>';
+        if (resendEl) resendEl.innerHTML = left > 0 ? `ส่งรหัสใหม่ได้ใน <b style="color:var(--ink)">${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}</b>` : '<button class="link" data-act="resend">ส่งรหัสใหม่</button>';
       };
       tick(); otpTimer = setInterval(tick, 1000);
       return () => clearInterval(otpTimer);

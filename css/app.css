@@ -56,6 +56,7 @@ h1, h2, h3, p { margin: 0; }
 .screen > * { flex-shrink: 0; }
 .screen.has-nav { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
 .screen.flush { padding: 0; gap: 0; }
+.screen.no-enter { animation: none; }
 @keyframes screen-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .screen::-webkit-scrollbar { width: 0; }
 .spacer { margin-top: auto; }
@@ -181,7 +182,7 @@ h1, h2, h3, p { margin: 0; }
 .sheet {
   width: 100%; max-height: 92%; overflow-y: auto; background: var(--surface); border-radius: 28px 28px 0 0;
   padding: 18px 20px calc(24px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 14px;
-  animation: sheet-up .3s cubic-bezier(.2,1.2,.4,1);
+  animation: sheet-up .3s cubic-bezier(.2,1.2,.4,1); will-change: transform;
 }
 .sheet .grab { width: 40px; height: 5px; border-radius: 999px; background: var(--track); align-self: center; }
 @keyframes sheet-up { from { transform: translateY(100%); } }
@@ -234,10 +235,12 @@ h1, h2, h3, p { margin: 0; }
 
 /* carousel */
 .carousel { margin: 0 -20px; overflow: hidden; padding: 30px 0 10px; touch-action: pan-y; }
-.track { display: flex; gap: 14px; transition: transform .3s; }
+.track { display: flex; gap: 14px; transition: transform .35s cubic-bezier(.2,.8,.2,1); will-change: transform; }
+.track.dragging { transition: none; }
 .bigcard {
   position: relative; flex: none; width: 290px; height: 430px; padding: 0; border: 0; border-radius: 26px; color: #fff;
-  box-shadow: var(--shadow); transition: transform .3s, opacity .3s; text-align: left;
+  box-shadow: var(--shadow); transition: transform .35s cubic-bezier(.2,.8,.2,1), opacity .35s; text-align: left;
+  will-change: transform, opacity; contain: layout paint;
 }
 .bigcard.off { transform: scale(.92); opacity: .55; }
 .bigcard .inner { position: relative; height: 100%; display: flex; flex-direction: column; padding: 18px 16px 16px; }
@@ -390,7 +393,7 @@ textarea.ta:focus, .input-wrap:focus-within { border-color: var(--primary); }
 /* ---------- onboarding ---------- */
 .splash { align-items: center; justify-content: center; text-align: center; overflow: hidden; }
 .splash .glow { position: absolute; left: 50%; top: 32%; width: 520px; height: 520px; margin: -260px 0 0 -260px; border-radius: 50%; background: radial-gradient(circle, rgba(255,122,46,.25) 0%, rgba(0,0,0,0) 65%); pointer-events: none; }
-.splash .mascot { width: 220px; animation: bob 3s ease-in-out infinite; position: relative; }
+.splash .mascot { width: 220px; animation: bob 3s ease-in-out infinite; position: relative; will-change: transform; }
 @keyframes bob { 50% { transform: translateY(-10px); } }
 .splash .title { font-size: 44px; font-weight: 700; letter-spacing: -.02em; }
 .confetti-dot { position: absolute; border-radius: 50%; }
@@ -444,7 +447,7 @@ textarea.ta:focus, .input-wrap:focus-within { border-color: var(--primary); }
 /* ---------- celebration ---------- */
 .celebrate { align-items: center; text-align: center; overflow: hidden; }
 .fx { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
-.fx span { position: absolute; display: flex; }
+.fx span { position: absolute; display: flex; will-change: transform, opacity; }
 .lv-num { position: relative; width: 64px; height: 64px; border-radius: 18px; background: var(--primary); color: var(--on-primary); overflow: hidden; }
 .unlock { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: left; }
 .unlock div { padding: 14px; border-radius: 18px; display: flex; flex-direction: column; gap: 4px; }
@@ -452,9 +455,9 @@ textarea.ta:focus, .input-wrap:focus-within { border-color: var(--primary); }
 /* ---------- scan ---------- */
 .nfc-stage { position: relative; height: 300px; display: flex; align-items: center; justify-content: center; }
 .nfc-stand { width: 150px; height: 110px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); position: absolute; bottom: 30px; right: 40px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 12px; font-size: 12px; color: var(--muted); }
-.nfc-phone { position: absolute; top: 10px; left: 50%; width: 110px; height: 190px; margin-left: -20px; border-radius: 22px; border: 3px solid var(--ink); background: var(--bg); transform: rotate(-14deg); animation: tap 2.2s ease-in-out infinite; }
+.nfc-phone { will-change: transform; position: absolute; top: 10px; left: 50%; width: 110px; height: 190px; margin-left: -20px; border-radius: 22px; border: 3px solid var(--ink); background: var(--bg); transform: rotate(-14deg); animation: tap 2.2s ease-in-out infinite; }
 @keyframes tap { 0%,100% { transform: translate(0,0) rotate(-14deg); } 50% { transform: translate(-8px,34px) rotate(-14deg); } }
-.nfc-wave { position: absolute; bottom: 80px; right: 75px; width: 90px; height: 30px; border: 2px dashed var(--primary); border-radius: 50%; animation: wave 2.2s ease-in-out infinite; }
+.nfc-wave { will-change: transform, opacity; position: absolute; bottom: 80px; right: 75px; width: 90px; height: 30px; border: 2px dashed var(--primary); border-radius: 50%; animation: wave 2.2s ease-in-out infinite; }
 @keyframes wave { 0%,100% { opacity: .2; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.15); } }
 .nfc-stage .mascot { position: absolute; left: 4px; bottom: 30px; height: 120px; }
 .howto { display: flex; flex-direction: column; gap: 12px; }

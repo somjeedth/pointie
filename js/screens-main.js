@@ -366,17 +366,38 @@ export function cards(p, query) {
         ${letterHtml(shop.card)}<span class="minibar">${Array.from({ length: shop.card.need }, (_, j) => `<i class="${j < c.have ? 'f' : ''}"></i>`).join('')}</span><span class="n">${c.have}/${shop.card.need}</span></button>`).join('')}</div>` : ''}`,
     mount(root) {
       const car = root.querySelector('#car'); if (!car) return;
-      let x0 = null;
-      car.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
-      car.addEventListener('touchend', (e) => {
-        if (x0 == null) return; const dx = e.changedTouches[0].clientX - x0; x0 = null;
-        if (Math.abs(dx) < 40) return;
+      const track = root.querySelector('#track');
+      const STEP = 304; // card width 290 + gap 14
+      const base = () => `calc(50% - 145px - ${idx * STEP}px)`;
+      let x0 = null, y0 = 0, dx = 0, horiz = null;
+      car.addEventListener('pointerdown', (e) => {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        x0 = e.clientX; y0 = e.clientY; dx = 0; horiz = null;
+      });
+      car.addEventListener('pointermove', (e) => {
+        if (x0 == null) return;
+        dx = e.clientX - x0;
+        if (horiz == null && (Math.abs(dx) > 8 || Math.abs(e.clientY - y0) > 8)) horiz = Math.abs(dx) > Math.abs(e.clientY - y0);
+        if (!horiz) return;
+        track.classList.add('dragging');
+        const edge = (idx === 0 && dx > 0) || (idx === list.length - 1 && dx < 0) ? 0.35 : 1; // rubber-band at ends
+        track.style.transform = `translateX(calc(${base()} + ${dx * edge}px))`;
+      });
+      const end = () => {
+        if (x0 == null) return;
+        x0 = null; track.classList.remove('dragging');
+        if (!horiz || Math.abs(dx) < 50) { track.style.transform = `translateX(${base()})`; return; }
         cardsState.idx = Math.max(0, Math.min(list.length - 1, idx + (dx < 0 ? 1 : -1)));
         window.dispatchEvent(new Event('rerender'));
-      });
+      };
+      car.addEventListener('pointerup', end);
+      car.addEventListener('pointercancel', end);
+      car.addEventListener('pointerleave', end);
+      // a drag shouldn't also count as a tap on the card
+      car.addEventListener('click', (e) => { if (horiz && Math.abs(dx) >= 8) { e.stopPropagation(); e.preventDefault(); } }, true);
     },
     actions: {
-      pick(el) { cardsState.idx = +el.dataset.i; if (cardsState.tab !== 'all') cardsState.tab = 'all'; window.dispatchEvent(new Event('rerender')); root().scrollTo({ top: 0, behavior: 'smooth' }); },
+      pick(el) { const fromMini = el.classList.contains('minicard'); cardsState.idx = +el.dataset.i; if (cardsState.tab !== 'all') cardsState.tab = 'all'; window.dispatchEvent(new Event('rerender')); if (fromMini) root().scrollTo({ top: 0, behavior: 'smooth' }); },
       tab(el) { cardsState.tab = el.dataset.k; cardsState.idx = 0; window.dispatchEvent(new Event('rerender')); },
     },
   };
