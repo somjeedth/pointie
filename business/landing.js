@@ -67,3 +67,55 @@ if ('IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion: re
   }, { rootMargin: '0px 0px -8% 0px' });
   targets.forEach((el) => io.observe(el));
 }
+
+// ---------------- sign-up request ----------------
+const dlg = document.getElementById('apply');
+const af = document.getElementById('applyForm');
+const errEl = document.getElementById('applyErr');
+const openApply = (e) => {
+  e?.preventDefault();
+  af.hidden = false; document.getElementById('applyDone').hidden = true;
+  if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
+  setTimeout(() => af.querySelector('[name=first]').focus(), 50);
+};
+const closeApply = () => { if (dlg.open) dlg.close(); if (location.hash === '#apply') history.replaceState(null, '', location.pathname); };
+document.querySelectorAll('[data-apply]').forEach((a) => a.addEventListener('click', openApply));
+dlg.addEventListener('click', (e) => { if (e.target === dlg || e.target.closest('[data-close]')) closeApply(); });
+if (location.hash === '#apply') openApply();
+af.addEventListener('change', (e) => {
+  if (e.target.name === 'type') { const other = af.querySelector('.other'); other.hidden = e.target.value !== 'อื่นๆ'; if (!other.hidden) other.focus(); }
+  af.querySelectorAll('.bad').forEach((x) => x.classList.remove('bad'));
+});
+const phoneDigits = (s) => { let d = s.replace(/\D/g, ''); if (d.startsWith('66') && d.length === 11) d = '0' + d.slice(2); return d; };
+af.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  errEl.hidden = true;
+  const v = Object.fromEntries(new FormData(af));
+  if (v.website) return; // bot
+  const bad = [];
+  for (const k of ['first', 'last', 'shop']) if (!String(v[k] || '').trim()) bad.push(af.querySelector(`[name=${k}]`));
+  if (!/^0\d{8,9}$/.test(phoneDigits(v.phone || ''))) bad.push(af.querySelector('[name=phone]'));
+  const type = v.type === 'อื่นๆ' ? (v.typeOther || '').trim() : v.type;
+  if (!type) bad.push(af.querySelector('.types'));
+  if (!v.consent) bad.push(af.querySelector('.consent'));
+  if (bad.length) {
+    bad.forEach((x) => x.classList.add('bad'));
+    errEl.textContent = bad.some((x) => x.name === 'phone') ? 'ตรวจเบอร์โทรอีกครั้ง (เช่น 081 234 5678)' : 'กรอกข้อมูลให้ครบก่อนนะครับ';
+    errEl.hidden = false; bad[0].focus?.(); return;
+  }
+  const btn = document.getElementById('applySubmit');
+  btn.disabled = true; btn.textContent = 'กำลังส่ง…';
+  try {
+    if (!remote.configured()) throw new Error('offline');
+    const r = await remote.rpc('landing', 'submit_lead', {
+      p_first: v.first, p_last: v.last, p_phone: v.phone, p_shop: v.shop, p_type: type,
+      p_source: (new URLSearchParams(location.search).get('utm_source') || document.referrer || 'landing').slice(0, 120),
+    }, 10000);
+    if (!r?.ok) throw new Error(r?.reason || 'failed');
+    af.reset(); af.querySelector('.other').hidden = true;
+    af.hidden = true; document.getElementById('applyDone').hidden = false;
+  } catch (err) {
+    errEl.textContent = err.message === 'phone' ? 'ตรวจเบอร์โทรอีกครั้ง' : err.message === 'busy' ? 'ตอนนี้มีคนสมัครเยอะ ลองใหม่อีกครั้งในอีกสักครู่' : 'ส่งไม่สำเร็จ ลองใหม่อีกครั้งนะครับ';
+    errEl.hidden = false;
+  } finally { btn.disabled = false; btn.textContent = 'ส่งข้อมูล'; }
+});

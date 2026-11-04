@@ -105,6 +105,24 @@ create table if not exists public.reviews (
   unique (shop_id, customer_id)
 );
 
+-- Sign-up requests from the business landing page (the Pointie team calls them back).
+-- View them in Supabase → Table Editor → leads.
+create table if not exists public.leads (
+  id          uuid primary key default gen_random_uuid(),
+  first_name  text not null,
+  last_name   text not null,
+  phone       text not null,
+  shop_name   text not null,
+  shop_type   text not null,
+  source      text,
+  status      text not null default 'new' check (status in ('new', 'contacted', 'won', 'lost')),
+  note        text,
+  created_at  timestamptz not null default now()
+);
+create index if not exists leads_created_idx on public.leads(created_at desc);
+alter table public.leads enable row level security;
+revoke all on public.leads from anon, authenticated;
+
 -- deny-all: no policies on purpose, access only through the functions below
 alter table public.shops       enable row level security;
 alter table public.stands      enable row level security;
@@ -165,6 +183,29 @@ language sql stable security definer set search_path = public as $$
   select coalesce(jsonb_agg(public._shop_json(s) order by s.sample desc, s.created_at), '[]'::jsonb)
   from shops s where not s.paused and s.data ? 'name'
 $$;
+
+-- Landing page sign-up form (anyone). Validates input, ignores repeats from the same
+-- phone within 24 h, and refuses floods.
+create or replace function public.submit_lead(p_first text, p_last text, p_phone text, p_shop text, p_type text, p_source text default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare ph text := regexp_replace(coalesce(p_phone, ''), '\D', '', 'g');
+begin
+  if ph like '66%' and length(ph) = 11 then ph := '0' || substr(ph, 3); end if;
+  if length(trim(coalesce(p_first, ''))) = 0 or length(trim(coalesce(p_last, ''))) = 0
+     or length(trim(coalesce(p_shop, ''))) = 0 or length(trim(coalesce(p_type, ''))) = 0 then
+    return jsonb_build_object('ok', false, 'reason', 'missing');
+  end if;
+  if ph !~ '^0[0-9]{8,9}$' then return jsonb_build_object('ok', false, 'reason', 'phone'); end if;
+  if exists (select 1 from leads where phone = ph and created_at > now() - interval '24 hours') then
+    return jsonb_build_object('ok', true, 'duplicate', true);
+  end if;
+  if (select count(*) from leads where created_at > now() - interval '1 hour') >= 100 then
+    return jsonb_build_object('ok', false, 'reason', 'busy');
+  end if;
+  insert into leads (first_name, last_name, phone, shop_name, shop_type, source)
+  values (left(trim(p_first), 60), left(trim(p_last), 60), ph, left(trim(p_shop), 80), left(trim(p_type), 60), left(p_source, 120));
+  return jsonb_build_object('ok', true);
+end $$;
 
 -- Live platform numbers for the public landing page (real activity only — no samples/demo).
 create or replace function public.public_stats() returns jsonb
@@ -503,14 +544,15 @@ declare f record;
 begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
            where n.nspname = 'public' and p.proname in (
-             '_uid','_require_uid','_bkk_today','_token','_level_info','_xp_of','_level_of','my_level','public_stats','_my_shop_id','_shop_json','get_catalog','check_stand','customer_upsert','my_state','save_profile','collect_stamp','redeem_card','submit_review','seed_demo_cards','delete_my_account',
+             '_uid','_require_uid','_bkk_today','_token','_level_info','_xp_of','_level_of','my_level','public_stats','submit_lead','_my_shop_id','_shop_json','get_catalog','check_stand','customer_upsert','my_state','save_profile','collect_stamp','redeem_card','submit_review','seed_demo_cards','delete_my_account',
              'merchant_create_shop','merchant_claim_sample','merchant_samples_available','merchant_bundle','merchant_update_shop',
              'merchant_add_stand','merchant_update_stand','merchant_delete_stand','merchant_find_redemption','merchant_set_redemption','merchant_reply_review')
   loop
     execute format('revoke execute on function %s from public, anon, authenticated', f.sig);
   end loop;
 end $$;
-grant execute on function public.get_catalog(), public.check_stand(text, text), public.merchant_samples_available(), public.public_stats() to anon, authenticated;
+grant execute on function public.get_catalog(), public.check_stand(text, text), public.merchant_samples_available(), public.public_stats(),
+  public.submit_lead(text, text, text, text, text, text) to anon, authenticated;
 grant execute on function
   public.customer_upsert(text, text, jsonb), public.my_state(), public.save_profile(jsonb, text), public.my_level(),
   public.collect_stamp(text, text), public.redeem_card(text), public.submit_review(text, int, text), public.seed_demo_cards(),

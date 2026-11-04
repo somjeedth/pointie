@@ -28,7 +28,7 @@
       </nav>
       <div class="nav-cta">
         <a class="btn ghost sm" href="../merchant/#/login">เข้าสู่ระบบ</a>
-        <a class="btn primary sm" href="../merchant/#/signup">เริ่มใช้งาน</a>
+        <a class="btn primary sm" href="#apply" data-apply>สมัครใช้งาน</a>
       </div>
     </div>
   </header>
@@ -43,7 +43,7 @@
           <h1>แตะครั้งเดียว<br><em>ลูกค้ากลับมาอีก</em></h1>
           <p class="lead">ลูกค้าแตะมือถือที่สแตนด์ NFC หรือสแกน QR รับแสตมป์ได้ทันที ไม่ต้องโหลดแอพ ไม่ต้องพิมพ์บัตรกระดาษ ส่วนร้านเห็นว่าใครคือลูกค้าประจำ และกลับมาบ่อยแค่ไหนทุกวัน</p>
           <div class="cta-row">
-            <a class="btn primary lg" href="../merchant/#/signup">สร้างร้านของคุณ</a>
+            <a class="btn primary lg" href="#apply" data-apply>สมัครใช้งาน</a>
             <a class="btn ghost lg" href="../" target="_blank" rel="noopener">ลองแอพลูกค้า</a>
           </div>
           <ul class="ticks">
@@ -214,12 +214,45 @@
         <img src="../img/pointie-point.png" alt="">
         <div>
           <h2>พร้อมให้ลูกค้ากลับมาอีกหรือยัง?</h2>
-          <p>สร้างร้าน ออกแบบบัตร แล้ววางสแตนด์ได้วันนี้เลย หรือจะลองด้วยร้านตัวอย่างพร้อมข้อมูล Dashboard ก่อนก็ได้</p>
-          <div class="cta-row"><a class="btn primary lg" href="../merchant/#/signup">เริ่มใช้งาน</a><a class="btn ghost lg on-dark" href="../" target="_blank" rel="noopener">ดูแอพลูกค้า</a></div>
+          <p>กรอกข้อมูลสั้นๆ แล้วทีมงาน Pointie จะติดต่อกลับเพื่อช่วยตั้งค่าร้าน ออกแบบบัตร และวางสแตนด์ให้พร้อมใช้</p>
+          <div class="cta-row"><a class="btn primary lg" href="#apply" data-apply>สมัครใช้งาน</a><a class="btn ghost lg on-dark" href="../" target="_blank" rel="noopener">ดูแอพลูกค้า</a></div>
         </div>
       </div>
     </section>
   </main>
+
+  <!-- Sign-up request -->
+  <dialog class="apply" id="apply" aria-labelledby="applyTitle">
+    <form class="apply-form" id="applyForm" novalidate>
+      <button type="button" class="x" data-close aria-label="ปิด">×</button>
+      <div class="apply-head">
+        <img src="../img/pointie-face.png" alt="">
+        <div><h2 id="applyTitle">สมัครใช้งาน Pointie</h2><p>กรอกข้อมูลแล้วทีมงานจะติดต่อกลับ</p></div>
+      </div>
+      <div class="row2">
+        <label><span>ชื่อ</span><input name="first" autocomplete="given-name" required maxlength="60"></label>
+        <label><span>นามสกุล</span><input name="last" autocomplete="family-name" required maxlength="60"></label>
+      </div>
+      <label><span>เบอร์โทร</span><input name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="08X XXX XXXX" required maxlength="15"></label>
+      <label><span>ชื่อร้าน</span><input name="shop" autocomplete="organization" required maxlength="80"></label>
+      <fieldset class="types"><legend>ประเภทร้านค้า</legend>
+        <div class="chips">
+          <label class="chip"><input type="radio" name="type" value="คาเฟ่ / ร้านกาแฟ" required><span>คาเฟ่ / ร้านกาแฟ</span></label><label class="chip"><input type="radio" name="type" value="ร้านอาหาร" required><span>ร้านอาหาร</span></label><label class="chip"><input type="radio" name="type" value="เบเกอรี่ / ขนม" required><span>เบเกอรี่ / ขนม</span></label><label class="chip"><input type="radio" name="type" value="เครื่องดื่ม / ชานม" required><span>เครื่องดื่ม / ชานม</span></label><label class="chip"><input type="radio" name="type" value="ความงาม / สปา / ร้านทำผม" required><span>ความงาม / สปา / ร้านทำผม</span></label><label class="chip"><input type="radio" name="type" value="ฟิตเนส / กีฬา / คลาสเรียน" required><span>ฟิตเนส / กีฬา / คลาสเรียน</span></label><label class="chip"><input type="radio" name="type" value="ร้านค้าปลีก" required><span>ร้านค้าปลีก</span></label><label class="chip"><input type="radio" name="type" value="อื่นๆ" required><span>อื่นๆ</span></label>
+        </div>
+        <input name="typeOther" class="other" placeholder="ระบุประเภทร้าน" maxlength="60" hidden>
+      </fieldset>
+      <label class="consent"><input type="checkbox" name="consent" required><span>ยินยอมให้ Pointie ใช้ข้อมูลนี้เพื่อติดต่อกลับเรื่องการใช้งาน</span></label>
+      <input name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <p class="err" id="applyErr" role="alert" hidden></p>
+      <button class="btn primary lg" id="applySubmit">ส่งข้อมูล</button>
+    </form>
+    <div class="apply-done" id="applyDone" hidden>
+      <img src="../img/pointie-cheer.png" alt="">
+      <h2>ได้รับข้อมูลแล้ว ขอบคุณครับ!</h2>
+      <p>ทีมงาน Pointie จะติดต่อกลับทางเบอร์ที่ให้ไว้</p>
+      <button type="button" class="btn ghost lg" data-close>ปิด</button>
+    </div>
+  </dialog>
 
   <footer class="foot">
     <div class="wrap foot-in">
