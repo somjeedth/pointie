@@ -1,6 +1,6 @@
 // Pointie merchant web: router, layout and views.
 import { icon } from '../../js/icons.js';
-import { esc, toast, bigStampCard, starsHtml, cardBg, cardBgStyle, letterHtml } from '../../js/ui.js';
+import { esc, toast, bigStampCard, starsHtml, cardBg, cardBgStyle, letterHtml, isCardArt } from '../../js/ui.js';
 import { morphChildren, runMount } from '../../js/dom.js';
 import qrcode from './vendor/qrcode.js';
 import * as api from './api.js';
@@ -307,6 +307,23 @@ function shopView(me, shop) {
 }
 
 // ======================= card designer =======================
+// Downscale an uploaded image so it fits comfortably in storage (keeps transparency).
+function shrinkImage(file, maxW = 640, maxH = 400) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file); const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, maxW / img.width, maxH / img.height);
+      const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      let out = c.toDataURL('image/webp', 0.88);
+      if (!out.startsWith('data:image/webp')) out = c.toDataURL('image/png');
+      resolve(out);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('bad image')); };
+    img.src = url;
+  });
+}
 const BG_PRESETS = ['#8C2F1C', '#1F5E45', '#1E3A6B', '#0E6B5C', '#3B2A20', '#5A2A14', '#2B2B2B', '#4B2A6B', '#6B4A2B'];
 const INK_PRESETS = ['#FFD23F', '#FFC83D', '#F7F7F7', '#F6EEDF', '#FF9A5C', '#A592FF'];
 let cardDraft = null;
@@ -319,16 +336,25 @@ function cardView(me, shop) {
     html: head('ออกแบบบัตรสะสม', 'พรีวิวด้านขวาคือหน้าตาที่ลูกค้าเห็นในแอพ') +
       `<div class="m-grid g-side">
         <form class="panel form" id="f">
-          <h2>ข้อความบนบัตร</h2>
+          <h2>ชื่อและรูปบนบัตร</h2>
           <label class="field"><span>ชื่อภาษาอังกฤษ (บรรทัดบน)</span><input class="inp" name="en" value="${esc(c.en)}" maxlength="32"></label>
-          <div class="row2"><label class="field"><span>ชื่อบรรทัด 1</span><input class="inp" name="l1" value="${esc(c.l1)}" maxlength="12"></label><label class="field"><span>ชื่อบรรทัด 2</span><input class="inp" name="l2" value="${esc(c.l2)}" maxlength="12"></label></div>
+          <div class="field"><span>รูปบนบัตร</span>
+            <div class="art-up">
+              <div class="art-thumb ${cardBg(c)}" style="${cardBgStyle(c)}">${isCardArt(c.art) ? `<img src="${c.art}" alt="รูปบนบัตร">` : '<span class="xs" style="color:rgba(255,255,255,.7)">ยังไม่มีรูป</span>'}</div>
+              <div class="col" style="gap:8px">
+                <label class="btn btn-ghost btn-sm" style="height:40px;cursor:pointer">${icon('camera', 16)}${isCardArt(c.art) ? 'เปลี่ยนรูป' : 'อัปโหลดรูป'}<input type="file" accept="image/png,image/jpeg,image/webp" id="artFile" class="sr-only"></label>
+                ${isCardArt(c.art) ? `<button type="button" class="btn btn-danger btn-sm" style="height:40px" data-act="artRemove">${icon('trash', 16)}ลบรูป</button>` : ''}
+              </div>
+            </div>
+            <small>แนะนำโลโก้หรือภาพ PNG พื้นหลังโปร่งใส ระบบย่อรูปให้อัตโนมัติ${isCardArt(c.art) ? '' : ' · ถ้ายังไม่ใส่รูป บัตรจะแสดงชื่อร้านแทน'}</small>
+          </div>
           <h2 style="margin-top:6px">กติกา</h2>
           <div class="field"><span>จำนวนแสตมป์ที่ต้องสะสม</span><div class="seg">${[5, 6, 8, 10].map((n) => `<button type="button" class="${+c.need === n ? 'on' : ''}" data-act="need" data-n="${n}">${n} ดวง</button>`).join('')}</div></div>
           <label class="field"><span>รางวัลเมื่อครบ</span><input class="inp" name="reward" value="${esc(c.reward)}" maxlength="40"></label>
           <h2 style="margin-top:6px">หน้าตา</h2>
           <div class="field"><span>พื้นหลัง</span><div class="seg"><button type="button" class="${!c.photo ? 'on' : ''}" data-act="style" data-v="dots">สีพื้น + ลายจุด</button><button type="button" class="${c.photo ? 'on' : ''}" data-act="style" data-v="photo">รูปหน้าร้าน</button></div></div>
           ${c.photo ? '' : `<div class="field"><span>สีบัตร</span><div class="swatches">${BG_PRESETS.map((v) => `<button type="button" class="${c.bg === v ? 'on' : ''}" style="background:${v}" data-act="bg" data-v="${v}" aria-label="สี ${v}"></button>`).join('')}<input class="inp" type="color" name="bg" value="${esc(c.bg)}" aria-label="เลือกสีเอง"></div></div>`}
-          <div class="field"><span>สีชื่อร้าน</span><div class="swatches">${INK_PRESETS.map((v) => `<button type="button" class="${c.letter === v ? 'on' : ''}" style="background:${v}" data-act="ink" data-v="${v}" aria-label="สี ${v}"></button>`).join('')}<input class="inp" type="color" name="letter" value="${esc(c.letter)}" aria-label="เลือกสีเอง"></div></div>
+          ${isCardArt(c.art) ? '' : `<div class="field"><span>สีชื่อร้าน (ใช้เมื่อยังไม่มีรูป)</span><div class="swatches">${INK_PRESETS.map((v) => `<button type="button" class="${c.letter === v ? 'on' : ''}" style="background:${v}" data-act="ink" data-v="${v}" aria-label="สี ${v}"></button>`).join('')}<input class="inp" type="color" name="letter" value="${esc(c.letter)}" aria-label="เลือกสีเอง"></div></div>`}
           <div class="field"><span>ไอคอนแสตมป์</span><div class="seg"><button type="button" class="${c.glyph === 'cup' ? 'on' : ''}" data-act="glyph" data-v="cup">ถ้วยกาแฟ</button><button type="button" class="${c.glyph !== 'cup' ? 'on' : ''}" data-act="glyph" data-v="star">ดาว</button></div></div>
           <p class="small muted">${icon('alert', 14)} เปลี่ยนจำนวนดวงแล้ว บัตรที่ลูกค้าสะสมอยู่จะใช้กติกาใหม่ทันที (เวอร์ชันเดโม)</p>
           <div class="actions"><button class="btn btn-primary" ${changed ? '' : 'disabled'}>บันทึกบัตร</button><button type="button" class="btn btn-ghost" data-act="resetCard" ${changed ? '' : 'disabled'}>ยกเลิกการแก้ไข</button></div>
@@ -341,11 +367,16 @@ function cardView(me, shop) {
     mount(r) {
       const form = r.querySelector('#f');
       form.addEventListener('input', (e) => { if (e.target.name) { cardDraft[e.target.name] = e.target.value; rerender(); } });
+      r.querySelector('#artFile').addEventListener('change', async (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        if (f.size > 8 * 1024 * 1024) { toast('ไฟล์ใหญ่เกิน 8MB'); return; }
+        try { cardDraft.art = await shrinkImage(f); rerender(); } catch { toast('เปิดรูปนี้ไม่ได้ ลองไฟล์ PNG หรือ JPG'); }
+      });
       form.addEventListener('submit', (e) => {
         e.preventDefault();
         const { _id, ...card } = cardDraft;
-        if (!card.l1.trim() || !card.reward.trim()) { toast('กรอกชื่อบนบัตรและรางวัลให้ครบ'); return; }
-        api.saveShop(shop.id, { card: { ...card, need: +card.need } });
+        if (!card.reward.trim()) { toast('กรอกรางวัลเมื่อครบก่อนนะ'); return; }
+        if (!api.saveShop(shop.id, { card: { ...card, need: +card.need } })) { toast('บันทึกไม่ได้ พื้นที่เก็บข้อมูลเต็ม ลองใช้รูปที่เล็กลง'); return; }
         cardDraft = null; toast('บันทึกบัตรแล้ว ลูกค้าจะเห็นบัตรใหม่ในแอพ'); rerender();
       });
     },
@@ -356,6 +387,7 @@ function cardView(me, shop) {
       ink(el) { cardDraft.letter = el.dataset.v; rerender(); },
       glyph(el) { cardDraft.glyph = el.dataset.v; rerender(); },
       resetCard() { cardDraft = null; rerender(); },
+      artRemove() { cardDraft.art = null; rerender(); },
     },
   };
 }

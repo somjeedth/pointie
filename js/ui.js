@@ -54,8 +54,11 @@ export function nav(active) {
 
 export const cardBg = (card) => card.photo ? 'bg-photo' : 'bg-dots';
 export const cardBgStyle = (card) => card.photo ? '' : `background-color: ${card.bg};`;
-export const letterHtml = (card, size) =>
-  `<div class="letter" style="color:${card.letter};${size ? `font-size:${size}px;` : ''}">${esc(card.l1)}<br><span class="l2">${esc(card.l2)}</span></div>`;
+// Card artwork: the shop's uploaded image if any, otherwise its name in the card lettering.
+export const isCardArt = (src) => typeof src === 'string' && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(src);
+export const letterHtml = (card, size) => isCardArt(card.art)
+  ? `<div class="card-art"><img src="${card.art}" alt=""></div>`
+  : `<div class="letter" style="color:${card.letter};${size ? `font-size:${size}px;` : ''}">${esc(card.l1)}<br><span class="l2">${esc(card.l2)}</span></div>`;
 
 export function stampGrid(card, have, { newIdx = -1, todayIdx = -1, sizeClass = '' } = {}) {
   const need = card.need;

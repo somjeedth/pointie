@@ -19,7 +19,7 @@ export function patchShop(id, patch) {
   const cur = c.shops[id] || {};
   c.shops[id] = { ...cur, ...patch, card: patch.card ? { ...(cur.card || {}), ...patch.card } : cur.card };
   if (!c.shops[id].card) delete c.shops[id].card;
-  saveCatalog(c);
+  if (!saveCatalog(c)) return null; // storage full
   return c.shops[id];
 }
 
