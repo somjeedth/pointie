@@ -46,6 +46,11 @@ create table if not exists public.customers (
 );
 
 alter table public.customers add column if not exists bonus_xp int not null default 0;  -- demo/admin grants
+-- Identity (set at sign-up). Never shown to shops — they only see the nickname and
+-- aggregated age generations.
+alter table public.customers add column if not exists first_name text;
+alter table public.customers add column if not exists last_name  text;
+alter table public.customers add column if not exists birth_date date;
 
 create table if not exists public.cards (
   customer_id    uuid not null references public.customers(id) on delete cascade,
@@ -71,8 +76,10 @@ create table if not exists public.events (
   have         int,
   stars        int,
   demo         boolean not null default false,
+  gen          text,  -- demo rows only; real rows derive the generation from customers.birth_date
   created_at   timestamptz not null default now()
 );
+alter table public.events add column if not exists gen text;
 create index if not exists events_shop_time_idx on public.events(shop_id, created_at desc);
 
 create table if not exists public.redemptions (
@@ -158,6 +165,17 @@ begin
   return sid;
 end $$;
 
+-- Generation from birth year (Thai marketing convention).
+create or replace function public._gen_of(d date) returns text
+language sql immutable as $$
+  select case when d is null then null
+              when extract(year from d) >= 2013 then 'alpha'
+              when extract(year from d) >= 1997 then 'z'
+              when extract(year from d) >= 1981 then 'y'
+              when extract(year from d) >= 1965 then 'x'
+              else 'boomer' end
+$$;
+
 -- public shape of a shop (rating blends sample baseline with real reviews)
 create or replace function public._shop_json(s public.shops) returns jsonb
 language sql stable security definer set search_path = public as $$
@@ -167,7 +185,17 @@ language sql stable security definer set search_path = public as $$
                      + coalesce(r.sum_stars, 0))
                     / nullif(coalesce((s.data->>'reviewsCount')::int, 0) + coalesce(r.n, 0), 0))::numeric, 1),
     'reviewsCount', coalesce((s.data->>'reviewsCount')::int, 0) + coalesce(r.n, 0),
-    'reviews', coalesce(r.list, '[]'::jsonb)
+    'reviews', coalesce(r.list, '[]'::jsonb),
+    -- review score per generation (real reviews + demo activity); the app shows a
+    -- generation only once it has enough reviews to stay anonymous
+    'gens', coalesce((
+      select jsonb_agg(jsonb_build_object('gen', g.gen, 'n', g.n, 'avg', round(g.avg_stars, 1)) order by g.gen)
+      from (select gen, count(*) as n, avg(stars)::numeric as avg_stars from (
+              select public._gen_of(c.birth_date) as gen, rv.stars from reviews rv join customers c on c.id = rv.customer_id
+              where rv.shop_id = s.id and not rv.sample
+              union all
+              select e.gen, e.stars from events e where e.shop_id = s.id and e.type = 'review' and e.demo and e.gen is not null
+            ) u where gen is not null group by gen) g), '[]'::jsonb)
   )
   from (select count(*) filter (where not sample) as n,
                sum(stars) filter (where not sample) as sum_stars,
@@ -300,7 +328,8 @@ begin
     'reviews', coalesce((select jsonb_agg(jsonb_build_object('shopId', shop_id, 'stars', stars, 'text', text, 'date', (created_at at time zone 'Asia/Bangkok')::date, 'reply', reply))
                         from reviews where customer_id = u), '[]'::jsonb),
     'today', public._bkk_today(),
-    'level', public._level_of(u)
+    'level', public._level_of(u),
+    'identity', jsonb_build_object('firstName', c.first_name, 'lastName', c.last_name, 'birthDate', c.birth_date, 'gen', public._gen_of(c.birth_date))
   );
 end $$;
 
@@ -312,6 +341,22 @@ begin
   update customers set profile = coalesce(p_profile, profile), nick = coalesce(nullif(left(p_nick, 20), ''), nick), updated_at = now()
   where id = u;
   return public._level_of(u);
+end $$;
+
+-- Sign-up identity: real name + birth date (13+). Shops never see these.
+create or replace function public.save_identity(p_first text, p_last text, p_birth date) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare u uuid := public._require_uid(); today date := public._bkk_today();
+begin
+  if length(trim(coalesce(p_first, ''))) = 0 or length(trim(coalesce(p_last, ''))) = 0 or p_birth is null then
+    return jsonb_build_object('ok', false, 'reason', 'missing');
+  end if;
+  if p_birth < date '1920-01-01' or p_birth > today then return jsonb_build_object('ok', false, 'reason', 'invalid'); end if;
+  if p_birth > (today - interval '13 years')::date then return jsonb_build_object('ok', false, 'reason', 'too_young'); end if;
+  update customers set first_name = left(trim(p_first), 60), last_name = left(trim(p_last), 60), birth_date = p_birth, updated_at = now()
+  where id = u;
+  if not found then return jsonb_build_object('ok', false, 'reason', 'no_profile'); end if;
+  return jsonb_build_object('ok', true, 'gen', public._gen_of(p_birth));
 end $$;
 
 -- Tap: one stamp per shop per Bangkok day; x2 on promo days; token = stand link (optional).
@@ -413,7 +458,10 @@ begin
                ('plant', 2, 2, '2026-09-14', 12), ('book', 2, 2, '2026-10-01', 6)) as x(shop, have, visits, first, ago)
   join shops s on s.id = x.shop and s.sample
   on conflict (customer_id, shop_id) do nothing;
-  update customers set bonus_xp = 670 where id = u;  -- design demo: Lv.7, 340/500 XP
+  update customers set bonus_xp = 670,  -- design demo: Lv.7, 340/500 XP
+                       first_name = coalesce(first_name, 'ณัฐชา'), last_name = coalesce(last_name, 'ตัวอย่าง'),
+                       birth_date = coalesce(birth_date, date '1999-03-08')
+  where id = u;
   return public.my_state();
 end $$;
 
@@ -476,8 +524,10 @@ begin
     'shop', public._shop_json(s),
     'stands', coalesce((select jsonb_agg(jsonb_build_object('id', id, 'name', name, 'token', token, 'active', active, 'createdAt', created_at, 'rotatedAt', rotated_at) order by created_at)
                         from stands where shop_id = sid), '[]'::jsonb),
-    'events', coalesce((select jsonb_agg(jsonb_build_object('type', type, 'customer', customer_key, 'nick', nick, 'n', n, 'have', have, 'stars', stars, 'at', created_at, 'demo', demo) order by created_at)
-                        from events where shop_id = sid and created_at > now() - make_interval(days => greatest(p_days, 1) * 2 + 1)), '[]'::jsonb),
+    'events', coalesce((select jsonb_agg(jsonb_build_object('type', e.type, 'customer', e.customer_key, 'nick', e.nick, 'n', e.n, 'have', e.have, 'stars', e.stars,
+                                                         'at', e.created_at, 'demo', e.demo, 'gen', coalesce(e.gen, public._gen_of(c.birth_date))) order by e.created_at)
+                        from events e left join customers c on c.id = e.customer_id
+                        where e.shop_id = sid and e.created_at > now() - make_interval(days => greatest(p_days, 1) * 2 + 1)), '[]'::jsonb),
     'redemptions', coalesce((select jsonb_agg(jsonb_build_object('id', id, 'nick', nick, 'reward', reward, 'code', code, 'status', status, 'at', created_at, 'confirmedAt', confirmed_at) order by created_at desc)
                         from (select * from redemptions where shop_id = sid order by created_at desc limit 200) r), '[]'::jsonb),
     'reviews', coalesce((select jsonb_agg(jsonb_build_object('id', id, 'nick', nick, 'stars', stars, 'text', text, 'reply', reply, 'sample', sample, 'at', created_at) order by sample, created_at desc)
@@ -544,7 +594,7 @@ declare f record;
 begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
            where n.nspname = 'public' and p.proname in (
-             '_uid','_require_uid','_bkk_today','_token','_level_info','_xp_of','_level_of','my_level','public_stats','submit_lead','_my_shop_id','_shop_json','get_catalog','check_stand','customer_upsert','my_state','save_profile','collect_stamp','redeem_card','submit_review','seed_demo_cards','delete_my_account',
+             '_uid','_require_uid','_bkk_today','_token','_gen_of','save_identity','_level_info','_xp_of','_level_of','my_level','public_stats','submit_lead','_my_shop_id','_shop_json','get_catalog','check_stand','customer_upsert','my_state','save_profile','collect_stamp','redeem_card','submit_review','seed_demo_cards','delete_my_account',
              'merchant_create_shop','merchant_claim_sample','merchant_samples_available','merchant_bundle','merchant_update_shop',
              'merchant_add_stand','merchant_update_stand','merchant_delete_stand','merchant_find_redemption','merchant_set_redemption','merchant_reply_review')
   loop
@@ -554,7 +604,7 @@ end $$;
 grant execute on function public.get_catalog(), public.check_stand(text, text), public.merchant_samples_available(), public.public_stats(),
   public.submit_lead(text, text, text, text, text, text) to anon, authenticated;
 grant execute on function
-  public.customer_upsert(text, text, jsonb), public.my_state(), public.save_profile(jsonb, text), public.my_level(),
+  public.customer_upsert(text, text, jsonb), public.my_state(), public.save_profile(jsonb, text), public.my_level(), public.save_identity(text, text, date),
   public.collect_stamp(text, text), public.redeem_card(text), public.submit_review(text, int, text), public.seed_demo_cards(),
   public.delete_my_account(),
   public.merchant_create_shop(text, text, text, text), public.merchant_claim_sample(text),

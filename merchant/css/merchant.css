@@ -176,3 +176,13 @@ textarea.inp { height: auto; min-height: 90px; padding: 10px 14px; resize: verti
 .size-spec span { color: var(--muted); }
 
 .tier-tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; color: var(--tc); background: color-mix(in srgb, var(--tc) 16%, transparent); white-space: nowrap; }
+
+/* generation breakdown */
+.genbars { display: flex; flex-direction: column; gap: 10px; }
+.genbar { display: grid; grid-template-columns: 84px 1fr 96px; align-items: center; gap: 10px; font-size: 14px; }
+.genbar .gl { font-weight: 600; }
+.genbar .gt { height: 12px; border-radius: 999px; background: var(--track); overflow: hidden; }
+.genbar .gt i { display: block; height: 100%; border-radius: 4px; background: var(--primary); }
+.genbar .gv { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.genbar .gv small { color: var(--muted); font-weight: 500; }
+.gen-emoji { width: 36px; height: 36px; border-radius: 10px; background: var(--soft); display: inline-flex; align-items: center; justify-content: center; font-size: 20px; flex: none; }

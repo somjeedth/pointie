@@ -197,7 +197,13 @@ export function stats(shopId, days = 30) {
   // heatmap weekday x hour (8..21)
   const heat = Array.from({ length: 7 }, () => Array(14).fill(0));
   for (const e of inWin) { const d = new Date(e.at); const h = d.getHours() - 8; if (h >= 0 && h < 14) heat[d.getDay()][h]++; }
+  // generations: unique customers and review scores in the window
+  const genCust = {}; const genRev = {};
+  const seen = new Set();
+  for (const e of inWin) { if (!e.gen || seen.has(e.customer)) continue; seen.add(e.customer); genCust[e.gen] = (genCust[e.gen] || 0) + 1; }
+  for (const e of reviews) { if (!e.gen) continue; (genRev[e.gen] ||= { n: 0, sum: 0 }).n++; genRev[e.gen].sum += e.stars; }
   return {
+    genCust, genRev, genKnown: seen.size,
     taps: inWin.length, tapsPrev: inPrev.length, today, customers: custWin.size, newCustomers: newC,
     returnRate: custWin.size ? Math.round((returning / custWin.size) * 100) : 0,
     redeems: redeems.length, pendingRedeems: redemptions(shopId).filter((e) => e.status === 'pending').length,
@@ -215,6 +221,7 @@ export function customers(shopId) {
     const c = map.get(e.customer) || { id: e.customer, nick: e.nick || 'ลูกค้า', visits: 0, have: 0, redeemed: 0, first: e.at, last: e.at, demo: !!e.demo };
     if (e.nick) c.nick = e.nick;
     if (e.lv) c.lv = e.lv;
+    if (e.gen) c.gen = e.gen;
     if (e.type === 'stamp') { c.visits++; c.have = e.have ?? Math.min(need, c.have + (e.n || 1)); c.last = e.at; }
     if (e.type === 'redeem') { c.have = 0; c.redeemed++; }
     map.set(e.customer, c);
@@ -282,7 +289,11 @@ export function seedDemoEvents() {
   const hours = { cafe: [8, 8, 9, 9, 10, 11, 13, 15, 16, 17], food: [11, 11, 12, 12, 12, 13, 13, 17, 18, 19], shop: [11, 13, 14, 15, 16, 17, 18, 19], act: [13, 15, 17, 18, 19, 19, 20, 20] };
   for (const s of BASE_SHOPS) {
     const pop = { baan: 7, jae: 9, noodle: 6, roast: 5, plant: 3, climb: 3, book: 2, clay: 2 }[s.id] || 3;
-    const pool = [...NICKS, ...NICKS.map((n) => `${n} ${'กขคจชดตนบปพมรสอ'[Math.floor(r() * 15)]}.`)].map((n, i) => ({ id: `demo:${s.id}:${i}`, nick: n }));
+    const mix = { cafe: [['z', .45], ['y', .38], ['x', .13], ['boomer', .04]], food: [['z', .25], ['y', .35], ['x', .27], ['boomer', .13]],
+      shop: [['z', .30], ['y', .37], ['x', .23], ['boomer', .10]], act: [['z', .52], ['y', .36], ['x', .10], ['boomer', .02]] }[s.cat];
+    const pickGen = () => { let x = r(); for (const [g, w] of mix) { if ((x -= w) <= 0) return g; } return 'y'; };
+    const lean = Object.fromEntries(['z', 'y', 'x', 'boomer'].map((g) => [g, r()]));
+    const pool = [...NICKS, ...NICKS.map((n) => `${n} ${'กขคจชดตนบปพมรสอ'[Math.floor(r() * 15)]}.`)].map((n, i) => ({ id: `demo:${s.id}:${i}`, nick: n, gen: pickGen() }));
     const st = new Map();
     for (let d = 69; d >= 0; d--) {
       const day = new Date(now - d * DAY);
@@ -297,13 +308,16 @@ export function seedDemoEvents() {
         if (+at > now) continue;
         const cur = st.get(c.id) || { have: 0, visits: 0 };
         if (cur.have >= s.card.need) {
-          out.push({ id: `d${out.length}`, demo: true, type: 'redeem', shopId: s.id, customer: c.id, nick: c.nick, reward: s.card.reward, code: String(1000 + Math.floor(r() * 9000)), status: 'confirmed', at: new Date(+at - 60000).toISOString() });
+          out.push({ id: `d${out.length}`, demo: true, type: 'redeem', shopId: s.id, customer: c.id, nick: c.nick, reward: s.card.reward, code: String(1000 + Math.floor(r() * 9000)), status: 'confirmed', gen: c.gen, at: new Date(+at - 60000).toISOString() });
           cur.have = 0;
         }
         cur.have += 1; cur.visits += 1;
         st.set(c.id, cur);
-        out.push({ id: `d${out.length}`, demo: true, type: 'stamp', shopId: s.id, customer: c.id, nick: c.nick, n: 1, have: cur.have, visit: cur.visits, firstVisit: cur.visits === 1, at: at.toISOString() });
-        if (r() < 0.06) out.push({ id: `d${out.length}`, demo: true, type: 'review', shopId: s.id, customer: c.id, nick: c.nick, stars: r() < 0.7 ? 5 : 4, at: new Date(+at + 3600000).toISOString() });
+        out.push({ id: `d${out.length}`, demo: true, type: 'stamp', shopId: s.id, customer: c.id, nick: c.nick, gen: c.gen, n: 1, have: cur.have, visit: cur.visits, firstVisit: cur.visits === 1, at: at.toISOString() });
+        if (r() < 0.09) {
+          const x = r() * 0.6 + lean[c.gen] * 0.55;
+          out.push({ id: `d${out.length}`, demo: true, type: 'review', shopId: s.id, customer: c.id, nick: c.nick, gen: c.gen, stars: x > 0.75 ? 5 : x > 0.42 ? 4 : 3, at: new Date(+at + 3600000).toISOString() });
+        }
       }
     }
   }

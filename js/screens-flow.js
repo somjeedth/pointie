@@ -4,7 +4,8 @@ import { icon } from './icons.js';
 import {
   esc, go, toast, bigStampCard, starsHtml, sheet, fireworks, playFireworks, cardBg, cardBgStyle, letterHtml, cardEn, stampGrid,
 } from './ui.js';
-import { shopById, CAT, SAMPLE_REVIEWS, MISSIONS, XP, levelTitle, unlocksFor, tierFor, tierById } from './data.js';
+import { shopById, CAT, SAMPLE_REVIEWS, MISSIONS, XP, levelTitle, unlocksFor, tierFor, tierById, GENS, GEN_ORDER, GEN_MIN_REVIEWS, genEmoji, genMood } from './data.js';
+import { loadEvents } from './catalog.js';
 import {
   store, collectStamp, cardFor, canStampToday, untilMidnight, missionProgress, isDoubleDay, setPendingTap, pendingTap, clearPendingTap,
   hasVisited, myReview, addReview, toggleFav, redeem as doRedeem, thMonthYear, agoText, thDateTime, takeLevelUp, peekLevelUp, isRemote,
@@ -168,6 +169,30 @@ export function offline({ id }) {
 }
 
 // ================= STORE =================
+// "แต่ละเจนว่ายังไง": average review score per generation (from sign-up birth dates).
+function genStats(s) {
+  if (Array.isArray(s.gens)) return s.gens; // server (Supabase)
+  const acc = {}; // local demo: demo review events that carry a generation
+  for (const e of loadEvents()) {
+    if (e.shopId !== s.id || e.type !== 'review' || !e.gen) continue;
+    (acc[e.gen] ||= { gen: e.gen, n: 0, sum: 0 }).n++; acc[e.gen].sum += e.stars;
+  }
+  return Object.values(acc).map((g) => ({ gen: g.gen, n: g.n, avg: Math.round((g.sum / g.n) * 10) / 10 }));
+}
+function genSection(s) {
+  const stats = genStats(s);
+  if (!stats.length) return '';
+  const by = Object.fromEntries(stats.map((g) => [g.gen, g]));
+  const rows = GEN_ORDER.filter((k) => k !== 'alpha' || by[k]).map((k) => {
+    const g = by[k]; const ok = g && g.n >= GEN_MIN_REVIEWS;
+    return `<div class="gen-row ${ok ? '' : 'few'}"><span class="gen-emoji" aria-hidden="true">${ok ? genEmoji(g.avg) : '·'}</span>
+      <div class="col" style="gap:0;flex:1"><b>${GENS[k].name}</b><span class="xs muted">เกิด ${GENS[k].years}</span></div>
+      ${ok ? `<div class="col" style="gap:0;align-items:flex-end"><b>${g.avg.toFixed(1)} <span class="xs muted" style="font-weight:500">${genMood(g.avg)}</span></b><span class="xs muted">${g.n} รีวิว</span></div>` : '<span class="xs muted">รีวิวยังน้อย</span>'}</div>`;
+  }).join('');
+  return `<section class="col"><div class="section-h"><h2>แต่ละเจนว่ายังไง</h2></div>
+    <div class="card gens">${rows}</div>
+    <p class="xs muted">คิดจากรีวิวของคนที่มาจริง แยกตามปีเกิดที่ลงทะเบียน (แสดงเมื่อมี ${GEN_MIN_REVIEWS} รีวิวขึ้นไป · ไม่ระบุตัวตน)</p></section>`;
+}
 let reviewDraft = { stars: 0, text: '' };
 export function storePage({ id }, query) {
   const s = shopById(id);
@@ -233,6 +258,7 @@ export function storePage({ id }, query) {
           <div class="row" style="flex-wrap:wrap;gap:6px">${tags}</div>
         </div>
       </section>
+      ${genSection(s)}
       <section class="col">
         <div class="section-h"><h2>รูปจากลูกค้า</h2><span class="link">ทั้งหมด ${s.photos}</span></div>
         <div class="photos">${['[รูป]', '[รูป]', '[รูป]', '[รูป]', '[รูป]', '+' + (s.photos - 5)].map((l) => `<div>${l}</div>`).join('')}</div>

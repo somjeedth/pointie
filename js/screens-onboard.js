@@ -5,7 +5,7 @@ import { esc, go, toast, steps, backBtn, avatarHtml } from './ui.js';
 import { AVATARS, PLACES, STYLES, AREAS, XP } from './data.js';
 import {
   store, normalizePhone, prettyPhone, isValidPhone, requestOtp, otpInfo, verifyOtp, loginDemo,
-  completeSetup, updateProfile, savePrefs, finishPrefs,
+  completeSetup, updateProfile, savePrefs, finishPrefs, saveIdentity, ageOf,
 } from './store.js';
 
 export const returnTo = {
@@ -204,43 +204,68 @@ export function otp() {
 export const resetOtpScreen = () => { otpState = { code: '', status: 'normal', tries: 3 }; };
 
 // ---------- A4 Setup / edit profile ----------
+// First sign-up asks for: name, surname, nickname, birth date (13+), avatar → then preferences.
+const TH_MONTHS_FULL = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+const pad2 = (n) => String(n).padStart(2, '0');
 let setupDraft = null;
+let setupBusy = false;
+function birthIso(d) {
+  if (!d.bd || !d.bm || !d.by) return null;
+  const y = +d.by - 543, m = +d.bm, day = +d.bd;
+  const dt = new Date(y, m - 1, day);
+  if (dt.getMonth() !== m - 1) return 'bad'; // e.g. 31 Feb
+  return `${y}-${pad2(m)}-${pad2(day)}`;
+}
 export function setup(params, query) {
   const me = store.me;
   const edit = query.get('edit') === '1';
-  if (!setupDraft) setupDraft = { nick: me.user.nick || '', avatar: me.user.avatar ?? 0, photo: me.user.photo || null };
+  if (!setupDraft) {
+    const id = me.identity || {};
+    const b = id.birthDate ? new Date(id.birthDate) : null;
+    setupDraft = { nick: me.user.nick || '', avatar: me.user.avatar ?? 0, photo: me.user.photo || null,
+      first: id.firstName || '', last: id.lastName || '', bd: b ? String(b.getDate()) : '', bm: b ? String(b.getMonth() + 1) : '', by: b ? String(b.getFullYear() + 543) : '' };
+  }
   const d = setupDraft;
-  const ok = d.nick.trim().length > 0;
   const pickedSrc = d.photo || (d.avatar != null ? AVATARS[d.avatar].src : AVATARS[0].src);
+  const thisYearBE = new Date().getFullYear() + 543;
+  const years = []; for (let y = thisYearBE - 13; y >= 2463; y--) years.push(y);
+  const sel = (name, ph, opts) => `<select class="sel" name="${name}" aria-label="${ph}"><option value="">${ph}</option>${opts.map(([v, l]) => `<option value="${v}" ${String(d[name]) === String(v) ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
   return {
     html: `<div class="topbar">${edit ? backBtn('/profile') : '<span style="width:40px"></span>'}${edit ? '<h1 style="text-align:center">แก้ไขโปรไฟล์</h1>' : steps(3, 3)}<span style="width:40px"></span></div>
-      ${edit ? '' : `<div class="col" style="gap:6px"><h1 class="h1" style="font-size:24px">ให้เรารู้จักคุณหน่อย</h1><p class="muted">ชื่อเล่นและรูปนี้จะอยู่บนนามบัตรและรีวิวของคุณ</p></div>`}
+      ${edit ? '' : `<div class="col" style="gap:6px"><h1 class="h1" style="font-size:24px">ให้เรารู้จักคุณหน่อย</h1><p class="muted">ชื่อเล่นและรูปจะอยู่บนนามบัตรและรีวิวของคุณ</p></div>`}
       <div class="avatar-big">
         <img src="${pickedSrc}" alt="รูปโปรไฟล์ที่เลือก" style="${d.photo ? 'object-fit:cover' : ''}">
         <label class="cam" aria-label="อัปโหลดรูปจากเครื่อง">${icon('camera', 18)}<input type="file" accept="image/*" id="upload" class="sr-only"></label>
       </div>
-      <p class="muted small center">อัปโหลดรูปตัวเอง หรือเลือก Pointie ด้านล่าง</p>
       <div class="avatar-pick">
         ${AVATARS.map((a, i) => `<button class="${!d.photo && d.avatar === i ? 'on' : ''}" data-act="pick" data-i="${i}" aria-label="${a.label}"><img src="${a.src}" alt=""></button>`).join('')}
       </div>
-      <div class="col" style="gap:8px">
-        <div class="between"><label class="field-label" for="nick">ชื่อเล่น</label><span class="muted small" id="cnt">${d.nick.length}/20</span></div>
-        <div class="phone-field ${ok ? 'on' : ''}" id="nf" style="height:56px"><input id="nick" maxlength="20" placeholder="เช่น มายด์" value="${esc(d.nick)}" style="font-size:17px"></div>
-        <p class="muted xs">เปลี่ยนได้ภายหลังในหน้าโปรไฟล์</p>
-      </div>
+      <form class="col" id="idForm" style="gap:12px" novalidate>
+        <div class="row2f">
+          <label class="fld"><span>ชื่อ</span><input name="first" autocomplete="given-name" maxlength="60" value="${esc(d.first)}"></label>
+          <label class="fld"><span>นามสกุล</span><input name="last" autocomplete="family-name" maxlength="60" value="${esc(d.last)}"></label>
+        </div>
+        <label class="fld"><span class="between">ชื่อเล่น <small id="cnt">${d.nick.length}/20</small></span><input name="nick" id="nick" maxlength="20" placeholder="เช่น มายด์" value="${esc(d.nick)}"></label>
+        <div class="fld"><span>วันเกิด</span>
+          <div class="bday">${sel('bd', 'วัน', Array.from({ length: 31 }, (_, i) => [i + 1, i + 1]))}${sel('bm', 'เดือน', TH_MONTHS_FULL.map((m, i) => [i + 1, m]))}${sel('by', 'ปี พ.ศ.', years.map((y) => [y, y]))}</div>
+        </div>
+        <p class="alert" id="idErr" hidden style="justify-content:flex-start"></p>
+        <p class="muted xs row" style="gap:6px;align-items:flex-start">${icon('lock', 14)}<span>ร้านค้าเห็นแค่ชื่อเล่นของคุณ ชื่อจริงกับวันเกิดใช้ยืนยันตัวตน และใช้สรุปรีวิวตามช่วงวัยแบบไม่ระบุตัวตน · ใช้งานได้ตั้งแต่อายุ 13 ปีขึ้นไป</span></p>
+      </form>
       <div class="col spacer">
         ${edit || me.user.setupDone ? '' : `<p class="row small" style="justify-content:center;gap:8px"><span class="pill violet">+${XP.signup} XP</span><span>โบนัสต้อนรับสมาชิกใหม่</span></p>`}
-        <button class="btn btn-primary" id="go" data-act="save" ${ok ? '' : 'disabled'}>${edit ? 'บันทึก' : 'ไปรับแสตมป์แรกกันเลย'}</button>
+        <button class="btn btn-primary" id="go" data-act="save">${edit ? 'บันทึก' : 'ต่อไป'}</button>
       </div>`,
     mount(root) {
-      const nick = root.querySelector('#nick');
-      nick.addEventListener('input', () => {
-        setupDraft.nick = nick.value;
-        const v = nick.value.trim().length > 0;
-        root.querySelector('#cnt').textContent = `${nick.value.length}/20`;
-        root.querySelector('#nf').classList.toggle('on', v);
-        root.querySelector('#go').disabled = !v;
+      const form = root.querySelector('#idForm');
+      form.addEventListener('input', (e) => {
+        if (!e.target.name) return;
+        setupDraft[e.target.name] = e.target.value;
+        if (e.target.name === 'nick') root.querySelector('#cnt').textContent = `${e.target.value.length}/20`;
+        e.target.classList.remove('bad');
+        root.querySelector('#idErr').hidden = true;
       });
+      form.addEventListener('submit', (e) => { e.preventDefault(); this.actions.save(); });
       root.querySelector('#upload').addEventListener('change', (e) => {
         const f = e.target.files[0]; if (!f) return;
         const img = new Image();
@@ -259,15 +284,34 @@ export function setup(params, query) {
     },
     actions: {
       pick(el) { setupDraft.avatar = +el.dataset.i; setupDraft.photo = null; window.dispatchEvent(new Event('rerender')); },
-      save() {
-        const { nick, avatar, photo } = setupDraft;
-        if (!nick.trim()) return;
+      async save() {
+        if (setupBusy) return;
+        const dd = setupDraft;
+        const err = document.getElementById('idErr');
+        const fail = (msg, names) => {
+          err.textContent = msg; err.hidden = false;
+          names.forEach((n) => document.querySelector(`#idForm [name=${n}]`)?.classList.add('bad'));
+          document.querySelector(`#idForm [name=${names[0]}]`)?.focus();
+        };
+        const missing = ['first', 'last', 'nick', 'bd', 'bm', 'by'].filter((n) => !String(dd[n] || '').trim());
+        if (missing.length) return fail('กรอกข้อมูลให้ครบทุกช่องนะ', missing);
+        const birth = birthIso(dd);
+        if (birth === 'bad') return fail('วันเกิดไม่ถูกต้อง ตรวจวันที่อีกครั้ง', ['bd']);
+        if (ageOf(birth) < 13) return fail('Pointie ใช้งานได้ตั้งแต่อายุ 13 ปีขึ้นไป', ['by']);
+        setupBusy = true;
+        const btn = document.getElementById('go'); btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
+        const r = await saveIdentity({ firstName: dd.first, lastName: dd.last, birthDate: birth });
+        setupBusy = false; btn.disabled = false; btn.textContent = edit ? 'บันทึก' : 'ต่อไป';
+        if (!r.ok) return fail(r.reason === 'too_young' ? 'Pointie ใช้งานได้ตั้งแต่อายุ 13 ปีขึ้นไป' : r.reason === 'server' ? serverErrorText(r.message) : 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง', ['first']);
+        const { nick, avatar, photo } = dd;
         if (edit) { updateProfile({ nick: nick.trim().slice(0, 20), avatar, photo }); setupDraft = null; toast('บันทึกโปรไฟล์แล้ว'); go('/profile'); return; }
+        const first = !store.me.user.setupDone;
         completeSetup({ nick, avatar });
         updateProfile({ photo });
         setupDraft = null;
-        toast(`ยินดีต้อนรับ ${nick.trim()}! +${XP.signup} XP`);
-        go(returnTo.take() || '/scan');
+        if (first) toast(`ยินดีต้อนรับ ${nick.trim()}! +${XP.signup} XP`);
+        if (!store.me.user.prefsDone) { store.me.pending.onboarding = true; go('/prefs/places'); }
+        else go(returnTo.take() || '/scan');
       },
     },
     leave() { setupDraft = null; },
@@ -342,12 +386,20 @@ function prefScreen({ step, title, sub, img, list, key, max, next, prev, cols, e
 }
 export const prefPlaces = (p, q) => prefScreen({
   step: 1, title: 'ชอบไปที่แบบไหน?', sub: 'เลือกได้หลายอย่าง', img: 'img/pointie-wow.png', list: PLACES, key: 'places',
-  next: '/prefs/style', prev: '/invite', cols: 3, edit: q.get('edit') === '1',
+  next: '/prefs/style', prev: store.me?.pending?.onboarding ? '/setup' : '/invite', cols: 3, edit: q.get('edit') === '1',
 });
 export const prefStyle = (p, q) => prefScreen({
   step: 2, title: 'คุณเป็นสายไหน?', sub: 'เลือกได้สูงสุด 3 แบบ', img: 'img/pointie-point.png', list: STYLES, key: 'styles', max: 3,
   next: '/prefs/location', prev: '/prefs/places', cols: 2, edit: q.get('edit') === '1', tagsNote: true,
 });
+
+// Where to go when the preference questions end: settings (edit), the first stamp
+// (right after sign-up) or home.
+function afterPrefs(edit) {
+  if (edit) return '/settings';
+  if (store.me?.pending?.onboarding) { delete store.me.pending.onboarding; return returnTo.take() || '/scan'; }
+  return '/home';
+}
 
 // ---------- B4 Location ----------
 let locView = 'ask';
@@ -360,7 +412,7 @@ export function prefLocation(p, q) {
     if (first) toast(`ทำภารกิจแรกสำเร็จ! +${XP.prefs} XP · ได้ Badge นักสำรวจหน้าใหม่`);
     else toast('บันทึกความชอบแล้ว');
     locView = 'ask';
-    go(edit ? '/settings' : '/home');
+    go(afterPrefs(edit));
   };
   const on = new Set(me.user.prefs.areas);
   const top = `<div class="topbar">${backBtn(edit ? '/prefs/style?edit=1' : '/prefs/style')}${steps(3, 3)}<button class="skip" data-act="skip">${edit ? '' : 'ข้าม'}</button></div>`;
@@ -383,7 +435,7 @@ export function prefLocation(p, q) {
       actions: {
         area(el) { const k = el.dataset.k; on.has(k) ? on.delete(k) : on.add(k); savePrefs({ areas: [...on] }); el.classList.toggle('on', on.has(k)); el.setAttribute('aria-pressed', on.has(k)); },
         done, toAsk() { locView = 'ask'; window.dispatchEvent(new Event('rerender')); },
-        skip() { locView = 'ask'; updateProfile({ prefsAsked: true }); go(edit ? '/settings' : '/home'); },
+        skip() { locView = 'ask'; updateProfile({ prefsAsked: true }); go(afterPrefs(edit)); },
       },
     };
   }
@@ -412,7 +464,7 @@ export function prefLocation(p, q) {
         );
       },
       toManual() { locView = 'manual'; window.dispatchEvent(new Event('rerender')); },
-      skip() { updateProfile({ prefsAsked: true }); go(edit ? '/settings' : '/home'); },
+      skip() { updateProfile({ prefsAsked: true }); go(afterPrefs(edit)); },
     },
   };
 }

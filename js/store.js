@@ -2,7 +2,7 @@
 // Two backends: Supabase (remote, the real one) and a self-contained localStorage demo.
 // In remote mode the server owns cards, redemptions and reviews; the game state
 // (XP, missions, badges, prefs) lives in the customer's `profile` JSON and is synced.
-import { SHOPS, shopById, xpNeed, MISSIONS, BADGES, XP, levelTitle, replaceShops, tierFor } from './data.js';
+import { SHOPS, shopById, xpNeed, MISSIONS, BADGES, XP, levelTitle, replaceShops, tierFor, genOf } from './data.js';
 import { logEvent } from './catalog.js';
 import * as remote from './remote.js';
 
@@ -82,6 +82,7 @@ function demoProfile() {
     { shopId: 'book', stars: 4, text: 'มุมอ่านเงียบดี', date: daysAgoKey(6) },
   ];
   p.favs = ['baan', 'jae', 'climb'];
+  p.identity = { firstName: 'ณัฐชา', lastName: 'ตัวอย่าง', birthDate: '1999-03-08' };
   p.week = { key: weekKey(), newCafes: ['x1', 'x2'], stamps: 3, reviews: 0, claimed: [] };
   p.badges = ['coffee', 'streak3', 'ari', 'reviewer', 'first'];
   p.pinned = ['streak3', 'reviewer', 'ari'];
@@ -142,6 +143,7 @@ function hydrate(st) {
   acc.reviews = (st.reviews || []).map((r) => ({ shopId: r.shopId, stars: r.stars, text: r.text, date: r.date, reply: r.reply }));
   acc.pending = prev?.pending || {};
   acc.remoteId = st.id;
+  acc.identity = st.identity ? { firstName: st.identity.firstName, lastName: st.identity.lastName, birthDate: st.identity.birthDate } : prev?.identity || null;
   if (st.level) Object.assign(acc.user, { lv: st.level.lv, xp: st.level.inLevel, totalXp: st.level.xp, tier: st.level.tier });
   store.accounts[phone] = acc;
   store.session = { phone };
@@ -252,6 +254,26 @@ export async function deleteAccount() {
 }
 
 // ---------- profile ----------
+// Real name + birth date (13+). Kept apart from the synced game profile; shops never see it.
+export const hasIdentity = () => !!store.me?.identity?.birthDate;
+export const ageOf = (birthDate) => {
+  const b = new Date(birthDate); const n = new Date();
+  return n.getFullYear() - b.getFullYear() - (n < new Date(n.getFullYear(), b.getMonth(), b.getDate()) ? 1 : 0);
+};
+export async function saveIdentity({ firstName, lastName, birthDate }) {
+  const me = store.me; if (!me) return { ok: false, reason: 'no_profile' };
+  if (!firstName.trim() || !lastName.trim() || !birthDate) return { ok: false, reason: 'missing' };
+  if (ageOf(birthDate) < 13) return { ok: false, reason: 'too_young' };
+  if (remoteOk) {
+    let r;
+    try { r = await remote.rpc('customer', 'save_identity', { p_first: firstName, p_last: lastName, p_birth: birthDate }); }
+    catch (e) { return { ok: false, reason: 'server', message: e.message }; }
+    if (!r.ok) return r;
+  }
+  me.identity = { firstName: firstName.trim().slice(0, 60), lastName: lastName.trim().slice(0, 60), birthDate };
+  save();
+  return { ok: true };
+}
 export function completeSetup({ nick, avatar }) {
   const me = store.me; if (!me) return;
   me.user.nick = nick.trim().slice(0, 20);
@@ -405,7 +427,7 @@ export async function collectStamp(shopId, token) {
   c.visits += 1;
   c.last = todayKey();
   c.lastStamp = todayKey();
-  logEvent({ type: 'stamp', shopId, customer: me.phone, nick: me.user.nick, lv: me.user.lv, n: c.have - before, have: c.have, visit: c.visits, firstVisit: isNewShop });
+  logEvent({ type: 'stamp', shopId, customer: me.phone, nick: me.user.nick, lv: me.user.lv, gen: genOf(me.identity?.birthDate), n: c.have - before, have: c.have, visit: c.visits, firstVisit: isNewShop });
   return { ...stampRewards(me, shop, c, before, isNewShop), tierBonus };
 }
 // XP, streak, missions and badges after a stamp (same for both backends).
@@ -467,7 +489,7 @@ export async function addReview(shopId, stars, text) {
   }
   if (existing) { Object.assign(existing, { stars, text, date: todayKey() }); commit(); return { ok: true, updated: true }; }
   me.reviews.unshift({ shopId, stars, text, date: todayKey() });
-  logEvent({ type: 'review', shopId, customer: me.phone, nick: me.user.nick, stars });
+  logEvent({ type: 'review', shopId, customer: me.phone, nick: me.user.nick, gen: genOf(me.identity?.birthDate), stars });
   me.week.reviews += 1;
   addXp(XP.review);
   checkMissions();

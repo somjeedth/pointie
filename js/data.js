@@ -203,3 +203,25 @@ export const MISSIONS = [
 ];
 
 export const XP = { stamp: 20, review: 30, prefs: 30, signup: 50 };
+
+// ---------------- generations (from the birth date given at sign-up) ----------------
+export const GENS = {
+  alpha: { name: 'Gen Alpha', years: '2013+' },
+  z: { name: 'Gen Z', years: '1997–2012' },
+  y: { name: 'Gen Y', years: '1981–1996' },
+  x: { name: 'Gen X', years: '1965–1980' },
+  boomer: { name: 'Boomer', years: '≤1964' },
+};
+export const GEN_ORDER = ['alpha', 'z', 'y', 'x', 'boomer'];
+export const GEN_MIN_REVIEWS = 5; // below this a generation is not shown (anonymity + noise)
+export function genOf(birthDate) {
+  if (!birthDate) return null;
+  const y = new Date(birthDate).getFullYear();
+  if (y >= 2013) return 'alpha';
+  if (y >= 1997) return 'z';
+  if (y >= 1981) return 'y';
+  if (y >= 1965) return 'x';
+  return 'boomer';
+}
+export const genEmoji = (avg) => (avg >= 4.5 ? '😍' : avg >= 4 ? '😊' : avg >= 3.5 ? '🙂' : avg >= 3 ? '😐' : '😕');
+export const genMood = (avg) => (avg >= 4.5 ? 'ชอบมาก' : avg >= 4 ? 'ชอบ' : avg >= 3.5 ? 'ค่อนข้างโอเค' : avg >= 3 ? 'เฉยๆ' : 'ยังไม่ปลื้ม');

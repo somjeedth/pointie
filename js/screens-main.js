@@ -6,7 +6,7 @@ import {
 import { SHOPS, CAT, shopById, MISSIONS, BADGES, xpNeed, levelTitle, unlocksFor, totalVisits, catVisitStats, STYLES, TIERS, tierFor, nextTier } from './data.js';
 import {
   store, missionProgress, daysLeftInWeek, cardFor, thMonthYear, thDateTime, agoText, togglePin, pinSlots,
-  markNotificationsRead, setTheme, logout, deleteAccount, resetDemo, DEMO_PHONE, prettyPhone, myReview,
+  markNotificationsRead, setTheme, logout, deleteAccount, resetDemo, DEMO_PHONE, prettyPhone, myReview, hasIdentity,
 } from './store.js';
 
 const shopStampText = (s) => { const c = cardFor(s.id); return c ? `${c.have}/${s.card.need} แสตมป์` : 'ยังไม่เคยไป'; };
@@ -52,6 +52,7 @@ export function home() {
         <a class="icon-btn" href="#/notifications" aria-label="การแจ้งเตือน" style="width:44px;height:44px">${icon('bell')}${unread ? '<span class="dot"></span>' : ''}</a>
       </div>
       <label class="input-wrap">${icon('search')}<span class="sr-only">ค้นหา</span><input id="homeQ" type="search" placeholder="ค้นหาร้าน คาเฟ่ กิจกรรม" value="${esc(homeQ)}"></label>
+      ${hasIdentity() ? '' : `<a class="card-soft row" href="#/setup?edit=1" style="text-decoration:none;color:inherit;gap:10px;padding:10px 14px;border:1px solid var(--soft-line)"><span style="font-size:22px">🎂</span><span class="small" style="flex:1"><b>เพิ่มชื่อและวันเกิด</b><br><span class="muted">ยืนยันตัวตน และให้รีวิวของคุณนับในสรุปตามเจน</span></span><span class="muted">${icon('chev', 18)}</span></a>`}
       <a class="level-card" href="#/profile">
         <div class="ring"></div>
         <div class="between">

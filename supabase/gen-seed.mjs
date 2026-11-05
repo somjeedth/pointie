@@ -34,7 +34,13 @@ const hours = { cafe: [8, 8, 9, 9, 10, 11, 13, 15, 16, 17], food: [11, 11, 12, 1
 const events = []; const reds = [];
 for (const s of BASE_SHOPS) {
   const pop = { baan: 7, jae: 9, noodle: 6, roast: 5, plant: 3, climb: 3, book: 2, clay: 2 }[s.id] || 3;
-  const pool = [...NICKS, ...NICKS.map((n) => `${n} ${'กขคจชดตนบปพมรสอ'[Math.floor(r() * 15)]}.`)].map((n, i) => ({ id: `demo:${s.id}:${i}`, nick: n }));
+  // generation mix per kind of shop (demo only): cafés skew Gen Z/Y, food is broader
+  const mix = { cafe: [['z', .45], ['y', .38], ['x', .13], ['boomer', .04]], food: [['z', .25], ['y', .35], ['x', .27], ['boomer', .13]],
+    shop: [['z', .30], ['y', .37], ['x', .23], ['boomer', .10]], act: [['z', .52], ['y', .36], ['x', .10], ['boomer', .02]] }[s.cat];
+  const pickGen = () => { let x = r(); for (const [g, w] of mix) { if ((x -= w) <= 0) return g; } return 'y'; };
+  const pool = [...NICKS, ...NICKS.map((n) => `${n} ${'กขคจชดตนบปพมรสอ'[Math.floor(r() * 15)]}.`)].map((n, i) => ({ id: `demo:${s.id}:${i}`, nick: n, gen: pickGen() }));
+  // each generation leans a little differently on each shop, so the per-gen emojis differ
+  const lean = Object.fromEntries(['z', 'y', 'x', 'boomer'].map((g) => [g, r()]));
   const st = new Map();
   for (let d = 69; d >= 0; d--) {
     const wk = (new Date(Date.UTC(2026, 0, 1)).getUTCDay() + d) % 7; // only used to vary volume
@@ -49,19 +55,23 @@ for (const s of BASE_SHOPS) {
       const cur = st.get(c.id) || { have: 0 };
       if (cur.have >= s.card.need) {
         reds.push(`(${q(s.id)}, ${q(c.nick)}, ${q(s.card.reward)}, ${q(String(1000 + Math.floor(r() * 9000)))}, 'confirmed', ${at} - interval '1 minute', ${at})`);
-        events.push(`(${q(s.id)}, ${q(c.id)}, ${q(c.nick)}, 'redeem', null, null, null, ${at} - interval '1 minute')`);
+        events.push(`(${q(s.id)}, ${q(c.id)}, ${q(c.nick)}, 'redeem', null, null, null, ${at} - interval '1 minute', ${q(c.gen)})`);
         cur.have = 0;
       }
       cur.have += 1; st.set(c.id, cur);
-      events.push(`(${q(s.id)}, ${q(c.id)}, ${q(c.nick)}, 'stamp', 1, ${cur.have}, null, ${at})`);
-      if (r() < 0.06) events.push(`(${q(s.id)}, ${q(c.id)}, ${q(c.nick)}, 'review', null, null, ${r() < 0.7 ? 5 : 4}, ${at} + interval '1 hour')`);
+      events.push(`(${q(s.id)}, ${q(c.id)}, ${q(c.nick)}, 'stamp', 1, ${cur.have}, null, ${at}, ${q(c.gen)})`);
+      if (r() < 0.09) {
+        const x = r() * 0.6 + lean[c.gen] * 0.55; // 0..1.15 → 3..5 stars
+        const stars = x > 0.75 ? 5 : x > 0.42 ? 4 : 3;
+        events.push(`(${q(s.id)}, ${q(c.id)}, ${q(c.nick)}, 'review', null, null, ${stars}, ${at} + interval '1 hour', ${q(c.gen)})`);
+      }
     }
   }
 }
 out.push('delete from public.events where demo;');
 out.push("delete from public.redemptions where customer_id is null and status = 'confirmed' and shop_id in (select id from public.shops where sample);");
 for (let i = 0; i < events.length; i += 500) {
-  out.push(`insert into public.events (shop_id, customer_key, nick, type, n, have, stars, created_at) values\n${events.slice(i, i + 500).join(',\n')};`);
+  out.push(`insert into public.events (shop_id, customer_key, nick, type, n, have, stars, created_at, gen) values\n${events.slice(i, i + 500).join(',\n')};`);
 }
 out.push('update public.events set demo = true where customer_id is null;');
 for (let i = 0; i < reds.length; i += 500) {

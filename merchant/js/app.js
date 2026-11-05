@@ -5,7 +5,7 @@ import { morphChildren, runMount } from '../../js/dom.js';
 import qrcode from './vendor/qrcode.js';
 import * as api from './api.js';
 import { siteUrl } from '../../js/sites.js';
-import { TIERS, tierById } from '../../js/data.js';
+import { TIERS, tierById, GENS, GEN_ORDER, genEmoji, genMood } from '../../js/data.js';
 
 const root = document.getElementById('m-app');
 const go = (p) => { if (location.hash !== '#' + p) location.hash = p; else render(true); };
@@ -246,6 +246,15 @@ function dashboardView(me, shop) {
         <div class="panel"><h2>ลูกค้าที่บัตรใกล้ครบ</h2><p class="sub">ขาดอีก 1–2 ดวง เหมาะส่งโปรชวนกลับมา</p>
           <div class="list">${near.length ? near.map((c) => `<div class="li"><span class="initials sm" style="border-radius:50%">${esc(c.nick[0])}</span><div class="col" style="gap:0;flex:1"><b class="small">${esc(c.nick)}</b><span class="xs muted">มาล่าสุด ${ago(c.last)}</span></div><span class="pill soft">อีก ${c.left} ดวง</span></div>`).join('') : '<p class="sub">ยังไม่มี</p>'}</div>
           <a class="link" href="#/customers?f=near">ดูทั้งหมด</a></div>
+      </div>
+      <div class="m-grid g-2">
+        <div class="panel"><div class="between"><h2>ลูกค้าแยกตามเจน</h2><span class="sub">${period} วันล่าสุด · ${s.genKnown} คนที่ระบุวันเกิด</span></div>
+          ${s.genKnown ? `<div class="genbars">${GEN_ORDER.filter((g) => s.genCust[g]).map((g) => { const n = s.genCust[g]; const pct = Math.round((n / s.genKnown) * 100); return `<div class="genbar"><span class="gl">${GENS[g].name}</span><div class="gt"><i style="width:${pct}%"></i></div><span class="gv">${pct}% <small>${n} คน</small></span></div>`; }).join('')}</div>` : '<p class="sub">ยังไม่มีข้อมูล</p>'}
+        </div>
+        <div class="panel"><div class="between"><h2>คะแนนรีวิวแยกเจน</h2><span class="sub">${period} วันล่าสุด</span></div>
+          ${Object.keys(s.genRev).length ? `<div class="list">${GEN_ORDER.filter((g) => s.genRev[g]).map((g) => { const v = s.genRev[g]; const avg = v.sum / v.n; return `<div class="li"><span class="gen-emoji">${genEmoji(avg)}</span><div class="col" style="gap:0;flex:1"><b class="small">${GENS[g].name}</b><span class="xs muted">${genMood(avg)} · ${v.n} รีวิว</span></div><b>${avg.toFixed(1)}</b></div>`; }).join('')}</div>` : '<p class="sub">ยังไม่มีรีวิวในช่วงนี้</p>'}
+          <p class="xs muted">ร้านเห็นเฉพาะภาพรวมตามเจน ไม่เห็นวันเกิดหรือชื่อจริงของลูกค้า</p>
+        </div>
       </div>
       <div class="m-grid g-side">
         <div class="panel"><div class="between"><h2>ช่วงเวลาที่ลูกค้ามา</h2><span class="sub">${period} วันล่าสุด</span></div>${heatmap(s.heat)}</div>
@@ -636,11 +645,12 @@ function customersView(me, shop, q) {
   return {
     html: head('ลูกค้า', `${all.length} คนเคยแตะรับแสตมป์ที่ร้าน · แสดงเฉพาะชื่อเล่น ไม่แสดงเบอร์โทร`) +
       `<div class="seg">${Object.entries(F).map(([k, [l, fn]]) => `<button class="${custFilter === k ? 'on' : ''}" data-act="filter" data-k="${k}">${l} · ${all.filter(fn).length}</button>`).join('')}</div>
-      <div class="panel"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>ลูกค้า</th><th>ระดับ</th><th class="num">มาแล้ว</th><th>บัตรปัจจุบัน</th><th class="num">แลกแล้ว</th><th>มาครั้งแรก</th><th>ล่าสุด</th></tr></thead><tbody>
+      <div class="panel"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>ลูกค้า</th><th>เจน</th><th>ระดับ</th><th class="num">มาแล้ว</th><th>บัตรปัจจุบัน</th><th class="num">แลกแล้ว</th><th>มาครั้งแรก</th><th>ล่าสุด</th></tr></thead><tbody>
       ${list.length ? list.slice(0, 200).map((c) => `<tr><td><div class="row" style="gap:8px"><span class="initials sm" style="border-radius:50%;width:30px;height:30px">${esc(c.nick[0])}</span>${esc(c.nick)}${c.demo ? '' : ' <span class="pill green" style="font-size:10px">จากแอพ</span>'}</div></td>
+        <td class="small">${c.gen ? GENS[c.gen].name : '<span class="muted">—</span>'}</td>
         <td><span class="tier-tag" style="--tc:${tierById(c.tier).color}">${c.lv ? `Lv.${c.lv} ` : ''}${tierById(c.tier).name}</span></td>
         <td class="num">${c.visits}</td><td><div class="row" style="gap:8px"><div class="bar" style="width:80px;height:6px"><i style="width:${Math.min(100, (c.have / c.need) * 100)}%"></i></div><span class="small">${c.have}/${c.need}</span></div></td>
-        <td class="num">${c.redeemed}</td><td class="small muted">${fmtDT(c.first)}</td><td class="small">${ago(c.last)}</td></tr>`).join('') : '<tr><td colspan="7" class="muted">ไม่มีลูกค้าในกลุ่มนี้</td></tr>'}
+        <td class="num">${c.redeemed}</td><td class="small muted">${fmtDT(c.first)}</td><td class="small">${ago(c.last)}</td></tr>`).join('') : '<tr><td colspan="8" class="muted">ไม่มีลูกค้าในกลุ่มนี้</td></tr>'}
       </tbody></table></div></div>`,
     actions: { filter(el) { custFilter = el.dataset.k; rerender(); } },
   };
