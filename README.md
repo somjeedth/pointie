@@ -91,3 +91,14 @@ header ความปลอดภัย (CSP, เปิดกล้อง/ต�
     ├── ui.js, icons.js    คอมโพเนนต์และไอคอน SVG
     └── screens-*.js       หน้าจอ (onboard / main / flow)
 ```
+
+## โดเมน (getpointie.com)
+| โดเมน | เว็บ | ไฟล์ |
+|---|---|---|
+| `getpointie.com` และ `www.getpointie.com` | หน้า landing สำหรับร้านค้า | `business/` |
+| `app.getpointie.com` | แอพลูกค้า (ลิงก์ NFC/QR ของสแตนด์ชี้มาที่นี่) | root |
+| `store.getpointie.com` | เว็บร้านค้า | `merchant/` |
+
+ทั้งหมดเป็นโปรเจกต์ Vercel เดียว: `vercel.json` (`routes`) เลือกหน้าแรกตามชื่อโดเมน และลิงก์ข้ามเว็บสร้างจาก `js/sites.js`
+โค้ดไม่ redirect ระหว่าง `www` กับโดเมนหลัก — ถ้าจะ redirect ให้ตั้งใน Vercel → Domains ทางเดียว (ไม่งั้นจะวนไม่จบ)
+บนโดเมนอื่น (เช่น `*.vercel.app`, localhost) ทั้ง 3 เว็บยังเปิดเป็นโฟลเดอร์ได้เหมือนเดิม (`/`, `/merchant/`, `/business/`)
