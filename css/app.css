@@ -305,7 +305,7 @@ h1, h2, h3, p { margin: 0; }
 .segbar { display: flex; gap: 4px; }
 .segbar i { flex: 1; height: 10px; border-radius: 999px; background: rgba(43,18,5,.18); }
 .segbar i.f { background: var(--on-primary); }
-.mapmini { position: relative; height: 130px; border-radius: 16px; overflow: hidden; background: var(--map-bg); }
+.mapmini { position: relative; height: 170px; border-radius: 16px; overflow: hidden; background: var(--map-bg); }
 .info-row { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-top: 1px solid var(--line); color: var(--ink); }
 .rating-big { font-size: 40px; font-weight: 700; line-height: 1; }
 .dist-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
@@ -527,3 +527,16 @@ button.gen-row svg { color: var(--muted); flex: none; }
 .gen-score b { font-size: 17px; }
 .gen-emoji { width: 40px; height: 40px; border-radius: 12px; background: var(--soft); display: flex; align-items: center; justify-content: center; font-size: 22px; flex: none; }
 .gen-emoji.big { width: 52px; height: 52px; border-radius: 16px; font-size: 30px; }
+
+/* Google Maps embeds (customer map, store page) */
+.gframe { display: block; width: 100%; height: 100%; border: 0; background: var(--map-bg); }
+.gmap .gframe { position: absolute; inset: 0; }
+.mapmini .gframe { position: absolute; inset: 0; }
+.mapmini .btn { z-index: 2; box-shadow: 0 4px 12px rgba(0,0,0,.18); }
+.shop-chips { display: flex; gap: 8px; }
+.shop-chip { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,.12); transition: background .2s, border-color .2s; }
+.shop-chip .nm { font-weight: 600; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shop-chip .pro { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 6px; background: var(--primary); color: var(--on-primary); }
+.shop-chip.on { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.shop-chip.on .muted { color: var(--on-primary); opacity: .85; }
+.shop-chip .cdot { width: 8px; height: 8px; border-radius: 50%; }

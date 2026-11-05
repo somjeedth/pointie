@@ -5,6 +5,7 @@ import { morphChildren, runMount } from '../../js/dom.js';
 import qrcode from './vendor/qrcode.js';
 import * as api from './api.js';
 import { siteUrl } from '../../js/sites.js';
+import { embedUrl, embedFor, parseLatLng, isShortMapsLink, hasCoords, locateMe } from '../../js/geo.js';
 import { TIERS, tierById, GENS, GEN_ORDER, genEmoji, genMood } from '../../js/data.js';
 
 const root = document.getElementById('m-app');
@@ -315,26 +316,14 @@ function redeemView(me, shop) {
 
 // ======================= shop info & map =======================
 let shopDraft = null;
-const MAP_Y0 = 150;
-function mapBg() {
-  return `<div class="m" style="left:-40px;top:${520 - MAP_Y0}px;width:520px;height:46px;background:var(--map-water);transform:rotate(-14deg)"></div>
-    <div class="m" style="left:59%;top:${250 - MAP_Y0}px;width:33%;height:150px;border-radius:22px;background:var(--map-park)"></div>
-    <div class="m" style="left:0;right:0;top:${330 - MAP_Y0}px;height:14px;background:var(--map-main)"></div>
-    <div class="m" style="left:0;right:0;top:${200 - MAP_Y0}px;height:6px;background:var(--map-road)"></div>
-    <div class="m" style="left:0;right:0;top:${450 - MAP_Y0}px;height:6px;background:var(--map-road)"></div>
-    <div class="m" style="left:0;right:0;top:${700 - MAP_Y0}px;height:8px;background:var(--map-road)"></div>
-    <div class="m" style="top:0;bottom:0;left:38%;width:14px;background:var(--map-main)"></div>
-    <div class="m" style="top:0;bottom:0;left:15%;width:6px;background:var(--map-road)"></div>
-    <div class="m" style="top:0;bottom:0;left:77%;width:6px;background:var(--map-road)"></div>
-    <div class="lbl" style="left:45%;top:${312 - MAP_Y0}px;padding:2px 8px;border-radius:6px;background:var(--map-road);color:var(--muted)">BTS อารีย์</div>
-    <div class="lbl" style="left:65%;top:${380 - MAP_Y0}px;color:#4E7A63">สวนซอย 7</div>
-    <div class="lbl" style="left:60%;top:${600 - MAP_Y0}px;color:#3E6680">คลองประปา</div>`;
-}
+let locDraft = null; // { id, lat, lng } while the merchant is choosing a location
 function hhmm(v) { const h = Math.floor(v); return `${String(h).padStart(2, '0')}:${v % 1 ? '30' : '00'}`; }
 function shopView(me, shop) {
-  if (!shopDraft || shopDraft.id !== shop.id) shopDraft = { id: shop.id, name: shop.name, initials: shop.initials, cat: shop.cat, area: shop.area, address: shop.address, phone: shop.phone, hours: shop.hours, closed: shop.closed, openAt: shop.openAt, closeAt: shop.closeAt, summary: shop.summary || '', x: shop.x, y: shop.y };
+  if (!shopDraft || shopDraft.id !== shop.id) shopDraft = { id: shop.id, name: shop.name, initials: shop.initials, cat: shop.cat, area: shop.area, address: shop.address, phone: shop.phone, hours: shop.hours, closed: shop.closed, openAt: shop.openAt, closeAt: shop.closeAt, summary: shop.summary || '' };
   const d = shopDraft;
-  const others = api.getShop ? ['baan', 'jae', 'plant', 'climb', 'noodle', 'roast', 'book', 'clay'].filter((id) => id !== shop.id).map(api.getShop).filter(Boolean) : [];
+  if (!locDraft || locDraft.id !== shop.id) locDraft = { id: shop.id, lat: shop.lat, lng: shop.lng, dirty: false };
+  const loc = locDraft;
+  const located = shop.located !== false && hasCoords(shop);
   const f = (k, label, attrs = '') => `<label class="field"><span>${label}</span><input class="inp" name="${k}" value="${esc(d[k] ?? '')}" ${attrs}></label>`;
   return {
     html: head('ข้อมูลร้าน & แมพ', 'ข้อมูลนี้แสดงในหน้าร้านและแมพของแอพลูกค้า') +
@@ -351,13 +340,14 @@ function shopView(me, shop) {
           <label class="field"><span>แนะนำร้าน</span><textarea class="inp" name="summary" maxlength="300" placeholder="เล่าจุดเด่นของร้านสั้นๆ">${esc(d.summary)}</textarea></label>
           <div class="actions"><button class="btn btn-primary">บันทึกข้อมูลร้าน</button></div>
         </form>
-        <div class="panel">
-          <div class="between"><h2>ตำแหน่งบนแมพ</h2><span class="sub">ลากหมุดไปที่ตั้งร้าน</span></div>
-          <div class="pinmap" id="pinmap" aria-label="แมพสำหรับปักหมุดร้าน">${mapBg()}
-            ${others.map((o) => `<span class="others" style="left:${(o.x / 390) * 100}%;top:${o.y - MAP_Y0}px;background:${api.CAT[o.cat].color}" title="${esc(o.name)}"></span>`).join('')}
-            <span class="mine" id="pin" style="left:${(d.x / 390) * 100}%;top:${d.y - MAP_Y0}px" role="slider" aria-label="หมุดร้าน" tabindex="0">${icon('pin', 44, 2.4)}</span>
-          </div>
-          <div class="between small"><span class="muted">ห่างจากจุดกลางย่านประมาณ <b id="dist" style="color:var(--ink)">${shop.created ? shop.dist : shop.dist}</b></span><button class="btn btn-primary btn-sm" data-act="savePin">บันทึกตำแหน่ง</button></div>
+        <div class="panel col-gap">
+          <div class="between"><h2>ตำแหน่งบน Google Maps</h2><span class="sub ${located ? 'ok' : 'warn'}">${located ? 'ปักหมุดแล้ว' : 'ยังไม่ได้ปักหมุด'}</span></div>
+          <div class="gpreview"><iframe id="gprev" title="ตัวอย่างตำแหน่งร้าน" src="${hasCoords(loc) ? embedUrl(loc.lat, loc.lng, 17) : embedFor(shop, 15)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>
+          <label class="field"><span>วางลิงก์ Google Maps หรือพิกัด</span><input class="inp" id="locIn" placeholder="เช่น 13.78105, 100.54392 หรือ https://www.google.com/maps/place/…" autocomplete="off"></label>
+          <p class="sub" id="locMsg">${hasCoords(loc) ? `พิกัดปัจจุบัน ${loc.lat}, ${loc.lng}` : ''}</p>
+          <details class="sub"><summary>หาพิกัดร้านยังไง</summary>
+            <ol class="howto"><li>เปิด Google Maps แล้วค้นหาร้าน (หรือกดค้างตรงที่ตั้งร้าน)</li><li>บนมือถือ: ตัวเลขพิกัดจะขึ้นในช่องค้นหา กดคัดลอก · บนคอม: คลิกขวาที่หมุด แล้วคลิกตัวเลขพิกัดบรรทัดแรก</li><li>วางในช่องด้านบน แผนที่จะขยับไปที่ร้านทันที</li></ol></details>
+          <div class="actions"><button type="button" class="btn btn-ghost btn-sm" data-act="here">${icon('locate', 16)}ใช้ตำแหน่งปัจจุบัน</button><button type="button" class="btn btn-primary btn-sm" data-act="savePin" ${loc.dirty ? '' : 'disabled'}>บันทึกตำแหน่ง</button></div>
         </div>
       </div>`,
     mount(r) {
@@ -370,24 +360,36 @@ function shopView(me, shop) {
         act(api.saveShop(shop.id, { name: fd.name.trim(), initials: fd.initials.trim() || fd.name.slice(0, 2), cat: fd.cat, area: fd.area.trim(), address: fd.address.trim(), phone: fd.phone.trim(), hours: fd.hours.trim(), closed: fd.closed.trim(), summary: fd.summary.trim(), openAt: t(fd.openT), closeAt: t(fd.closeT) }), 'บันทึกข้อมูลร้านแล้ว');
         shopDraft = null;
       });
-      const map = r.querySelector('#pinmap'), pin = r.querySelector('#pin');
-      let drag = false;
-      const place = (e) => {
-        const b = map.getBoundingClientRect();
-        shopDraft.x = Math.round(Math.max(12, Math.min(378, ((e.clientX - b.left) / b.width) * 390)));
-        shopDraft.y = Math.round(Math.max(MAP_Y0 + 40, Math.min(MAP_Y0 + b.height - 6, e.clientY - b.top + MAP_Y0)));
-        pin.style.left = `${(shopDraft.x / 390) * 100}%`; pin.style.top = `${shopDraft.y - MAP_Y0}px`;
-      };
-      map.addEventListener('pointerdown', (e) => { drag = true; map.setPointerCapture(e.pointerId); place(e); });
-      map.addEventListener('pointermove', (e) => { if (drag) place(e); });
-      map.addEventListener('pointerup', () => { drag = false; });
-      pin.addEventListener('keydown', (e) => {
-        const k = { ArrowLeft: [-5, 0], ArrowRight: [5, 0], ArrowUp: [0, -5], ArrowDown: [0, 5] }[e.key]; if (!k) return;
-        e.preventDefault(); shopDraft.x = Math.max(12, Math.min(378, shopDraft.x + k[0])); shopDraft.y = Math.max(MAP_Y0 + 40, shopDraft.y + k[1]);
-        pin.style.left = `${(shopDraft.x / 390) * 100}%`; pin.style.top = `${shopDraft.y - MAP_Y0}px`;
+      const inp = r.querySelector('#locIn'), msg = r.querySelector('#locMsg'), prev = r.querySelector('#gprev'), save = r.querySelector('[data-act=savePin]');
+      inp.addEventListener('input', () => {
+        const t = inp.value.trim(); if (!t) return;
+        const ll = parseLatLng(t);
+        if (ll) {
+          Object.assign(locDraft, ll, { dirty: true });
+          prev.src = embedUrl(ll.lat, ll.lng, 17); save.disabled = false;
+          msg.className = 'sub ok'; msg.textContent = `พบตำแหน่ง ${ll.lat}, ${ll.lng} — ตรวจหมุดบนแผนที่แล้วกดบันทึก`;
+        } else {
+          msg.className = 'sub warn';
+          msg.textContent = isShortMapsLink(t)
+            ? 'ลิงก์แบบย่อ (maps.app.goo.gl) อ่านพิกัดไม่ได้ — เปิดลิงก์นั้นในเบราว์เซอร์ แล้วคัดลอกลิงก์เต็มจากช่องที่อยู่ หรือคัดลอกตัวเลขพิกัดมาวาง'
+            : 'ยังอ่านพิกัดไม่ได้ วางตัวเลขพิกัด เช่น 13.78105, 100.54392 หรือลิงก์ Google Maps แบบเต็ม';
+        }
       });
     },
-    actions: { savePin() { const pos = { x: shopDraft.x, y: shopDraft.y }; shopDraft = null; act(api.saveShop(shop.id, pos), 'บันทึกตำแหน่งแล้ว ลูกค้าจะเห็นหมุดใหม่บนแมพ'); } },
+    actions: {
+      savePin() {
+        if (!hasCoords(locDraft)) return;
+        const pos = { lat: locDraft.lat, lng: locDraft.lng, located: true }; locDraft = null;
+        act(api.saveShop(shop.id, pos), 'บันทึกตำแหน่งแล้ว ลูกค้าจะเห็นร้านบนแผนที่ตรงจุดนี้');
+      },
+      async here(el) {
+        el.disabled = true;
+        try {
+          const ll = await locateMe(); Object.assign(locDraft, ll, { dirty: true }); render();
+          toast('ใช้ตำแหน่งปัจจุบันแล้ว ตรวจหมุดบนแผนที่แล้วกดบันทึก');
+        } catch (e) { toast(e.message); el.disabled = false; }
+      },
+    },
   };
 }
 

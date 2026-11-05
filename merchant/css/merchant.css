@@ -117,12 +117,13 @@ textarea.inp { height: auto; min-height: 90px; padding: 10px 14px; resize: verti
 .preview .stampcard { min-height: 440px; }
 
 /* map pin editor */
-.pinmap { position: relative; height: 420px; border-radius: 16px; overflow: hidden; background: var(--map-bg); touch-action: none; user-select: none; }
-.pinmap .m { position: absolute; }
-.pinmap .lbl { position: absolute; font-size: 11px; font-weight: 600; }
-.pinmap .others { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; border: 2px solid var(--bg); opacity: .55; }
-.pinmap .mine { position: absolute; width: 44px; height: 44px; margin: -44px 0 0 -22px; color: var(--primary); cursor: grab; filter: drop-shadow(0 4px 8px rgba(0,0,0,.5)); }
-.pinmap .mine:active { cursor: grabbing; }
+.gpreview { position: relative; height: 340px; border-radius: 16px; overflow: hidden; background: var(--map-bg); border: 1px solid var(--line); }
+.gpreview iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.panel.col-gap { display: flex; flex-direction: column; gap: 12px; }
+.sub.ok { color: var(--green, #2FB57C); }
+.sub.warn { color: var(--gold, #E0A100); }
+details.sub summary { cursor: pointer; font-weight: 600; }
+.howto { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 4px; line-height: 1.5; }
 
 /* stands */
 .stand { display: grid; grid-template-columns: 132px 1fr; gap: 16px; align-items: start; }

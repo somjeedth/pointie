@@ -1,3 +1,5 @@
+import { ARI_BTS } from './geo.js';
+
 // Shared catalogue layer between the customer app and the merchant web.
 // Demo backend: everything lives in this browser's localStorage, so both apps
 // must be served from the same origin. Swap this module for a Supabase-backed
@@ -36,7 +38,7 @@ export function newShopId(nameEn) {
 export function blankShop(id, { name, cat = 'cafe', area = 'อารีย์', nameEn = '' }) {
   const words = name.trim().split(/\s+/);
   return {
-    id, created: true, name, initials: name.replace(/\s/g, '').slice(0, 2), cat, area, x: 200, y: 360,
+    id, created: true, name, initials: name.replace(/\s/g, '').slice(0, 2), cat, area, lat: ARI_BTS.lat, lng: ARI_BTS.lng, located: false,
     hours: 'ทุกวัน 09:00–18:00', closed: 'เปิดทุกวัน', openAt: 9, closeAt: 18, rating: 0, reviewsCount: 0,
     address: '', phone: '', promo: false, promoText: '', promoUntil: '', promoRule: null,
     card: {
@@ -47,17 +49,10 @@ export function blankShop(id, { name, cat = 'cafe', area = 'อารีย์',
   };
 }
 
-// Distance label from the map pin (customer "me" dot sits at 172,442 on the 390px map).
-export function distFromPin(x, y) {
-  const m = Math.round(Math.hypot(x - 172, y - 442) * 3.2 / 50) * 50 || 50;
-  return { distM: m, dist: m >= 1000 ? `${(m / 1000).toFixed(1)} กม.` : `${m} ม.` };
-}
-
 // Effective shop = built-in defaults (if any) + merchant override.
 export function mergeShop(base, o) {
   if (!base && !(o && o.created)) return null;
   const s = base ? { ...base, ...(o || {}), card: { ...base.card, ...((o && o.card) || {}) } } : { ...o, card: { ...o.card } };
-  if (s.created) Object.assign(s, distFromPin(s.x, s.y));
   if (s.promoRule === undefined) s.promoRule = s.id === 'baan' ? { type: 'double', days: [3] } : null;
   s.stands = s.stands || [];
   s.replies = s.replies || {};

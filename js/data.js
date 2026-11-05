@@ -1,4 +1,5 @@
 import { applyCatalog, mergeShop } from './catalog.js';
+import { applyDistances } from './geo.js';
 
 // Static catalogue: shops, badges, levels, preferences.
 
@@ -13,7 +14,7 @@ const dots = (bg) => ({ bg, photo: false });
 
 export const SHOPS = [
   {
-    id: 'baan', name: 'บ้านกาแฟริมคลอง', initials: 'บก', cat: 'cafe', area: 'อารีย์', x: 214, y: 380, dist: '350 ม.', distM: 350,
+    id: 'baan', name: 'บ้านกาแฟริมคลอง', initials: 'บก', cat: 'cafe', area: 'อารีย์', dist: '350 ม.', distM: 350,
     hours: 'ทุกวัน 08:00–20:00', closed: 'ปิดทุกวันจันทร์', closeAt: 20, openAt: 8, rating: 4.6, reviewsCount: 128,
     address: 'ซ.อารีย์ 1 พญาไท กรุงเทพฯ', phone: '02 123 4567',
     promo: true, promoText: 'แสตมป์ x2 ทุกวันพุธ', promoUntil: 'ถึง 30 พ.ย.',
@@ -24,7 +25,7 @@ export const SHOPS = [
     dist5: [72, 18, 6, 3, 1], photos: 48,
   },
   {
-    id: 'jae', name: 'ข้าวมันไก่เจ๊หน่อย', initials: 'ขม', cat: 'food', area: 'อารีย์', x: 96, y: 300, dist: '600 ม.', distM: 600,
+    id: 'jae', name: 'ข้าวมันไก่เจ๊หน่อย', initials: 'ขม', cat: 'food', area: 'อารีย์', dist: '600 ม.', distM: 600,
     hours: 'ทุกวัน 07:00–15:00', closed: 'ปิดวันอาทิตย์', closeAt: 15, openAt: 7, rating: 4.4, reviewsCount: 86,
     address: 'ซ.พหลโยธิน 7 พญาไท กรุงเทพฯ', phone: '08 9123 4567',
     promo: false,
@@ -34,7 +35,7 @@ export const SHOPS = [
     dist5: [64, 22, 9, 3, 2], photos: 21,
   },
   {
-    id: 'plant', name: 'ร้านต้นไม้เล็ก', initials: 'ตม', cat: 'shop', area: 'อารีย์', x: 270, y: 470, dist: '1.2 กม.', distM: 1200,
+    id: 'plant', name: 'ร้านต้นไม้เล็ก', initials: 'ตม', cat: 'shop', area: 'อารีย์', dist: '1.2 กม.', distM: 1200,
     hours: 'ทุกวัน 10:00–19:00', closed: 'เปิดทุกวัน', closeAt: 19, openAt: 10, rating: 4.8, reviewsCount: 54,
     address: 'ซ.อารีย์ 4 พญาไท กรุงเทพฯ', phone: '09 8765 4321',
     promo: true, promoText: 'ตลาดนัดต้นไม้ 22 พ.ย. แสตมป์พิเศษ', promoUntil: 'ส. 22 พ.ย.',
@@ -45,7 +46,7 @@ export const SHOPS = [
     dist5: [82, 12, 4, 1, 1], photos: 33,
   },
   {
-    id: 'climb', name: 'ปีนผาในเมือง', initials: 'ปน', cat: 'act', area: 'อารีย์', x: 60, y: 520, dist: '900 ม.', distM: 900,
+    id: 'climb', name: 'ปีนผาในเมือง', initials: 'ปน', cat: 'act', area: 'อารีย์', dist: '900 ม.', distM: 900,
     hours: 'ทุกวัน 12:00–22:00', closed: 'เปิดทุกวัน', closeAt: 22, openAt: 12, rating: 4.7, reviewsCount: 61,
     address: 'ถ.พหลโยธิน พญาไท กรุงเทพฯ', phone: '02 765 4321',
     promo: false,
@@ -55,7 +56,7 @@ export const SHOPS = [
     dist5: [74, 16, 6, 2, 2], photos: 19,
   },
   {
-    id: 'noodle', name: 'ก๋วยเตี๋ยวเรือซอย 5', initials: 'กว', cat: 'food', area: 'อารีย์', x: 300, y: 230, dist: '700 ม.', distM: 700,
+    id: 'noodle', name: 'ก๋วยเตี๋ยวเรือซอย 5', initials: 'กว', cat: 'food', area: 'อารีย์', dist: '700 ม.', distM: 700,
     hours: 'ทุกวัน 09:00–17:00', closed: 'ปิดวันพุธ', closeAt: 17, openAt: 9, rating: 4.3, reviewsCount: 102,
     address: 'ซ.อารีย์ 5 พญาไท กรุงเทพฯ', phone: '08 1111 2222',
     promo: true, promoText: 'ชาม 2 ได้แสตมป์เพิ่ม', promoUntil: 'ทุกวัน',
@@ -65,7 +66,7 @@ export const SHOPS = [
     dist5: [58, 25, 11, 4, 2], photos: 27,
   },
   {
-    id: 'roast', name: 'Roast Lab', initials: 'RL', cat: 'cafe', area: 'อารีย์', x: 120, y: 420, dist: '450 ม.', distM: 450,
+    id: 'roast', name: 'Roast Lab', initials: 'RL', cat: 'cafe', area: 'อารีย์', dist: '450 ม.', distM: 450,
     hours: 'ทุกวัน 07:30–18:00', closed: 'เปิดทุกวัน', closeAt: 18, openAt: 7.5, rating: 4.5, reviewsCount: 77,
     address: 'ซ.อารีย์ 2 พญาไท กรุงเทพฯ', phone: '02 222 3333',
     promo: false,
@@ -75,7 +76,7 @@ export const SHOPS = [
     dist5: [66, 20, 9, 3, 2], photos: 25,
   },
   {
-    id: 'book', name: 'ร้านหนังสือมุมเงียบ', initials: 'มง', cat: 'shop', area: 'อารีย์', x: 40, y: 250, dist: '1.0 กม.', distM: 1000,
+    id: 'book', name: 'ร้านหนังสือมุมเงียบ', initials: 'มง', cat: 'shop', area: 'อารีย์', dist: '1.0 กม.', distM: 1000,
     hours: 'ทุกวัน 11:00–20:00', closed: 'ปิดวันอังคาร', closeAt: 20, openAt: 11, rating: 4.9, reviewsCount: 43,
     address: 'ซ.ประดิพัทธ์ 3 พญาไท กรุงเทพฯ', phone: '09 0000 1111',
     promo: false,
@@ -85,7 +86,7 @@ export const SHOPS = [
     dist5: [88, 9, 2, 1, 0], photos: 14,
   },
   {
-    id: 'clay', name: 'คลาสปั้นดินบ่ายวันเสาร์', initials: 'ปด', cat: 'act', area: 'อารีย์', x: 320, y: 580, dist: '1.4 กม.', distM: 1400,
+    id: 'clay', name: 'คลาสปั้นดินบ่ายวันเสาร์', initials: 'ปด', cat: 'act', area: 'อารีย์', dist: '1.4 กม.', distM: 1400,
     hours: 'ส.–อา. 13:00–17:00', closed: 'เปิดเฉพาะเสาร์-อาทิตย์', closeAt: 17, openAt: 13, rating: 4.8, reviewsCount: 38,
     address: 'ซ.ราชครู พญาไท กรุงเทพฯ', phone: '08 3333 4444',
     promo: true, promoText: 'สมัครคู่ลด 15%', promoUntil: 'ถึง 31 ธ.ค.',
@@ -95,13 +96,22 @@ export const SHOPS = [
     dist5: [80, 14, 4, 1, 1], photos: 22,
   },
 ];
+// Real coordinates around Ari (Bangkok) for the sample shops.
+const COORDS = {
+  baan: [13.78105, 100.54392], jae: [13.77921, 100.54203], plant: [13.77748, 100.54688], climb: [13.77645, 100.54145],
+  noodle: [13.78236, 100.54712], roast: [13.78002, 100.54318], book: [13.78198, 100.54051], clay: [13.77566, 100.54803],
+};
+for (const s of SHOPS) { [s.lat, s.lng] = COORDS[s.id]; s.located = true; }
 export const BASE_SHOPS = JSON.parse(JSON.stringify(SHOPS)); // pristine defaults (merchant web)
 applyCatalog(SHOPS); // merchant edits (demo backend)
+applyDistances(SHOPS); // distance from the user's last known location (or BTS Ari)
+export const refreshDistances = () => applyDistances(SHOPS);
 export const shopById = (id) => SHOPS.find((s) => s.id === id);
 // Remote mode: swap the built-in list for the server catalogue (same shape).
 export function replaceShops(list) {
   const norm = (list || []).map((s) => mergeShop({ ...s, card: s.card || {} }, null));
   SHOPS.splice(0, SHOPS.length, ...norm);
+  applyDistances(SHOPS);
 }
 
 export const SAMPLE_REVIEWS = {

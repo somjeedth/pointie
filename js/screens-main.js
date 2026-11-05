@@ -1,9 +1,10 @@
 // Main tab screens: Home, Map, Scan, My cards, Profile (+ sub pages).
 import { icon } from './icons.js';
 import {
-  esc, go, toast, nav, avatarHtml, toneStyle, cardBg, cardBgStyle, letterHtml, cardEn, stampGrid, starsHtml, sheet, backBtn,
+  esc, go, toast, nav, avatarHtml, toneStyle, cardBg, cardBgStyle, hasArt, letterHtml, cardEn, stampGrid, starsHtml, sheet, backBtn,
 } from './ui.js';
-import { SHOPS, CAT, shopById, MISSIONS, BADGES, xpNeed, levelTitle, unlocksFor, totalVisits, catVisitStats, STYLES, TIERS, tierFor, nextTier } from './data.js';
+import { getOrigin, setOrigin, locateMe, embedFor, mapsUrl } from './geo.js';
+import { SHOPS, CAT, shopById, MISSIONS, BADGES, xpNeed, levelTitle, unlocksFor, totalVisits, catVisitStats, STYLES, TIERS, tierFor, nextTier, refreshDistances } from './data.js';
 import {
   store, missionProgress, daysLeftInWeek, cardFor, thMonthYear, thDateTime, agoText, togglePin, pinSlots,
   markNotificationsRead, setTheme, logout, deleteAccount, resetDemo, DEMO_PHONE, prettyPhone, myReview, hasIdentity,
@@ -120,57 +121,38 @@ export function notifications() {
 let mapState = { cat: 'all', promo: false, sel: 'baan', q: '' };
 export function map() {
   const s = mapState;
-  const visible = SHOPS.filter((sh) => (s.cat === 'all' || sh.cat === s.cat) && (!s.promo || sh.promo) && (!s.q || sh.name.includes(s.q)));
+  const visible = SHOPS.filter((sh) => (s.cat === 'all' || sh.cat === s.cat) && (!s.promo || sh.promo) && (!s.q || sh.name.includes(s.q) || (sh.area || '').includes(s.q)))
+    .sort((a, b) => (a.distM ?? 1e9) - (b.distM ?? 1e9));
   const selId = visible.find((v) => v.id === s.sel) ? s.sel : visible[0]?.id;
   const sel = shopById(selId);
-  const pins = visible.map((sh) => {
-    const on = sh.id === selId; const size = on ? 48 : 34;
-    return `<button class="pin ${on ? 'sel' : ''}" data-act="sel" data-id="${sh.id}" aria-label="${esc(sh.name)}" style="left:calc(${(sh.x / 390) * 100}% - ${size / 2}px);top:${sh.y - size / 2}px;width:${size}px;height:${size}px;z-index:${on ? 3 : 1}">
-      ${sh.promo ? '<span class="pro">โปร</span>' : ''}<span class="dotp" style="background:${CAT[sh.cat].color}">${icon('star', on ? 22 : 16)}</span>${on ? `<span class="nm">${esc(sh.name)}</span>` : ''}</button>`;
-  }).join('');
   const chip = (key, label, color) => {
     const on = key === 'promo' ? s.promo : s.cat === key;
     return `<button class="chip ${on ? 'on' : ''}" data-act="chip" data-k="${key}" aria-pressed="${on}" style="height:38px;padding:0 14px;font-weight:600">${color ? `<span class="cdot" style="background:${color}"></span>` : ''}${label}</button>`;
   };
+  const shopChips = visible.map((sh) => `<button class="shop-chip ${sh.id === selId ? 'on' : ''}" data-act="sel" data-id="${sh.id}" aria-pressed="${sh.id === selId}">
+      <span class="cdot" style="background:${CAT[sh.cat].color}"></span><span class="nm">${esc(sh.name)}</span><span class="xs muted">${sh.dist || ''}</span>${sh.promo ? '<span class="pro">โปร</span>' : ''}</button>`).join('');
   const c = sel && cardFor(sel.id);
+  const origin = getOrigin();
   return {
     nav: 'map', cls: 'flush',
-    html: `<div class="map" aria-hidden="false">
-        <div aria-hidden="true">
-          <div class="m" style="left:-40px;top:520px;width:520px;height:46px;background:var(--map-water);transform:rotate(-14deg)"></div>
-          <div class="m" style="left:59%;top:250px;width:33%;height:150px;border-radius:22px;background:var(--map-park)"></div>
-          <div class="m" style="left:6%;top:640px;width:31%;height:70px;border-radius:18px;background:var(--map-park)"></div>
-          <div class="m" style="left:0;right:0;top:330px;height:14px;background:var(--map-main)"></div>
-          <div class="m" style="left:0;right:0;top:200px;height:6px;background:var(--map-road)"></div>
-          <div class="m" style="left:0;right:0;top:450px;height:6px;background:var(--map-road)"></div>
-          <div class="m" style="left:0;right:0;top:700px;height:8px;background:var(--map-road)"></div>
-          <div class="m" style="top:0;bottom:0;left:38%;width:14px;background:var(--map-main)"></div>
-          <div class="m" style="top:0;bottom:0;left:15%;width:6px;background:var(--map-road)"></div>
-          <div class="m" style="top:0;bottom:0;left:77%;width:6px;background:var(--map-road)"></div>
-          <div class="m" style="left:-60px;top:120px;width:560px;height:6px;background:var(--map-road);transform:rotate(32deg);transform-origin:left center"></div>
-          <div class="lbl" style="left:45%;top:312px;padding:2px 8px;border-radius:6px;background:var(--map-road);color:var(--muted)">BTS อารีย์</div>
-          <div class="lbl" style="left:65%;top:380px;color:#4E7A63">สวนซอย 7</div>
-          <div class="lbl" style="left:8%;top:410px;color:var(--muted);font-size:12px;letter-spacing:.1em">อารีย์</div>
-          <div class="lbl" style="left:60%;top:600px;color:#3E6680">คลองประปา</div>
-        </div>
-        <div class="me" aria-label="ตำแหน่งของคุณ" style="left:calc(44% - 22px);top:442px"></div>
-        ${pins}
+    html: `<div class="map gmap">
+        ${sel ? `<iframe class="gframe" title="แผนที่ ${esc(sel.name)}" src="${embedFor(sel)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>` : '<div class="gframe empty"></div>'}
       </div>
       <div class="map-top">
         <div class="row" style="gap:8px">
           <label class="input-wrap">${icon('search')}<span class="sr-only">ค้นหาร้าน</span><input id="mapQ" placeholder="ค้นหาร้านหรือย่าน" value="${esc(s.q)}"></label>
-          <button class="icon-btn" style="width:48px;height:48px" data-act="filters" aria-label="ตัวกรองเพิ่มเติม">${icon('filter')}</button>
+          <button class="icon-btn" style="width:48px;height:48px" data-act="filters" aria-label="ล้างตัวกรอง">${icon('filter')}</button>
         </div>
         <div class="hscroll">${chip('all', 'ทั้งหมด')}${chip('promo', 'มีโปร', 'var(--ink)')}${Object.entries(CAT).map(([k, v]) => chip(k, v.label, v.color)).join('')}</div>
-        <button class="map-search-area" data-act="area">${icon('refresh', 14, 2.4)}ค้นหาบริเวณนี้ · ${visible.length} ร้าน</button>
+        <div class="hscroll shop-chips" aria-label="ร้านใกล้คุณ ${visible.length} ร้าน">${shopChips}</div>
       </div>
-      ${sel ? `<button class="icon-btn round map-locate" style="bottom:calc(${sel.promo ? 300 : 256}px + env(safe-area-inset-bottom));width:44px;height:44px;color:#4C9BFF" data-act="locate" aria-label="ไปที่ตำแหน่งของฉัน">${icon('locate')}</button>
+      ${sel ? `<button class="icon-btn round map-locate" style="bottom:calc(${sel.promo ? 300 : 256}px + env(safe-area-inset-bottom));width:44px;height:44px;color:#4C9BFF" data-act="locate" aria-label="ใช้ตำแหน่งของฉันคำนวณระยะทาง">${icon('locate')}</button>
       <div class="map-sheet">
         <div class="row" style="align-items:flex-start">
-          <div class="ph ${cardBg(sel.card)}" style="${cardBgStyle(sel.card)}width:72px;height:72px;border-radius:14px;flex:none;display:flex;align-items:center;justify-content:center;font-size:10px;color:rgba(255,255,255,.7)">[รูปร้าน]</div>
+          <div class="ph ${cardBg(sel.card)}" style="${cardBgStyle(sel.card)}width:72px;height:72px;border-radius:14px;flex:none;display:flex;align-items:center;justify-content:center;font-size:10px;color:rgba(255,255,255,.7)">${hasArt(sel.card) ? '' : esc(sel.initials || '')}</div>
           <div class="col" style="gap:3px;flex:1;min-width:0">
             <div class="bold" style="font-size:16px">${esc(sel.name)}</div>
-            <div class="small muted">${CAT[sel.cat].label} · ${sel.dist} · <span class="green semi">${openText(sel)}</span></div>
+            <div class="small muted">${CAT[sel.cat].label} · ${sel.dist || sel.area} ${origin.real ? 'จากคุณ' : 'จาก BTS อารีย์'} · <span class="green semi">${openText(sel)}</span></div>
             <div class="row small" style="gap:8px"><span class="row semi" style="gap:3px;color:var(--gold)">${icon('star', 14)}${sel.rating}</span><span class="pill soft">${c ? `${c.have}/${sel.card.need} แสตมป์` : 'ยังไม่เคยไป'}</span></div>
           </div>
         </div>
@@ -181,12 +163,19 @@ export function map() {
       const q = root.querySelector('#mapQ');
       q.addEventListener('change', () => { mapState.q = q.value.trim(); window.dispatchEvent(new Event('rerender')); });
       q.addEventListener('keydown', (e) => { if (e.key === 'Enter') q.blur(); });
+      root.querySelector('.shop-chip.on')?.scrollIntoView({ inline: 'center', block: 'nearest' });
     },
     actions: {
       sel(el) { mapState.sel = el.dataset.id; window.dispatchEvent(new Event('rerender')); },
       chip(el) { const k = el.dataset.k; if (k === 'promo') mapState.promo = !mapState.promo; else mapState.cat = k; window.dispatchEvent(new Event('rerender')); },
-      area() { toast(`พบ ${visible.length} ร้านในบริเวณนี้`); },
-      locate() { toast('ตำแหน่งของคุณ: ใกล้ BTS อารีย์'); },
+      async locate(el) {
+        el.disabled = true;
+        try {
+          const o = await locateMe(); setOrigin(o.lat, o.lng); refreshDistances();
+          mapState.sel = null; toast('อัปเดตระยะทางจากตำแหน่งของคุณแล้ว');
+        } catch (e) { toast(e.message); }
+        el.disabled = false; window.dispatchEvent(new Event('rerender'));
+      },
       filters() { mapState = { cat: 'all', promo: false, sel: mapState.sel, q: '' }; toast('ล้างตัวกรองแล้ว'); window.dispatchEvent(new Event('rerender')); },
     },
   };
@@ -195,7 +184,7 @@ export function openText(s) {
   const h = new Date().getHours() + new Date().getMinutes() / 60;
   return h >= s.openAt && h < s.closeAt ? 'เปิดอยู่' : 'ปิดแล้ว';
 }
-export const mapsUrl = (s) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.name + ' ' + s.area)}`;
+export { mapsUrl };
 
 // ================= SCAN =================
 let scanState = { tab: 'nfc', fail: false, reading: false };

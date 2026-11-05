@@ -11,7 +11,8 @@ import {
   hasVisited, myReview, addReview, toggleFav, redeem as doRedeem, thMonthYear, agoText, thDateTime, takeLevelUp, peekLevelUp, isRemote,
 } from './store.js';
 import { returnTo } from './screens-onboard.js';
-import { openText, mapsUrl } from './screens-main.js';
+import { openText } from './screens-main.js';
+import { embedFor, mapsUrl } from './geo.js';
 
 const brandBar = () => `<div class="topbar"><div class="brand"><img src="img/app-icon.png" alt="">Pointie</div><div class="nfc-ok">แตะ NFC สำเร็จ</div></div>`;
 
@@ -231,7 +232,7 @@ export function storePage({ id }, query) {
     <div class="store-body">
       <div class="store-head">
         <div class="row"><span class="initials" style="${cardBgStyle(k)}${k.photo ? 'background:#2E3A33;' : ''}color:${k.letter}">${s.initials}</span>
-          <div class="col" style="gap:2px"><h1 style="font-size:20px">${esc(s.name)}</h1><span class="small muted">${CAT[s.cat].label} · ${s.area} · ${s.dist}</span></div></div>
+          <div class="col" style="gap:2px"><h1 style="font-size:20px">${esc(s.name)}</h1><span class="small muted">${CAT[s.cat].label} · ${s.area}${s.dist ? ` · ${s.dist}` : ''}</span></div></div>
         <div class="row small" style="gap:10px;flex-wrap:wrap"><span class="row semi" style="gap:4px"><span style="color:var(--gold)">${icon('star', 16)}</span>${s.rating} <span class="muted" style="font-weight:400">(${s.reviewsCount + (mine ? 1 : 0)} รีวิว)</span></span>
           <span class="row semi ${open === 'เปิดอยู่' ? 'green' : ''}" style="gap:4px;${open === 'เปิดอยู่' ? '' : 'color:var(--red)'}"><span style="width:8px;height:8px;border-radius:50%;background:currentColor"></span>${open}</span>
           <span class="muted">ปิด ${String(Math.floor(s.closeAt)).padStart(2, '0')}:${s.closeAt % 1 ? '30' : '00'}</span></div>
@@ -245,11 +246,8 @@ export function storePage({ id }, query) {
       <section class="col">
         <h2 class="h2">ข้อมูลร้าน</h2>
         <div class="card" style="padding:12px 14px">
-          <div class="mapmini" aria-hidden="true">
-            <div class="m" style="position:absolute;left:0;right:0;top:60px;height:10px;background:var(--map-main)"></div>
-            <div class="m" style="position:absolute;top:0;bottom:0;left:30%;width:8px;background:var(--map-road)"></div>
-            <div class="m" style="position:absolute;top:0;bottom:0;left:70%;width:12px;background:var(--map-water)"></div>
-            <span style="position:absolute;left:50%;top:44px;transform:translate(-50%,-50%);color:var(--primary)">${icon('pin', 36)}</span>
+          <div class="mapmini">
+            <iframe class="gframe" title="แผนที่ร้าน ${esc(s.name)}" src="${embedFor(s, 16)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
             <a class="btn btn-sm" style="position:absolute;right:10px;bottom:10px;height:32px;background:var(--surface);color:var(--ink);border:1px solid var(--line)" href="${mapsUrl(s)}" target="_blank" rel="noopener">${icon('nav', 14)}นำทาง</a>
           </div>
           <div class="info-row" style="border-top:0;margin-top:6px"><span class="muted">${icon('clock', 18)}</span><div class="col" style="gap:0"><span class="small">${s.hours}</span><span class="xs muted">${s.closed}</span></div></div>

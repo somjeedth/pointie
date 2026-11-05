@@ -496,7 +496,7 @@ begin
   while exists (select 1 from shops where id = sid) loop n := n + 1; sid := base || '-' || n; end loop;
   insert into shops (id, owner_id, data) values (sid, u, jsonb_build_object(
     'name', trim(p_name), 'initials', left(replace(trim(p_name), ' ', ''), 2), 'cat', coalesce(nullif(p_cat, ''), 'cafe'),
-    'area', coalesce(nullif(p_area, ''), 'อารีย์'), 'x', 200, 'y', 360, 'created', true,
+    'area', coalesce(nullif(p_area, ''), 'อารีย์'), 'lat', 13.7797, 'lng', 100.5446, 'located', false, 'created', true,
     'hours', 'ทุกวัน 09:00–18:00', 'closed', 'เปิดทุกวัน', 'openAt', 9, 'closeAt', 18, 'rating', 0, 'reviewsCount', 0,
     'address', '', 'phone', '', 'promo', false, 'promoText', '', 'promoUntil', '', 'promoRule', null,
     'summary', '', 'tags', '[]'::jsonb, 'dist5', '[0,0,0,0,0]'::jsonb, 'photos', 0,

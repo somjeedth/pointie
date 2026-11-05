@@ -2,7 +2,8 @@
 // Invite (B1), Places (B2), Style (B3), Location (B4).
 import { icon } from './icons.js';
 import { esc, go, toast, steps, backBtn, avatarHtml } from './ui.js';
-import { AVATARS, PLACES, STYLES, AREAS, XP } from './data.js';
+import { AVATARS, PLACES, STYLES, AREAS, XP, refreshDistances } from './data.js';
+import { setOrigin } from './geo.js';
 import {
   store, normalizePhone, prettyPhone, isValidPhone, requestOtp, otpInfo, verifyOtp, loginDemo,
   completeSetup, updateProfile, savePrefs, finishPrefs, saveIdentity, ageOf,
@@ -477,7 +478,7 @@ export function prefLocation(p, q) {
         if (!('geolocation' in navigator)) { toast('อุปกรณ์นี้ไม่รองรับตำแหน่ง เลือกย่านเองแทนนะ'); locView = 'manual'; return window.dispatchEvent(new Event('rerender')); }
         el.disabled = true; el.textContent = 'กำลังขอตำแหน่ง…';
         navigator.geolocation.getCurrentPosition(
-          () => { updateProfile({ locationOk: true }); done(); },
+          (p) => { setOrigin(+p.coords.latitude.toFixed(6), +p.coords.longitude.toFixed(6)); refreshDistances(); updateProfile({ locationOk: true }); done(); },
           () => { toast('ไม่ได้รับอนุญาตตำแหน่ง เลือกย่านเองแทนนะ'); locView = 'manual'; window.dispatchEvent(new Event('rerender')); },
           { timeout: 8000, maximumAge: 600000 },
         );
