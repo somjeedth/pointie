@@ -1,5 +1,5 @@
 // Router & bootstrap for the Pointie customer web app.
-import { store, ensureWeek, peekLevelUp, bootRemote } from './store.js';
+import { store, ensureWeek, peekLevelUp, bootRemote, isLinking } from './store.js';
 import { nav, toast } from './ui.js';
 import { morphChildren, runMount } from './dom.js';
 import { welcome, login, otp, setup, invite, prefPlaces, prefStyle, prefLocation, returnTo, resetOtpScreen } from './screens-onboard.js';
@@ -57,7 +57,7 @@ function resolve() {
   if (!hit) return { redirect: me ? '/home' : '/welcome' };
   const [re, fn, opt] = hit;
   if (!me && !opt.guest && !opt.open) { returnTo.set(path); return { redirect: '/welcome' }; }
-  if (me && opt.guest) return { redirect: '/home' };
+  if (me && opt.guest && !(isLinking() && /^\/(login|otp)$/.test(path))) return { redirect: '/home' };
   if (me && !me.user.setupDone && path !== '/setup' && !opt.open) return { redirect: '/setup' };
   if (me && LEVELUP_INTERCEPT.has(path) && peekLevelUp()) return { redirect: '/levelup' };
   return { fn, params: path.match(re).groups || {}, query, path };

@@ -7,6 +7,7 @@ import { SHOPS, CAT, shopById, MISSIONS, BADGES, xpNeed, levelTitle, unlocksFor,
 import {
   store, missionProgress, daysLeftInWeek, cardFor, thMonthYear, thDateTime, agoText, togglePin, pinSlots,
   markNotificationsRead, setTheme, logout, deleteAccount, resetDemo, DEMO_PHONE, prettyPhone, myReview, hasIdentity,
+  needsPhoneLink, setLinking,
 } from './store.js';
 
 const shopStampText = (s) => { const c = cardFor(s.id); return c ? `${c.have}/${s.card.need} แสตมป์` : 'ยังไม่เคยไป'; };
@@ -532,12 +533,17 @@ export function settings() {
       </div></div>
       <div class="card" style="padding:4px 16px"><div class="menu-list">
         <div>${icon('phone')}เบอร์มือถือ<span class="chev small">${prettyPhone(me.phone)}</span></div>
+        <button data-act="linkPhone" id="linkPhone" hidden>${icon('lock')}ยืนยันเบอร์ด้วย SMS<span class="chev small" style="color:var(--primary)">ใช้ได้ทุกเครื่อง</span></button>
         ${isDemo ? `<button data-act="resetDemo">${icon('refresh')}รีเซ็ตข้อมูลตัวอย่าง</button>` : ''}
         <button data-act="logout">${icon('logout')}ออกจากระบบ</button>
         <button data-act="delete" style="color:var(--red)">${icon('trash')}ลบบัญชีและข้อมูลทั้งหมด</button>
       </div></div>
       <p class="center xs muted">Pointie เวอร์ชันเว็บ · ${document.documentElement.dataset.backend === 'remote' ? 'ข้อมูลซิงก์กับเซิร์ฟเวอร์' : 'โหมดเดโม ข้อมูลเก็บในเครื่องนี้เท่านั้น'}</p>`,
+    mount(root, ctx) {
+      needsPhoneLink().then((v) => { const b = root.querySelector('#linkPhone'); if (b) b.hidden = !v; });
+    },
     actions: {
+      linkPhone() { setLinking(true); go('/login'); },
       theme() { setTheme(store.theme === 'dark' ? 'light' : 'dark'); window.dispatchEvent(new Event('themechange')); window.dispatchEvent(new Event('rerender')); },
       async resetDemo() { if (confirm('รีเซ็ตข้อมูลตัวอย่างกลับเป็นค่าเริ่มต้น?')) { try { await resetDemo(); toast('รีเซ็ตข้อมูลแล้ว'); } catch { toast('รีเซ็ตไม่สำเร็จ ลองใหม่อีกครั้ง'); } go('/home'); } },
       async logout() { await logout(); toast('ออกจากระบบแล้ว'); go('/welcome'); },

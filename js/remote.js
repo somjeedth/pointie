@@ -37,3 +37,9 @@ export async function session(app) {
   const { data } = await c.auth.getSession();
   return data?.session || null;
 }
+// Supabase auth calls have no timeout of their own.
+export function timed(promise, ms = 15000) {
+  let timer;
+  const t = new Promise((_, rej) => { timer = setTimeout(() => rej(new RemoteError('timeout', 'timeout')), ms); });
+  return Promise.race([promise, t]).finally(() => clearTimeout(timer));
+}

@@ -18,6 +18,24 @@ Dashboard → **Authentication**
 - **URL Configuration → Site URL**: `https://store.getpointie.com/` (ลิงก์ยืนยันอีเมลของร้านจะพากลับมาที่นี่)
 - **URL Configuration → Redirect URLs**: เพิ่ม `https://store.getpointie.com/**`, `https://app.getpointie.com/**` (และ `https://pointie-steel.vercel.app/**` ถ้ายังใช้)
 
+## 2.1 เปิด SMS OTP จริง (boost-sms)
+Supabase เป็นคนสร้างรหัส 6 หลักและตรวจรหัสเอง เราแค่ส่ง SMS ผ่าน boost-sms ด้วย Edge Function `send-sms`
+1. **Edge Functions → Deploy a new function → Via Editor** ชื่อ `send-sms` วางโค้ดจาก `supabase/functions/send-sms/index.ts`
+   - ปิด **Verify JWT** ของฟังก์ชันนี้ (Supabase Auth เซ็นคำขอเอง ฟังก์ชันตรวจลายเซ็นให้แล้ว)
+2. **Authentication → Hooks → Add hook → Send SMS hook** → แบบ HTTPS
+   - URL: `https://vcerkaqjagvciuxjgktg.supabase.co/functions/v1/send-sms`
+   - กด Generate secret แล้วคัดลอกค่า `v1,whsec_...`
+3. **Edge Functions → Secrets** เพิ่ม
+   - `SEND_SMS_HOOK_SECRET` = ค่าจากข้อ 2
+   - `BOOST_SMS_URL`, `BOOST_SMS_API_KEY`, `BOOST_SMS_API_SECRET` (ถ้ามี), `BOOST_SMS_SENDER` (ชื่อผู้ส่งที่อนุมัติแล้ว)
+4. **Authentication → Sign In / Providers → Phone: เปิด** · SMS OTP Expiry = `300` วินาที · ความยาวรหัส 6 หลัก
+   - ยังเปิด **Allow anonymous sign-ins** ไว้ (ปุ่ม "ลองใช้บัญชีตัวอย่าง" และบัญชีเดิมที่ยังไม่ยืนยันเบอร์)
+5. รัน `schema.sql` ใหม่ (เบอร์ของลูกค้าจะเอามาจากเบอร์ที่ยืนยันแล้วเท่านั้น)
+6. แก้ `js/config.js` → `SMS_OTP = true` แล้ว deploy
+- ลูกค้าเดิมที่สมัครก่อนเปิด SMS: หน้า **ตั้งค่า → ยืนยันเบอร์ด้วย SMS** ผูกเบอร์เข้ากับบัญชีเดิม แสตมป์ไม่หาย และเข้าจากเครื่องอื่นได้
+- ดูว่าส่ง SMS สำเร็จไหม: Edge Functions → send-sms → Logs
+- ส่วนเดียวที่ขึ้นกับรูปแบบ API ของ boost-sms คือฟังก์ชัน `sendSms()` ในไฟล์นั้น
+
 ## 3. ตรวจว่าใช้งานได้
 - เปิด `https://app.getpointie.com/` → ถ้าต่อสำเร็จ หน้า ตั้งค่า จะเขียนว่า "ข้อมูลซิงก์กับเซิร์ฟเวอร์"
 - ถ้าต่อไม่ได้ (ยังไม่ได้รัน SQL หรือเน็ตมีปัญหา) แอพจะสลับไปใช้ข้อมูลตัวอย่างในเครื่องเองโดยไม่พัง
@@ -47,7 +65,7 @@ XP คำนวณที่เซิร์ฟเวอร์จากกิจ�
 - publishable key ในหน้าเว็บเปิดเผยได้ตามปกติ สิทธิ์จริงคุมด้วยฟังก์ชันข้างบน
 
 ## ข้อจำกัดตอนนี้
-- ลูกค้ายังเป็นบัญชีแบบไม่ระบุตัวตนต่อเครื่อง: ใช้เบอร์เดิมบนเครื่องใหม่จะได้บัญชีใหม่ → เมื่อพร้อมให้ต่อผู้ให้บริการ SMS (Authentication → Phone) แล้วเปลี่ยนเป็น OTP จริง
+- ถ้ายังไม่เปิด SMS OTP (ข้อ 2.1) ลูกค้าเป็นบัญชีต่อเครื่อง: ใช้เบอร์เดิมบนเครื่องใหม่จะได้บัญชีใหม่
 - รูปบนบัตรเก็บใน `shops.data` (ย่อแล้วราว 20–60 KB) — ภายหลังควรย้ายไป Supabase Storage
 - ร้านตัวอย่างให้ "รับไปทดลอง" ได้ร้านละ 1 บัญชี (`merchant_claim_sample`) — ปิดฟังก์ชันนี้ก่อนเปิดใช้จริง
 

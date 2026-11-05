@@ -5,6 +5,7 @@
 import { SHOPS, shopById, xpNeed, MISSIONS, BADGES, XP, levelTitle, replaceShops, tierFor, genOf } from './data.js';
 import { logEvent } from './catalog.js';
 import * as remote from './remote.js';
+import { SMS_OTP } from './config.js';
 
 const KEY_ACCOUNTS = 'pointie.accounts.v1';
 const KEY_SESSION = 'pointie.session.v1';
@@ -185,29 +186,69 @@ export const normalizePhone = (s) => {
 export const prettyPhone = (d) => d.length === 10 ? `${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}` : d;
 export const isValidPhone = (d) => /^0[689]\d{8}$/.test(d);
 
-let otp = null; // { phone, code, sentAt, expiresAt, tries }
-export function requestOtp(phone) {
-  const code = String(Math.floor(100000 + Math.random() * 900000));
-  otp = { phone, code, sentAt: Date.now(), expiresAt: Date.now() + 5 * 60000, tries: 3 };
-  return code;
+// Real SMS (config SMS_OTP + Supabase) or the on-screen simulated code.
+export const realSms = () => remoteOk && SMS_OTP;
+const e164 = (d) => '+66' + d.slice(1);
+let otp = null; // { phone, code (simulated only), sentAt, expiresAt, tries, real, link }
+const OTP_TTL = 5 * 60000;
+// → { ok: true } | { ok: false, message }
+export async function requestOtp(phone) {
+  if (!realSms()) {
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    otp = { phone, code, sentAt: Date.now(), expiresAt: Date.now() + OTP_TTL, tries: 3 };
+    return { ok: true };
+  }
+  const c = remote.client('customer');
+  // Signed in on an anonymous (per-device) account → attach the number to it and keep its stamps.
+  let link = false;
+  try { const s = await remote.session('customer'); link = !!(store.me && s?.user?.is_anonymous); } catch { /* ignore */ }
+  try {
+    let error;
+    if (link) {
+      ({ error } = await remote.timed(c.auth.updateUser({ phone: e164(phone) })));
+      // Number already belongs to another account → sign in to that one instead.
+      if (error && /already|registered|exists/i.test(error.message)) { link = false; error = null; }
+      else if (!error) { otp = { phone, sentAt: Date.now(), expiresAt: Date.now() + OTP_TTL, tries: 3, real: true, link }; return { ok: true }; }
+    }
+    if (!error) ({ error } = await remote.timed(c.auth.signInWithOtp({ phone: e164(phone), options: { channel: 'sms' } })));
+    if (error) return { ok: false, message: error.message };
+  } catch (e) { return { ok: false, message: e.message }; }
+  otp = { phone, sentAt: Date.now(), expiresAt: Date.now() + OTP_TTL, tries: 3, real: true, link };
+  return { ok: true };
 }
 export const otpInfo = () => otp;
+const wrongCode = () => {
+  otp.tries -= 1;
+  if (otp.tries <= 0) { otp.expiresAt = 0; return { ok: false, reason: 'expired' }; }
+  return { ok: false, reason: 'wrong', tries: otp.tries };
+};
+async function loadOrCreate(phone) {
+  let st = await remote.rpc('customer', 'my_state');
+  if (!st || (st.phone || '') !== phone) {
+    st = await remote.rpc('customer', 'customer_upsert', { p_nick: st?.nick || '', p_phone: phone, p_profile: st ? null : profilePayload(blankProfile(phone)) });
+  }
+  if (store.session && store.session.phone !== (st.phone || `u:${st.id}`)) delete store.accounts[store.session.phone];
+  hydrate(st); ensureWeek(); commit();
+  return { ok: true, isNew: !store.me.user.setupDone };
+}
 export async function verifyOtp(code) {
   if (!otp) return { ok: false, reason: 'expired' };
   if (Date.now() > otp.expiresAt) return { ok: false, reason: 'expired' };
-  if (code !== otp.code) {
-    otp.tries -= 1;
-    if (otp.tries <= 0) { otp.expiresAt = 0; return { ok: false, reason: 'expired' }; }
-    return { ok: false, reason: 'wrong', tries: otp.tries };
+  if (otp.real) {
+    try {
+      const c = remote.client('customer');
+      const { error } = await remote.timed(c.auth.verifyOtp({ phone: e164(otp.phone), token: code, type: otp.link ? 'phone_change' : 'sms' }));
+      if (error) return /invalid|expired|token/i.test(error.message) ? wrongCode() : { ok: false, reason: 'server', message: error.message };
+      const phone = otp.phone; otp = null; linking = false;
+      return await loadOrCreate(phone);
+    } catch (e) { return { ok: false, reason: 'server', message: e.message }; }
   }
+  if (code !== otp.code) return wrongCode();
   const phone = otp.phone; otp = null;
   if (remoteOk) {
     try {
       await ensureAnonSession();
-      let st = await remote.rpc('customer', 'my_state');
-      if (!st) st = await remote.rpc('customer', 'customer_upsert', { p_nick: '', p_phone: phone, p_profile: profilePayload(blankProfile(phone)) });
-      hydrate(st); ensureWeek(); commit();
-      return { ok: true, isNew: !store.me.user.setupDone };
+      return await loadOrCreate(phone);
     } catch (e) { return { ok: false, reason: 'server', message: e.message }; }
   }
   const isNew = !store.accounts[phone];
@@ -216,6 +257,15 @@ export async function verifyOtp(code) {
   ensureWeek();
   commit();
   return { ok: true, isNew: isNew && phone !== DEMO_PHONE };
+}
+// Signed-in user verifying their number from Settings (login/otp screens allowed while signed in).
+let linking = false;
+export const isLinking = () => linking && !!store.me;
+export const setLinking = (v) => { linking = !!v; };
+// Account still tied to one device (no verified phone yet)?
+export async function needsPhoneLink() {
+  if (!realSms() || !store.me) return false;
+  try { return !!(await remote.session('customer'))?.user?.is_anonymous; } catch { return false; }
 }
 async function remoteDemo() {
   await ensureAnonSession(true);
@@ -238,6 +288,7 @@ export async function resetDemo() {
   commit();
 }
 export async function logout() {
+  linking = false;
   if (remoteOk) { clearTimeout(pushTimer); await remote.client('customer').auth.signOut().catch(() => {}); if (store.session) delete store.accounts[store.session.phone]; }
   store.session = null; save(); listeners.forEach((fn) => fn());
 }

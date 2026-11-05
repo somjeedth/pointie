@@ -80,11 +80,16 @@ export function login() {
         btn.disabled = !isValidPhone(v);
         root.querySelector('#perr').hidden = true;
       });
-      root.querySelector('#phoneForm').addEventListener('submit', (e) => {
+      root.querySelector('#phoneForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const v = normalizePhone(input.value);
         if (!isValidPhone(v)) { root.querySelector('#perr').hidden = false; return; }
-        requestOtp(v);
+        if (btn.dataset.busy) return;
+        btn.dataset.busy = '1'; btn.disabled = true; btn.textContent = 'กำลังส่งรหัส…';
+        const r = await requestOtp(v);
+        delete btn.dataset.busy; btn.disabled = false; btn.textContent = 'ขอรหัส OTP';
+        if (!r.ok) { toast(smsErrorText(r.message), 9000); console.warn('[pointie] OTP request failed:', r.message); return; }
+        resetOtpScreen();
         go('/otp');
       });
       if (!d) input.focus();
@@ -96,6 +101,7 @@ export function login() {
 let otpState = { code: '', status: 'normal', tries: 3 };
 let otpTimer;
 let verifying = false;
+let resending = false;
 // Explain the real reason a sign-in failed (raw message kept so it can be reported).
 export function serverErrorText(msg = '') {
   if (/anonymous/i.test(msg)) return 'Supabase ยังไม่เปิด "Allow anonymous sign-ins" (Authentication → Sign In / Providers)';
@@ -104,6 +110,15 @@ export function serverErrorText(msg = '') {
   if (/function .* does not exist|could not find the function/i.test(msg)) return 'ฐานข้อมูลยังไม่มีฟังก์ชันของ Pointie ให้รัน schema.sql ใหม่';
   if (/timeout|failed to fetch|network/i.test(msg)) return 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่';
   return `เข้าสู่ระบบไม่สำเร็จ: ${msg || 'ไม่ทราบสาเหตุ'}`;
+}
+// Why sending the SMS failed.
+export function smsErrorText(msg = '') {
+  if (/provider|phone.*(disabled|not enabled)|unsupported/i.test(msg)) return 'Supabase ยังไม่เปิดเข้าสู่ระบบด้วยเบอร์โทร (Authentication → Sign In / Providers → Phone)';
+  if (/hook/i.test(msg)) return 'ส่ง SMS ไม่สำเร็จ (Send SMS hook) ลองใหม่อีกครั้ง';
+  if (/rate limit|too many|seconds/i.test(msg)) return 'ขอรหัสบ่อยเกินไป รอสักครู่แล้วลองใหม่';
+  if (/invalid.*phone|phone.*invalid/i.test(msg)) return 'เบอร์มือถือไม่ถูกต้อง';
+  if (/timeout|failed to fetch|network/i.test(msg)) return 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่';
+  return `ส่งรหัสไม่สำเร็จ: ${msg || 'ไม่ทราบสาเหตุ'}`;
 }
 export function otp() {
   const info = otpInfo();
@@ -120,9 +135,9 @@ export function otp() {
   }).join('');
   return {
     html: `<div class="topbar">${backBtn('/login')}${steps(3, 2)}<span style="width:40px"></span></div>
-      <div class="card-soft row" style="gap:10px;padding:10px 14px">
+      ${info.real ? '' : `<div class="card-soft row" style="gap:10px;padding:10px 14px">
         ${icon('phone', 18)}<span class="small">SMS (จำลอง): รหัส Pointie ของคุณคือ <b style="letter-spacing:.12em">${info.code}</b></span>
-      </div>
+      </div>`}
       <div class="col" style="align-items:center;text-align:center;gap:8px">
         <img src="img/pointie-wink.png" alt="" style="height:120px">
         <h1 class="h1" style="font-size:24px">กรอกรหัส 6 หลัก</h1>
@@ -191,9 +206,13 @@ export function otp() {
           window.dispatchEvent(new Event('rerender'));
         }
       },
-      resend() {
+      async resend() {
+        if (resending) return;
         const i = otpInfo();
-        requestOtp(i ? i.phone : normalizePhone(phoneDraft));
+        resending = true;
+        const r = await requestOtp(i ? i.phone : normalizePhone(phoneDraft));
+        resending = false;
+        if (!r.ok) { toast(smsErrorText(r.message), 9000); return; }
         otpState = { code: '', status: 'normal', tries: 3 };
         toast('ส่งรหัสใหม่แล้ว');
         window.dispatchEvent(new Event('rerender'));

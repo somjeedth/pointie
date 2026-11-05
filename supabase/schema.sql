@@ -262,8 +262,11 @@ $$;
 -- Create/refresh the customer row for the signed-in user.
 create or replace function public.customer_upsert(p_nick text, p_phone text, p_profile jsonb default null) returns jsonb
 language plpgsql security definer set search_path = public as $$
-declare u uuid := public._require_uid();
+declare u uuid := public._require_uid(); ap text;
 begin
+  -- With real SMS sign-in the verified number comes from auth, never from the browser.
+  select phone into ap from auth.users where id = u;
+  if coalesce(ap, '') <> '' then p_phone := '0' || right(regexp_replace(ap, '\D', '', 'g'), 9); end if;
   insert into customers (id, nick, phone, profile)
   values (u, left(coalesce(p_nick, ''), 20), p_phone, coalesce(p_profile, '{}'::jsonb))
   on conflict (id) do update
