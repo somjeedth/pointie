@@ -20,24 +20,21 @@
       "continue": true
     },
     {
-      "src": "/(.*)",
+      "src": "/",
       "has": [
         {
           "type": "host",
-          "value": "www.getpointie.com"
+          "value": "getpointie.com"
         }
       ],
-      "status": 308,
-      "headers": {
-        "Location": "https://getpointie.com/$1"
-      }
+      "dest": "/business/index.html"
     },
     {
       "src": "/",
       "has": [
         {
           "type": "host",
-          "value": "getpointie.com"
+          "value": "www.getpointie.com"
         }
       ],
       "dest": "/business/index.html"
