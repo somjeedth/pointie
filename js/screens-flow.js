@@ -4,7 +4,7 @@ import { icon } from './icons.js';
 import {
   esc, go, toast, bigStampCard, starsHtml, sheet, fireworks, playFireworks, cardBg, cardBgStyle, letterHtml, cardEn, stampGrid,
 } from './ui.js';
-import { shopById, CAT, SAMPLE_REVIEWS, MISSIONS, XP, levelTitle, unlocksFor, tierFor, tierById, GENS, GEN_ORDER, GEN_MIN_REVIEWS, genEmoji, genMood } from './data.js';
+import { shopById, CAT, SAMPLE_REVIEWS, MISSIONS, XP, levelTitle, unlocksFor, tierFor, tierById, GENS, GEN_ORDER, GEN_MIN_REVIEWS, genEmoji, genMood, genOf, sampleGenReviews, SHOPS } from './data.js';
 import { loadEvents } from './catalog.js';
 import {
   store, collectStamp, cardFor, canStampToday, untilMidnight, missionProgress, isDoubleDay, setPendingTap, pendingTap, clearPendingTap,
@@ -185,13 +185,21 @@ function genSection(s) {
   const by = Object.fromEntries(stats.map((g) => [g.gen, g]));
   const rows = GEN_ORDER.filter((k) => k !== 'alpha' || by[k]).map((k) => {
     const g = by[k]; const ok = g && g.n >= GEN_MIN_REVIEWS;
-    return `<div class="gen-row ${ok ? '' : 'few'}"><span class="gen-emoji" aria-hidden="true">${ok ? genEmoji(g.avg) : '·'}</span>
-      <div class="col" style="gap:0;flex:1"><b>${GENS[k].name}</b><span class="xs muted">เกิด ${GENS[k].years}</span></div>
-      ${ok ? `<div class="col" style="gap:0;align-items:flex-end"><b>${g.avg.toFixed(1)} <span class="xs muted" style="font-weight:500">${genMood(g.avg)}</span></b><span class="xs muted">${g.n} รีวิว</span></div>` : '<span class="xs muted">รีวิวยังน้อย</span>'}</div>`;
+    const inner = `<span class="gen-emoji" aria-hidden="true">${ok ? genEmoji(g.avg) : '·'}</span><b class="gen-name">${GENS[k].name}</b>
+      ${ok ? `<span class="gen-score"><b>${g.avg.toFixed(1)}</b><span class="xs muted">${g.n} รีวิว</span></span>${icon('chev', 16)}` : '<span class="xs muted">รีวิวยังน้อย</span>'}`;
+    return ok ? `<button class="gen-row" data-act="genReviews" data-gen="${k}" aria-label="ดูรีวิวของ ${GENS[k].name}">${inner}</button>` : `<div class="gen-row few">${inner}</div>`;
   }).join('');
-  return `<section class="col"><div class="section-h"><h2>แต่ละเจนว่ายังไง</h2></div>
-    <div class="card gens">${rows}</div>
-    <p class="xs muted">คิดจากรีวิวของคนที่มาจริง แยกตามปีเกิดที่ลงทะเบียน (แสดงเมื่อมี ${GEN_MIN_REVIEWS} รีวิวขึ้นไป · ไม่ระบุตัวตน)</p></section>`;
+  return `<section class="col"><div class="section-h"><h2>แต่ละเจนว่ายังไง</h2></div><div class="card gens">${rows}</div></section>`;
+}
+// Written reviews of one generation (server list, or the local demo samples + my own).
+function genReviewList(s, gen) {
+  const me = store.me;
+  if (Array.isArray(s.reviews)) return s.reviews.filter((r) => r.gen === gen && r.text).map((r) => ({ name: r.nick, lv: r.lv, stars: r.stars, text: r.text, reply: r.reply, ago: agoText(String(r.at).slice(0, 10)) }));
+  const list = sampleGenReviews(s, Math.max(0, SHOPS.findIndex((x) => x.id === s.id))).filter((r) => r.gen === gen)
+    .map((r) => ({ name: r.name, lv: r.lv, stars: r.stars, text: r.text, ago: agoText(new Date(Date.now() - r.daysAgo * 86400000).toISOString().slice(0, 10)) }));
+  const mine = myReview(s.id);
+  if (mine && genOf(me?.identity?.birthDate) === gen) list.unshift({ name: me.user.nick, lv: me.user.lv, stars: mine.stars, text: mine.text, ago: agoText(mine.date), mine: true });
+  return list;
 }
 let reviewDraft = { stars: 0, text: '' };
 export function storePage({ id }, query) {
@@ -304,6 +312,15 @@ export function storePage({ id }, query) {
     mount() { if (query.get('review') === '1') { history.replaceState(null, '', '#/store/' + id); setTimeout(openReview, 250); } },
     actions: {
       back() { if (history.length > 2) history.back(); else go('/home'); },
+      genReviews(el) {
+        const gen = el.dataset.gen; const g = genStats(s).find((x) => x.gen === gen);
+        const list = genReviewList(s, gen);
+        document.querySelector('.app').insertAdjacentHTML('beforeend', sheet(`
+          <div class="row" style="gap:12px"><span class="gen-emoji big">${genEmoji(g.avg)}</span><div class="col" style="gap:0"><h2 class="h2">${GENS[gen].name}</h2><span class="small muted">${esc(s.name)} · ${g.avg.toFixed(1)} จาก ${g.n} รีวิว</span></div></div>
+          <div class="col" style="gap:10px">${list.length ? list.map((r) => `<div class="card review"><div class="between"><span><b>${esc(r.name)}</b> <span class="pill violet" style="font-size:11px;padding:0 6px">Lv.${esc(r.lv)}</span>${r.mine ? ' <span class="pill soft" style="font-size:11px;padding:0 6px">ของฉัน</span>' : ''}</span><span class="xs muted">${esc(r.ago)}</span></div>
+            ${starsHtml(r.stars)}<p class="small">${esc(r.text)}</p>${r.reply ? `<div class="card-soft" style="padding:8px 10px;border-radius:12px"><span class="xs bold accent">ร้านตอบกลับ</span><p class="small">${esc(r.reply)}</p></div>` : ''}</div>`).join('')
+            : '<p class="muted small center" style="padding:20px 0">เจนนี้ให้แต่คะแนน ยังไม่มีรีวิวแบบเขียนข้อความ</p>'}</div>`, { id: 'genSheet' }));
+      },
       fav() { const on = toggleFav(id); toast(on ? 'บันทึกเป็นร้านโปรดแล้ว' : 'เอาออกจากร้านโปรดแล้ว'); window.dispatchEvent(new Event('rerender')); },
       async share() {
         const url = `${location.origin}${location.pathname}#/store/${id}`;

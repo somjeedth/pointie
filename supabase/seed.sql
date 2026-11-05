@@ -35,6 +35,134 @@ insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample,
   values ('book', null, 'แพร', 7, 5, 'มุมอ่านหนังสือเงียบจริง ได้หนังสือดีๆ กลับบ้านทุกครั้ง', true, now() - interval '3 days');
 insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, created_at)
   values ('clay', null, 'กิ๊ฟ', 3, 5, 'ครั้งแรกที่ปั้นดิน ครูสอนใจเย็น ได้แก้วกลับบ้าน 1 ใบ', true, now() - interval '3 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('baan', null, 'เฟิร์น', 4, 5, 'มุมถ่ายรูปเยอะมาก แสงสวย ลาเต้อาร์ตน่ารัก', true, 'z', now() - interval '2 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('baan', null, 'ภูมิ', 9, 4, 'นั่งทำงานได้นาน ปลั๊กเยอะ แต่เพลงดังไปนิด', true, 'z', now() - interval '13 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('baan', null, 'แพร', 6, 5, 'กาแฟคั่วเข้มกำลังดี บาริสต้าเป็นกันเอง แวะทุกเช้า', true, 'y', now() - interval '7 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('baan', null, 'เจ', 11, 4, 'ขนมโฮมเมดอร่อย ราคาสมเหตุสมผล', true, 'y', now() - interval '18 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('baan', null, 'พี่ต้อย', 5, 4, 'บรรยากาศสงบ นั่งคุยงานได้ แต่ที่จอดรถน้อย', true, 'x', now() - interval '12 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('baan', null, 'พี่หน่อง', 4, 3, 'กาแฟดี แต่โต๊ะเตี้ยไปหน่อย นั่งนานแล้วเมื่อย', true, 'x', now() - interval '23 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('baan', null, 'ลุงชัย', 5, 4, 'พนักงานสุภาพ แนะนำเมนูไม่หวานให้ ชอบมาก', true, 'boomer', now() - interval '17 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('baan', null, 'ป้าศรี', 5, 3, 'เมนูตัวหนังสือเล็ก อ่านยาก แต่กาแฟอร่อย', true, 'boomer', now() - interval '28 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('jae', null, 'ภูมิ', 7, 5, 'ราคาน่ารัก ปริมาณเยอะ กินอิ่มแน่นอน', true, 'z', now() - interval '9 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('jae', null, 'มุก', 6, 4, 'คิวยาวช่วงเที่ยง แต่รอได้ คุ้ม', true, 'z', now() - interval '20 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('jae', null, 'เจ', 9, 5, 'รสชาติคงที่ทุกครั้ง มากินกับเพื่อนที่ทำงานบ่อย', true, 'y', now() - interval '14 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('jae', null, 'บีม', 6, 4, 'อร่อย แต่ช่วงเที่ยงหาที่นั่งยาก', true, 'y', now() - interval '25 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('jae', null, 'พี่หน่อง', 8, 5, 'รสชาติแบบดั้งเดิม เหมือนที่เคยกินตอนเด็ก', true, 'x', now() - interval '19 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('jae', null, 'คุณเอก', 7, 4, 'สะอาด บริการเร็ว พาครอบครัวมาได้', true, 'x', now() - interval '30 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('jae', null, 'ป้าศรี', 3, 5, 'ไม่เค็มเกินไป ขอปรับรสได้ เจ้าของใจดี', true, 'boomer', now() - interval '24 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('jae', null, 'ยายมาลี', 3, 4, 'อร่อยดี อยากให้มีเก้าอี้มีพนักพิง', true, 'boomer', now() - interval '35 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('plant', null, 'มุก', 4, 5, 'ของน่ารัก ถ่ายรูปลงสตอรี่ได้ทุกมุม', true, 'z', now() - interval '16 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('plant', null, 'ไอซ์', 9, 4, 'ราคาสูงนิดนึง แต่ของคุณภาพดี', true, 'z', now() - interval '27 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('plant', null, 'บีม', 12, 5, 'เจ้าของให้คำแนะนำดีมาก ได้ของถูกใจ', true, 'y', now() - interval '21 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('plant', null, 'ฝน', 9, 4, 'มีของใหม่มาทุกเดือน แวะบ่อย', true, 'y', now() - interval '32 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('plant', null, 'คุณเอก', 5, 4, 'ของคุณภาพดี เลือกเป็นของฝากได้', true, 'x', now() - interval '26 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('plant', null, 'คุณจิ๋ม', 4, 3, 'ร้านเล็กไปหน่อย เดินไม่ค่อยสะดวก', true, 'x', now() - interval '37 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('plant', null, 'ยายมาลี', 6, 5, 'พนักงานใจเย็น อธิบายละเอียด', true, 'boomer', now() - interval '31 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('plant', null, 'ลุงพงษ์', 6, 4, 'ชอบที่มีของให้เลือกเยอะ', true, 'boomer', now() - interval '2 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('climb', null, 'ไอซ์', 7, 5, 'สนุกมาก มากับเพื่อนแล้วติดใจ', true, 'z', now() - interval '23 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('climb', null, 'เฟิร์น', 6, 5, 'ครูเป็นกันเอง เหมาะกับมือใหม่', true, 'z', now() - interval '34 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('climb', null, 'ฝน', 7, 5, 'คลายเครียดหลังเลิกงานได้ดีมาก', true, 'y', now() - interval '28 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('climb', null, 'แพร', 12, 4, 'คนเยอะช่วงเย็น ควรจองก่อน', true, 'y', now() - interval '39 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('climb', null, 'คุณจิ๋ม', 8, 4, 'ครูดูแลเรื่องความปลอดภัยดี', true, 'x', now() - interval '33 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('climb', null, 'พี่ต้อย', 7, 3, 'หนักไปนิดสำหรับวัยนี้ แต่สนุก', true, 'x', now() - interval '4 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('climb', null, 'ลุงพงษ์', 4, 4, 'ได้ลองอะไรใหม่ๆ ครูใจเย็นมาก', true, 'boomer', now() - interval '38 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('climb', null, 'ลุงชัย', 4, 3, 'อยากให้มีรอบที่ช้าลงสำหรับผู้สูงวัย', true, 'boomer', now() - interval '9 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('noodle', null, 'เฟิร์น', 4, 5, 'ราคาน่ารัก ปริมาณเยอะ กินอิ่มแน่นอน', true, 'z', now() - interval '30 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('noodle', null, 'ภูมิ', 9, 4, 'คิวยาวช่วงเที่ยง แต่รอได้ คุ้ม', true, 'z', now() - interval '41 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('noodle', null, 'แพร', 10, 5, 'รสชาติคงที่ทุกครั้ง มากินกับเพื่อนที่ทำงานบ่อย', true, 'y', now() - interval '35 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('noodle', null, 'เจ', 7, 4, 'อร่อย แต่ช่วงเที่ยงหาที่นั่งยาก', true, 'y', now() - interval '6 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('noodle', null, 'พี่ต้อย', 5, 5, 'รสชาติแบบดั้งเดิม เหมือนที่เคยกินตอนเด็ก', true, 'x', now() - interval '40 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('noodle', null, 'พี่หน่อง', 4, 4, 'สะอาด บริการเร็ว พาครอบครัวมาได้', true, 'x', now() - interval '11 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('noodle', null, 'ลุงชัย', 2, 5, 'ไม่เค็มเกินไป ขอปรับรสได้ เจ้าของใจดี', true, 'boomer', now() - interval '5 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('noodle', null, 'ป้าศรี', 2, 4, 'อร่อยดี อยากให้มีเก้าอี้มีพนักพิง', true, 'boomer', now() - interval '16 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('roast', null, 'ภูมิ', 7, 5, 'มุมถ่ายรูปเยอะมาก แสงสวย ลาเต้อาร์ตน่ารัก', true, 'z', now() - interval '37 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('roast', null, 'มุก', 6, 4, 'นั่งทำงานได้นาน ปลั๊กเยอะ แต่เพลงดังไปนิด', true, 'z', now() - interval '8 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('roast', null, 'เจ', 5, 5, 'กาแฟคั่วเข้มกำลังดี บาริสต้าเป็นกันเอง แวะทุกเช้า', true, 'y', now() - interval '2 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('roast', null, 'บีม', 10, 4, 'ขนมโฮมเมดอร่อย ราคาสมเหตุสมผล', true, 'y', now() - interval '13 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('roast', null, 'พี่หน่อง', 8, 4, 'บรรยากาศสงบ นั่งคุยงานได้ แต่ที่จอดรถน้อย', true, 'x', now() - interval '7 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('roast', null, 'คุณเอก', 7, 3, 'กาแฟดี แต่โต๊ะเตี้ยไปหน่อย นั่งนานแล้วเมื่อย', true, 'x', now() - interval '18 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('roast', null, 'ป้าศรี', 5, 4, 'พนักงานสุภาพ แนะนำเมนูไม่หวานให้ ชอบมาก', true, 'boomer', now() - interval '12 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('roast', null, 'ยายมาลี', 5, 3, 'เมนูตัวหนังสือเล็ก อ่านยาก แต่กาแฟอร่อย', true, 'boomer', now() - interval '23 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('book', null, 'มุก', 4, 5, 'ของน่ารัก ถ่ายรูปลงสตอรี่ได้ทุกมุม', true, 'z', now() - interval '4 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('book', null, 'ไอซ์', 9, 4, 'ราคาสูงนิดนึง แต่ของคุณภาพดี', true, 'z', now() - interval '15 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('book', null, 'บีม', 8, 5, 'เจ้าของให้คำแนะนำดีมาก ได้ของถูกใจ', true, 'y', now() - interval '9 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('book', null, 'ฝน', 5, 4, 'มีของใหม่มาทุกเดือน แวะบ่อย', true, 'y', now() - interval '20 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('book', null, 'คุณเอก', 5, 4, 'ของคุณภาพดี เลือกเป็นของฝากได้', true, 'x', now() - interval '14 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('book', null, 'คุณจิ๋ม', 4, 3, 'ร้านเล็กไปหน่อย เดินไม่ค่อยสะดวก', true, 'x', now() - interval '25 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('book', null, 'ยายมาลี', 3, 5, 'พนักงานใจเย็น อธิบายละเอียด', true, 'boomer', now() - interval '19 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('book', null, 'ลุงพงษ์', 3, 4, 'ชอบที่มีของให้เลือกเยอะ', true, 'boomer', now() - interval '30 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('clay', null, 'ไอซ์', 7, 5, 'สนุกมาก มากับเพื่อนแล้วติดใจ', true, 'z', now() - interval '11 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('clay', null, 'เฟิร์น', 6, 5, 'ครูเป็นกันเอง เหมาะกับมือใหม่', true, 'z', now() - interval '22 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('clay', null, 'ฝน', 11, 5, 'คลายเครียดหลังเลิกงานได้ดีมาก', true, 'y', now() - interval '16 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('clay', null, 'แพร', 8, 4, 'คนเยอะช่วงเย็น ควรจองก่อน', true, 'y', now() - interval '27 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('clay', null, 'คุณจิ๋ม', 8, 4, 'ครูดูแลเรื่องความปลอดภัยดี', true, 'x', now() - interval '21 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('clay', null, 'พี่ต้อย', 7, 3, 'หนักไปนิดสำหรับวัยนี้ แต่สนุก', true, 'x', now() - interval '32 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('clay', null, 'ลุงพงษ์', 6, 4, 'ได้ลองอะไรใหม่ๆ ครูใจเย็นมาก', true, 'boomer', now() - interval '26 days');
+insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values ('clay', null, 'ลุงชัย', 6, 3, 'อยากให้มีรอบที่ช้าลงสำหรับผู้สูงวัย', true, 'boomer', now() - interval '37 days');
 delete from public.events where demo;
 delete from public.redemptions where customer_id is null and status = 'confirmed' and shop_id in (select id from public.shops where sample);
 insert into public.events (shop_id, customer_key, nick, type, n, have, stars, created_at, gen) values

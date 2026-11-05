@@ -1,7 +1,7 @@
 // Generates supabase/seed.sql (sample shops, sample reviews, ~70 days of demo activity)
 // from the app's own catalogue so both stay in sync.   Usage: node supabase/gen-seed.mjs
 import { writeFileSync } from 'node:fs';
-import { BASE_SHOPS, SAMPLE_REVIEWS } from '../js/data.js';
+import { BASE_SHOPS, SAMPLE_REVIEWS, sampleGenReviews } from '../js/data.js';
 
 const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
 const j = (o) => `${q(JSON.stringify(o))}::jsonb`;
@@ -24,6 +24,14 @@ for (const [shop, list] of Object.entries(SAMPLE_REVIEWS)) {
   values (${q(shop)}, null, ${q(r.name)}, ${r.lv}, ${r.stars}, ${q(r.text)}, true, now() - interval '${(i + 1) * 3} days');`);
   });
 }
+
+// sample written reviews per generation (tap a generation on the store page to read them)
+BASE_SHOPS.forEach((s, si) => {
+  for (const r of sampleGenReviews(s, si)) {
+    out.push(`insert into public.reviews (shop_id, customer_id, nick, lv, stars, text, sample, gen, created_at)
+  values (${q(s.id)}, null, ${q(r.name)}, ${r.lv}, ${r.stars}, ${q(r.text)}, true, ${q(r.gen)}, now() - interval '${r.daysAgo} days');`);
+  }
+});
 
 // ---- demo activity for dashboards (deterministic)
 const NICKS = ['ปอนด์', 'นุ่น', 'ต้น', 'ฟ้า', 'บอส', 'มิ้นท์', 'เจ', 'แพร', 'กิ๊ฟ', 'เบล', 'ออม', 'ภูมิ', 'ใบเตย', 'ไอซ์', 'แบงค์', 'พลอย', 'ก้อง', 'น้ำ', 'ปาล์ม', 'เฟิร์น',

@@ -111,6 +111,7 @@ create table if not exists public.reviews (
   updated_at   timestamptz not null default now(),
   unique (shop_id, customer_id)
 );
+alter table public.reviews add column if not exists gen text;  -- sample reviews only; real ones use customers.birth_date
 
 -- Sign-up requests from the business landing page (the Pointie team calls them back).
 -- View them in Supabase → Table Editor → leads.
@@ -197,11 +198,16 @@ language sql stable security definer set search_path = public as $$
               select e.gen, e.stars from events e where e.shop_id = s.id and e.type = 'review' and e.demo and e.gen is not null
             ) u where gen is not null group by gen) g), '[]'::jsonb)
   )
-  from (select count(*) filter (where not sample) as n,
-               sum(stars) filter (where not sample) as sum_stars,
-               jsonb_agg(jsonb_build_object('id', id, 'customerId', customer_id, 'nick', nick, 'lv', lv, 'stars', stars, 'text', text,
-                                            'reply', reply, 'sample', sample, 'at', created_at) order by sample, created_at desc) as list
-        from (select * from reviews where shop_id = s.id order by sample, created_at desc limit 30) x) r
+  from (select
+          (select count(*) from reviews where shop_id = s.id and not sample) as n,
+          (select sum(stars) from reviews where shop_id = s.id and not sample) as sum_stars,
+          (select jsonb_agg(jsonb_build_object('id', x.id, 'customerId', x.customer_id, 'nick', x.nick, 'lv', x.lv, 'stars', x.stars, 'text', x.text,
+                                               'reply', x.reply, 'sample', x.sample, 'at', x.created_at, 'gen', x.gen) order by x.sample, x.created_at desc)
+             from (select rv.id, rv.customer_id, rv.nick, rv.lv, rv.stars, rv.text, rv.reply, rv.sample, rv.created_at,
+                          coalesce(rv.gen, public._gen_of(c.birth_date)) as gen
+                   from reviews rv left join customers c on c.id = rv.customer_id
+                   where rv.shop_id = s.id order by rv.sample, rv.created_at desc limit 80) x) as list
+       ) r
 $$;
 
 -- ---------------------------------------------------------------- public / customer API
