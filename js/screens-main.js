@@ -289,35 +289,30 @@ export function scan() {
 
 // ================= MY CARDS =================
 let cardsState = { idx: 0, tab: 'all' };
-// Isometric "tap your phone on the D Point coin" scene for the empty card wallet.
-// Shapes are drawn flat and projected with the isometric plane matrix; thickness = stacked layers.
+// "Tap your phone on the mascot" scene for the empty card wallet: the mascot is the tag,
+// a flat isometric phone flies in, touches it, NFC waves ripple from its star.
 function tapScene() {
-  const cx = 112, cy = 30;
-  const plane = (z) => `matrix(0.866,0.5,-0.866,0.5,${cx},${cy - z})`;
-  const slab = (x, y, w, h, r, t, side, top, cls = '') => {
+  const plane = (ox, oy, z) => `matrix(0.866,0.5,-0.866,0.5,${ox},${oy - z})`;
+  const slab = (ox, oy, w, h, r, t, side, top) => {
     let g = '';
-    for (let z = 0; z < t; z += 1) g += `<rect transform="${plane(z)}" x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="${side}" ${z === 0 ? 'stroke="#082B76" stroke-width="1.2"' : ''}/>`;
-    return g + `<rect class="${cls}" transform="${plane(t)}" x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="${top}" stroke="#082B76" stroke-width="1.2"/>`;
+    for (let z = 0; z < t; z += 1) g += `<rect transform="${plane(ox, oy, z)}" width="${w}" height="${h}" rx="${r}" fill="${side}" ${z === 0 ? 'stroke="#082B76" stroke-width="1.2"' : ''}/>`;
+    return g + `<rect transform="${plane(ox, oy, t)}" width="${w}" height="${h}" rx="${r}" fill="${top}" stroke="#082B76" stroke-width="1.2"/>`;
   };
-  // puck (NFC tag) — the mascot coin lies on it
-  const P = { x: 8, y: 52, s: 56, t: 9 };
-  const pcx = P.x + P.s / 2, pcy = P.y + P.s / 2;
-  const sx = cx + (pcx - pcy) * 0.866, sy = cy + (pcx + pcy) * 0.5 - P.t;
-  const face = 21; // coin radius on the plane
-  const puck = slab(P.x, P.y, P.s, P.s, 10, P.t, '#BBD3F5', '#FFFFFF')
-    + `<g transform="${plane(P.t)}"><circle class="tw w1" cx="${pcx}" cy="${pcy}" r="22" fill="none" stroke="#17D8F8" stroke-width="2.4"/><circle class="tw w2" cx="${pcx}" cy="${pcy}" r="22" fill="none" stroke="#FFFFFF" stroke-width="2"/></g>`
-    + `<ellipse cx="${sx}" cy="${sy + 1.5}" rx="${face * 1.2247}" ry="${face * 0.7071}" fill="#E07A00"/>`
-    + `<image class="coin" href="img/pointie-face.png" x="${sx - face * 1.2247}" y="${sy - face * 0.7071}" width="${face * 2.449}" height="${face * 1.414}" preserveAspectRatio="none"/>`;
-  // phone (lies flat, hovers above the puck)
-  const F = { x: 40, y: 50, w: 104, h: 50, t: 5, z: 15 };
-  const fcx = F.x + F.w / 2 + 8, fcy = F.y + F.h / 2;
-  const kx = cx + (fcx - fcy) * 0.866, ky = cy + (fcx + fcy) * 0.5 - F.t;
-  const ph = `<g transform="translate(0,-${F.z})">${slab(F.x, F.y, F.w, F.h, 9, F.t, '#9FB8E0', '#FFFFFF')}
-      <rect transform="${plane(F.t)}" x="${F.x + 4}" y="${F.y + 4}" width="${F.w - 8}" height="${F.h - 8}" rx="6" fill="#EAF8FF" stroke="#082B76" stroke-width=".8"/>
-      <rect transform="${plane(F.t)}" x="${F.x + 3.5}" y="${F.y + F.h / 2 - 7}" width="5" height="14" rx="2.5" fill="#082B76"/>
-      <g class="tchk"><ellipse cx="${kx}" cy="${ky}" rx="15" ry="9" fill="#0865F5"/><path d="M${kx - 6} ${ky - 1}l4 4 8-7" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></g>
-    </g>`;
-  return `<div class="tap-scene"><svg viewBox="0 0 240 150" width="100%" height="100%">${puck}<g class="tphone">${ph}</g></svg><span class="tplus">+1 แสตมป์</span></div>`;
+  const M = { x: 34, y: 22, w: 112, h: 97 };              // mascot image box
+  const star = { x: M.x + M.w * 0.55, y: M.y + M.h * 0.62 }; // star on its chest
+  const O = { x: 150, y: 66, w: 100, h: 48, t: 5 };         // phone (plane origin on screen)
+  const kx = O.x + (O.w / 2 + 6 - O.h / 2) * 0.866, ky = O.y + (O.w / 2 + 6 + O.h / 2) * 0.5 - O.t;
+  const phone = `${slab(O.x, O.y, O.w, O.h, 9, O.t, '#9FB8E0', '#FFFFFF')}
+      <rect transform="${plane(O.x, O.y, O.t)}" x="4" y="4" width="${O.w - 8}" height="${O.h - 8}" rx="6" fill="#EAF8FF" stroke="#082B76" stroke-width=".8"/>
+      <rect transform="${plane(O.x, O.y, O.t)}" x="3.5" y="${O.h / 2 - 7}" width="5" height="14" rx="2.5" fill="#082B76"/>
+      <g class="tchk"><ellipse cx="${kx}" cy="${ky}" rx="15" ry="9" fill="#0865F5"/><path d="M${kx - 6} ${ky - 1}l4 4 8-7" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></g>`;
+  return `<div class="tap-scene"><svg viewBox="0 0 240 150" width="100%" height="100%">
+      <ellipse cx="${M.x + M.w * 0.52}" cy="${M.y + M.h - 3}" rx="40" ry="8" fill="rgba(8,43,118,.28)"/>
+      <g class="tm"><image href="img/pointie-point.png" x="${M.x}" y="${M.y}" width="${M.w}" height="${M.h}"/></g>
+      <circle class="tw w1" cx="${star.x}" cy="${star.y}" r="20" fill="none" stroke="#17D8F8" stroke-width="2.6"/>
+      <circle class="tw w2" cx="${star.x}" cy="${star.y}" r="20" fill="none" stroke="#FFFFFF" stroke-width="2.2"/>
+      <g class="tphone">${phone}</g>
+    </svg><span class="tplus">+1 แสตมป์</span></div>`;
 }
 
 export function cards(p, query) {
