@@ -4,7 +4,8 @@ import { nav, toast } from './ui.js';
 import { morphChildren, runMount } from './dom.js';
 import { joinName, joinBirthday, joinLikes, joinTour } from './screens-join.js';
 import { welcome, login, otp, setup, invite, prefPlaces, prefStyle, prefLocation, returnTo, resetOtpScreen } from './screens-onboard.js';
-import { home, notifications, scan, cards, profile, badges, reviews, settings, legal } from './screens-main.js';
+import { home, notifications, scan, cards, profile, tiersPage, badges, reviews } from './screens-main.js';
+import { editName, editBirthday, editStyle, privacy, terms } from './screens-me.js';
 import { tap, offline, storePage, redeemPage, levelup } from './screens-flow.js';
 
 const ROUTES = [
@@ -12,7 +13,9 @@ const ROUTES = [
   [/^\/welcome$/, welcome, { guest: true }],
   [/^\/login$/, login, { guest: true }],
   [/^\/otp$/, otp, { guest: true }],
-  [/^\/legal$/, legal, { open: true }],
+  [/^\/legal$/, privacy, { open: true }],
+  [/^\/privacy$/, privacy, { open: true }],
+  [/^\/terms$/, terms, { open: true }],
   [/^\/tap\/(?<id>[\w-]+)$/, tap, { open: true }],
   [/^\/setup$/, setup, {}],
   [/^\/join\/name$/, joinName, {}],
@@ -30,7 +33,11 @@ const ROUTES = [
   [/^\/profile$/, profile, {}],
   [/^\/badges$/, badges, {}],
   [/^\/reviews$/, reviews, {}],
-  [/^\/settings$/, settings, {}],
+  [/^\/settings$/, profile, {}],
+  [/^\/tiers$/, tiersPage, {}],
+  [/^\/me\/name$/, editName, {}],
+  [/^\/me\/birthday$/, editBirthday, {}],
+  [/^\/me\/style$/, editStyle, {}],
   [/^\/store\/(?<id>[\w-]+)$/, storePage, {}],
   [/^\/redeem\/(?<id>[\w-]+)$/, redeemPage, {}],
   [/^\/levelup$/, levelup, {}],

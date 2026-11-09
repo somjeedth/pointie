@@ -479,6 +479,9 @@ create or replace function public.delete_my_account() returns void
 language plpgsql security definer set search_path = public, auth as $$
 declare u uuid := public._require_uid();
 begin
+  -- shops keep anonymous totals only: drop the link and the nickname from their logs
+  update public.events set nick = '', customer_key = 'deleted' where customer_id = u;
+  update public.redemptions set nick = '' where customer_id = u;
   delete from public.customers where id = u;
   delete from auth.users where id = u;
 end $$;

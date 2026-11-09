@@ -3,6 +3,7 @@ import { icon } from './icons.js';
 import {
   esc, go, toast, nav, avatarHtml, wordmark, toneStyle, cardBg, cardBgStyle, hasArt, letterHtml, cardEn, stampGrid, starsHtml, sheet, backBtn,
 } from './ui.js';
+import { t, getLang, setLang } from './i18n.js';
 import { getOrigin, setOrigin, locateMe, embedFor, mapsUrl } from './geo.js';
 import { SHOPS, CAT, shopById, MISSIONS, BADGES, xpNeed, levelTitle, unlocksFor, totalVisits, catVisitStats, STYLES, TIERS, tierFor, nextTier, refreshDistances } from './data.js';
 import {
@@ -442,6 +443,10 @@ function qrSvg(seed) {
   return `<svg class="qr" viewBox="0 0 ${n} ${n}" shape-rendering="crispEdges" role="img" aria-label="QR นามบัตร"><g fill="#000">${rects}</g>${finder(0, 0)}${finder(n - 7, 0)}${finder(0, n - 7)}</svg>`;
 }
 
+// profile menu helpers
+const row = (href, ic, label, value) => `<a href="${href}">${icon(ic)}<span>${label}</span><span class="chev small">${value ? `<span class="mv">${value}</span>` : ''}${icon('chev', 16)}</span></a>`;
+const fmtBirth = (iso) => { const d = new Date(iso); return getLang() === 'en' ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : `${d.getDate()} ${['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'][d.getMonth()]} ${d.getFullYear() + 543}`; };
+const likeSummary = (u) => { const n = (u.prefs.places || []).length + (u.prefs.styles || []).length; return n ? t(`${n} อย่าง`, `${n} selected`) : `<span class="accent">${t('ยังไม่ได้เลือก', 'None yet')}</span>`; };
 export function profile() {
   const me = store.me; const u = me.user; const need = xpNeed(u.lv);
   const earned = BADGES.filter((b) => me.badges.includes(b.id));
@@ -453,23 +458,117 @@ export function profile() {
   const styleTags = STYLES.filter(([k]) => u.prefs.styles.includes(k)).map(([, l]) => l);
   return {
     nav: 'profile',
-    html: `<div class="between"><h1 class="h2" style="font-size:22px">โปรไฟล์</h1><a class="icon-btn" href="#/settings" aria-label="ตั้งค่า">${icon('settings')}</a></div>
+    html: `<h1 class="h2" style="font-size:22px">${t('โปรไฟล์', 'Profile')}</h1>
       <div class="member ${u.frame === 'gold' ? 'frame-gold' : ''}">
         <div class="ring"></div>
         <div class="between xs bold" style="letter-spacing:.08em"><span>MEMBER CARD</span>${wordmark(16, 'on-blue')}</div>
         <div class="row">${avatarHtml(u)}<div class="col" style="gap:2px;min-width:0"><b style="font-size:22px;line-height:1.2">${esc(u.nick)}</b><span class="small semi">@${esc(u.handle)}</span><span class="row" style="gap:6px;flex-wrap:wrap"><span class="lvpill">Lv.${u.lv} · ${levelTitle(u.lv)}</span><span class="lvpill">${tierFor(u.lv).name}</span></span></div></div>
         ${styleTags.length ? `<div class="row xs bold" style="gap:6px;flex-wrap:wrap">${styleTags.map((t) => `<span>#${t}</span>`).join('')}</div>` : ''}
         <div class="bar"><i style="width:${Math.round((u.xp / need) * 100)}%"></i></div>
-        <div class="between xs semi"><span>${u.xp} / ${need} XP</span><span>สมาชิกตั้งแต่ ${thMonthYear(u.joined)}</span></div>
+        <div class="between xs semi"><span>${u.xp} / ${need} XP</span><span>${t('สมาชิกตั้งแต่', 'Member since')} ${thMonthYear(u.joined)}</span></div>
         <div class="between"><div class="pins">${pinned.length ? pinned.map((b) => `<span style="${toneStyle(b.tone)}">${badgeIcon(b.kind, 16)}</span>`).join('') : '<span style="border-style:dashed;opacity:.6"></span>'}</div><span class="xs semi">Badge ที่ปักหมุด</span></div>
       </div>
-      <div class="btns"><button class="btn btn-sm" style="height:48px;background:var(--ink);color:var(--bg)" data-act="qr">${icon('qr', 18)}แชร์นามบัตรด้วย QR</button><a class="btn btn-ghost btn-sm" style="height:48px" href="#/setup?edit=1">แก้ไขโปรไฟล์</a></div>
       <div class="stats">
-        <div><b>${totalVisits(me)}</b><span>ครั้งที่ไป</span></div>
-        <div><b>${Object.keys(me.cards).length}</b><span>ร้าน</span></div>
+        <div><b>${totalVisits(me)}</b><span>${t('ครั้งที่ไป', 'Visits')}</span></div>
+        <div><b>${Object.keys(me.cards).length}</b><span>${t('ร้าน', 'Shops')}</span></div>
         <a href="#/badges" style="text-decoration:none;color:inherit;display:contents"><div><b>${earned.length}</b><span>Badge</span></div></a>
-        <a href="#/reviews" style="text-decoration:none;color:inherit;display:contents"><div><b>${me.reviews.length}</b><span>รีวิว</span></div></a>
+        <a href="#/reviews" style="text-decoration:none;color:inherit;display:contents"><div><b>${me.reviews.length}</b><span>${t('รีวิว', 'Reviews')}</span></div></a>
       </div>
+      <div class="btns"><button class="btn btn-sm grow" style="height:46px;background:var(--ink);color:var(--bg)" data-act="qr">${icon('qr', 18)}${t('แชร์นามบัตรด้วย QR', 'Share my card (QR)')}</button></div>
+      <section class="col">
+        <div class="section-h"><h2>${t('ร้านที่ชอบ', 'Favourite shops')}</h2></div>
+        <div class="card" style="padding:4px 14px">${favIds.length ? favIds.map((id) => { const s = shopById(id); const c = cardFor(id); return `<a class="fav-row" href="#/store/${id}">
+          <span class="initials sm">${s.initials}</span><div class="col" style="gap:0;flex:1;min-width:0"><b style="font-size:15px">${esc(s.name)}</b><span class="xs muted">${CAT[s.cat].label} · มา ${c?.visits || 0} ครั้ง</span></div>
+          <span class="bold accent small">${c ? `${c.have}/${s.card.need}` : '-'}</span></a>`; }).join('') : `<div class="empty-note">${t('กดหัวใจที่หน้าร้านเพื่อเพิ่มร้านโปรด', 'Tap the heart on a shop page to add favourites')}</div>`}</div>
+      </section>
+      <section class="col">
+        <h2 class="menu-h">${t('บัญชีของฉัน', 'My account')}</h2>
+        <div class="card menu-card"><div class="menu-list">
+          ${row('#/me/name', 'user', t('ชื่อ', 'Name'), esc(u.nick))}
+          ${row('#/me/birthday', 'sparkle', t('วันเกิด', 'Birthday'), me.identity?.birthDate ? fmtBirth(me.identity.birthDate) : `<span class="accent">${t('ยังไม่ได้ใส่', 'Not set')}</span>`)}
+          ${row('#/me/style', 'heart', t('สไตล์และความชอบ', 'Style & interests'), likeSummary(u))}
+          ${row('#/setup?edit=1', 'camera', t('รูปโปรไฟล์', 'Profile picture'), '')}
+          <div>${icon('phone')}<span>${t('เบอร์มือถือ', 'Mobile number')}</span><span class="chev small">${prettyPhone(me.phone)}</span></div>
+          <button data-act="linkPhone" id="linkPhone" hidden>${icon('lock')}<span>${t('ยืนยันเบอร์ด้วย SMS', 'Verify number by SMS')}</span><span class="chev small" style="color:var(--primary)">${t('ใช้ได้ทุกเครื่อง', 'Use on any device')}</span></button>
+        </div></div>
+      </section>
+      <section class="col">
+        <h2 class="menu-h">${t('การตั้งค่า', 'Settings')}</h2>
+        <div class="card menu-card"><div class="menu-list">
+          <button data-act="lang">${icon('compass')}<span>${t('ภาษา', 'Language')}</span><span class="chev small">${getLang() === 'en' ? 'English' : 'ไทย'} ${icon('chev', 16)}</span></button>
+          <button data-act="theme">${icon(store.theme === 'dark' ? 'moon' : 'sun')}<span>${t('โหมดมืด', 'Dark mode')}</span><span class="switch ${store.theme === 'dark' ? 'on' : ''}" aria-hidden="true"></span></button>
+          ${row('#/notifications', 'bell', t('การแจ้งเตือน', 'Notifications'), '')}
+        </div></div>
+      </section>
+      <section class="col">
+        <h2 class="menu-h">${t('กิจกรรมของฉัน', 'My activity')}</h2>
+        <div class="card menu-card"><div class="menu-list">
+          ${row('#/tiers', 'star', t('ระดับสมาชิกและสถิติ', 'Member tier & stats'), tierFor(u.lv).name)}
+          ${row('#/badges', 'sparkle', 'Badge', `${earned.length}/${BADGES.length}`)}
+          ${row('#/reviews', 'review', t('รีวิวของฉัน', 'My reviews'), String(me.reviews.length))}
+        </div></div>
+      </section>
+      <section class="col">
+        <h2 class="menu-h">${t('ข้อมูลและนโยบาย', 'About & policies')}</h2>
+        <div class="card menu-card"><div class="menu-list">
+          ${row('#/privacy', 'lock', t('นโยบายความเป็นส่วนตัว', 'Privacy policy'), '')}
+          ${row('#/terms', 'review', t('ข้อกำหนดการใช้งาน', 'Terms of use'), '')}
+          ${me.phone === DEMO_PHONE ? `<button data-act="resetDemo">${icon('refresh')}<span>${t('รีเซ็ตข้อมูลตัวอย่าง', 'Reset demo data')}</span></button>` : ''}
+        </div></div>
+      </section>
+      <div class="col" style="gap:10px">
+        <button class="btn btn-ghost" data-act="logout">${icon('logout', 18)}${t('ออกจากระบบ', 'Log out')}</button>
+        <button class="btn btn-text danger" data-act="delete">${icon('trash', 18)}${t('ลบบัญชี', 'Delete account')}</button>
+      </div>
+      <p class="center xs muted">D Point · ${document.documentElement.dataset.backend === 'remote' ? t('ข้อมูลซิงก์กับเซิร์ฟเวอร์', 'Synced with server') : t('โหมดเดโม ข้อมูลเก็บในเครื่องนี้', 'Demo mode, data stays on this device')}</p>`,
+    mount(root) {
+      needsPhoneLink().then((v) => { const b = root.querySelector('#linkPhone'); if (b) b.hidden = !v; });
+    },
+    actions: {
+      qr() {
+        const url = `${location.origin}${location.pathname}#/u/${u.handle}`;
+        document.querySelector('.app').insertAdjacentHTML('beforeend', sheet(`<h2 class="h2 center">นามบัตรของ ${esc(u.nick)}</h2>${qrSvg(u.handle)}<p class="center muted small">ให้เพื่อนสแกนเพื่อดูนามบัตรและ Badge ของคุณ</p>
+          <button class="btn btn-primary" data-act="shareCard" data-url="${esc(url)}">${icon('share', 18)}แชร์ลิงก์นามบัตร</button>`));
+      },
+      linkPhone() { setLinking(true); go('/login'); },
+      theme() { setTheme(store.theme === 'dark' ? 'light' : 'dark'); window.dispatchEvent(new Event('themechange')); window.dispatchEvent(new Event('rerender')); },
+      lang() {
+        const opt = (code, label, sub) => `<button class="lang-opt ${getLang() === code ? 'on' : ''}" data-act="setLang" data-k="${code}"><span class="col" style="gap:0;align-items:flex-start"><b>${label}</b><span class="xs muted">${sub}</span></span>${getLang() === code ? icon('check', 18, 3) : ''}</button>`;
+        document.querySelector('.app').insertAdjacentHTML('beforeend', sheet(`<h2 class="h2 center">${t('เลือกภาษา', 'Choose language')}</h2>
+          <div class="col" style="gap:8px">${opt('th', 'ไทย', 'Thai')}${opt('en', 'English', 'อังกฤษ')}</div>`));
+      },
+      setLang(el) { setLang(el.dataset.k); document.querySelector('.sheet-backdrop')?.remove(); toast(t('เปลี่ยนเป็นภาษาไทยแล้ว', 'Language set to English')); window.dispatchEvent(new Event('rerender')); },
+      async resetDemo() { if (confirm(t('รีเซ็ตข้อมูลตัวอย่างกลับเป็นค่าเริ่มต้น?', 'Reset the demo data?'))) { try { await resetDemo(); toast(t('รีเซ็ตข้อมูลแล้ว', 'Demo data reset')); } catch { toast(t('รีเซ็ตไม่สำเร็จ ลองใหม่อีกครั้ง', 'Could not reset, try again')); } go('/home'); } },
+      async logout() {
+        if (!confirm(t('ออกจากระบบ?', 'Log out?'))) return;
+        await logout(); toast(t('ออกจากระบบแล้ว', 'Logged out')); go('/welcome');
+      },
+      delete() {
+        document.querySelector('.app').insertAdjacentHTML('beforeend', sheet(`<div class="col center" style="gap:8px;align-items:center"><span class="del-ic">${icon('trash', 26)}</span>
+          <h2 class="h2">${t('ลบบัญชีถาวร?', 'Delete your account?')}</h2>
+          <p class="muted small">${t('บัตรสะสม แสตมป์ รางวัลที่ยังไม่ได้แลก เลเวล รีวิว และข้อมูลส่วนตัวทั้งหมดจะถูกลบทันที และกู้คืนไม่ได้', 'All your cards, stamps, unredeemed rewards, level, reviews and personal data are deleted right away. This cannot be undone.')}</p></div>
+          <button class="btn btn-danger" data-act="confirmDelete">${t('ลบบัญชีถาวร', 'Delete permanently')}</button>
+          <button class="btn btn-ghost" data-act="closeSheet">${t('ยกเลิก', 'Cancel')}</button>`));
+      },
+      closeSheet() { document.querySelector('.sheet-backdrop')?.remove(); },
+      async confirmDelete(el) {
+        el.disabled = true; el.textContent = t('กำลังลบ…', 'Deleting…');
+        try { await deleteAccount(); document.querySelector('.sheet-backdrop')?.remove(); toast(t('ลบบัญชีแล้ว', 'Account deleted')); go('/welcome'); }
+        catch { el.disabled = false; el.textContent = t('ลบบัญชีถาวร', 'Delete permanently'); toast(t('ลบบัญชีไม่สำเร็จ ลองใหม่อีกครั้ง', 'Could not delete, try again')); }
+      },
+    },
+  };
+}
+
+// Member tier, badges and visit stats (moved out of the profile page).
+export function tiersPage() {
+  const me = store.me; const u = me.user;
+  const earned = BADGES.filter((b) => me.badges.includes(b.id));
+  const locked = BADGES.filter((b) => !me.badges.includes(b.id));
+  const shown = [...earned, ...locked].slice(0, 8);
+  const stats = catVisitStats(me); const maxStat = Math.max(1, ...stats.map((s) => s.n));
+  return {
+    html: `<div class="topbar">${backBtn('/profile')}<h1>${t('ระดับสมาชิกและสถิติ', 'Member tier & stats')}</h1><span style="width:40px"></span></div>
       <section class="col">
         <div class="section-h"><h2>ระดับสมาชิก</h2><span class="pill soft">${tierFor(u.lv).name}</span></div>
         <div class="tiers">${TIERS.map((t) => { const cur = tierFor(u.lv).id === t.id; const got = u.lv >= t.min; return `<div class="tier ${cur ? 'cur' : ''} ${got ? '' : 'locked'}" style="--tc:${t.color}">
@@ -482,23 +581,10 @@ export function profile() {
         <div class="badges">${shown.map((b) => { const got = me.badges.includes(b.id); return `<a href="#/badges" class="badge ${got ? '' : 'locked'}" style="text-decoration:none;color:inherit"><span class="bi" style="${got ? toneStyle(b.tone) : ''}">${got ? badgeIcon(b.kind) : icon('lock', 22)}</span><span>${b.name}</span></a>`; }).join('')}</div>
       </section>
       <section class="col">
-        <div class="section-h"><h2>ร้านที่ชอบ</h2></div>
-        <div class="card" style="padding:4px 14px">${favIds.length ? favIds.map((id) => { const s = shopById(id); const c = cardFor(id); return `<a class="fav-row" href="#/store/${id}">
-          <span class="initials sm">${s.initials}</span><div class="col" style="gap:0;flex:1;min-width:0"><b style="font-size:15px">${esc(s.name)}</b><span class="xs muted">${CAT[s.cat].label} · มา ${c?.visits || 0} ครั้ง</span></div>
-          <span class="bold accent small">${c ? `${c.have}/${s.card.need}` : '-'}</span></a>`; }).join('') : '<div class="empty-note">กดหัวใจที่หน้าร้านเพื่อเพิ่มร้านโปรด</div>'}</div>
-      </section>
-      <section class="col">
         <div class="section-h"><h2>สถิติการไปร้าน</h2></div>
         <div class="card col">${stats.map((k) => `<div class="statrow"><span>${k.label}</span><div class="bar"><i style="width:${Math.round((k.n / maxStat) * 100)}%;background:${CAT[k.key].color}"></i></div><b style="text-align:right">${k.n}</b></div>`).join('')}
         ${totalVisits(me) >= 5 ? `<div class="row small muted" style="gap:8px;padding-top:8px;border-top:1px solid var(--line)">${icon('clock', 16)}<span>ไปบ่อยสุดช่วง <b style="color:var(--ink)">เช้าวันธรรมดา 08:00–10:00</b></span></div>` : ''}</div>
       </section>`,
-    actions: {
-      qr() {
-        const url = `${location.origin}${location.pathname}#/u/${u.handle}`;
-        document.querySelector('.app').insertAdjacentHTML('beforeend', sheet(`<h2 class="h2 center">นามบัตรของ ${esc(u.nick)}</h2>${qrSvg(u.handle)}<p class="center muted small">ให้เพื่อนสแกนเพื่อดูนามบัตรและ Badge ของคุณ</p>
-          <button class="btn btn-primary" data-act="shareCard" data-url="${esc(url)}">${icon('share', 18)}แชร์ลิงก์นามบัตร</button>`));
-      },
-    },
   };
 }
 

@@ -1,4 +1,5 @@
 // Shared UI helpers and components.
+import { t } from './i18n.js';
 import { icon, cupStamp, starStamp, giftStamp } from './icons.js';
 import { AVATARS } from './data.js';
 
@@ -47,10 +48,10 @@ export function nav(active) {
   const item = (key, to, ic, label, full = label) =>
     `<a href="#${to}" class="tab ${active === key ? 'on' : ''}" aria-label="${full}" ${active === key ? 'aria-current="page"' : ''}>${icon(ic, 22)}<span class="lbl">${label}</span></a>`;
   return `<nav class="nav" aria-label="เมนูหลัก"><div class="nav-pill">
-    ${item('home', '/home', 'home', 'หน้าแรก')}
-    ${item('cards', '/cards', 'card', 'บัตรของฉัน')}
-    ${item('profile', '/profile', 'user', 'โปรไฟล์')}
-    <a href="#/scan" class="scan ${active === 'scan' ? 'on' : ''}" aria-label="สแกนรับแสตมป์ (NFC / QR)"><span class="scan-btn"><img class="scan-face" src="img/pointie-face.png" width="52" height="52" alt=""></span><span class="scan-nfc">${NFC_ICON}</span><span class="scan-lbl">สแกน</span></a>
+    ${item('home', '/home', 'home', t('หน้าแรก', 'Home'))}
+    ${item('cards', '/cards', 'card', t('บัตรของฉัน', 'My cards'))}
+    ${item('profile', '/profile', 'user', t('โปรไฟล์', 'Profile'))}
+    <a href="#/scan" class="scan ${active === 'scan' ? 'on' : ''}" aria-label="${t('สแกนรับแสตมป์ (NFC / QR)', 'Scan for a stamp (NFC / QR)')}"><span class="scan-btn"><img class="scan-face" src="img/pointie-face.png" width="52" height="52" alt=""></span><span class="scan-nfc">${NFC_ICON}</span><span class="scan-lbl">${t('สแกน', 'Scan')}</span></a>
   </div></nav>`;
 }
 
