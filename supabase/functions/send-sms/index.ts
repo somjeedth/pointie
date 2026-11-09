@@ -3,11 +3,11 @@
 //
 // Secrets (Dashboard → Edge Functions → Secrets):
 //   SEND_SMS_HOOK_SECRET   the "v1,whsec_..." secret shown when you create the hook
-//   BOOST_SMS_API_BASE     boost-sms API base URL, the part before /sms/send (see their API docs)
+//   BOOST_SMS_API_BASE     optional, default https://app.boost-sms.com/api/v1
 //   BOOST_SMS_API_KEY      API key created in boost-sms → SMS API
 //   BOOST_SMS_SENDER       approved sender name, e.g. DPoint (optional; boost-sms default if unset)
-//   BOOST_SMS_AUTH_HEADER  optional, default "Authorization" (sent as "Bearer <key>");
-//                          set e.g. "X-API-Key" if their Authentication section says so (key sent as-is)
+//   BOOST_SMS_AUTH_HEADER  optional, default "Authorization" ("Bearer sk_live_…"); boost-sms also accepts "x-api-key"
+// boost-sms limits: SMS 10 req/min per key → 429 (passed on so the app says "try again shortly").
 // Deploy with "Verify JWT" OFF: Supabase Auth signs the request itself (checked below).
 import { Webhook } from 'npm:standardwebhooks@1.0.0';
 
@@ -18,9 +18,10 @@ const e164 = (p: string) => { const d = p.replace(/\D/g, ''); return '+' + (d.st
 
 // ---- the only part that depends on boost-sms's API ----
 // POST {base}/sms/send  { to, message, sender_name? }  — "to" accepts E.164 or local format.
+class RateLimited extends Error {}
 async function sendSms(phone: string, text: string): Promise<void> {
-  const base = env('BOOST_SMS_API_BASE').replace(/\/+$/, '');
-  if (!base || !env('BOOST_SMS_API_KEY')) throw new Error('BOOST_SMS_API_BASE / BOOST_SMS_API_KEY not set');
+  const base = (env('BOOST_SMS_API_BASE') || 'https://app.boost-sms.com/api/v1').replace(/\/+$/, '');
+  if (!env('BOOST_SMS_API_KEY')) throw new Error('BOOST_SMS_API_KEY not set');
   const header = env('BOOST_SMS_AUTH_HEADER') || 'Authorization';
   const key = env('BOOST_SMS_API_KEY');
   const body: Record<string, string> = { to: e164(phone), message: text };
@@ -31,6 +32,7 @@ async function sendSms(phone: string, text: string): Promise<void> {
     body: JSON.stringify(body),
   });
   const out = await res.text();
+  if (res.status === 429) throw new RateLimited(out.slice(0, 200));
   if (!res.ok) throw new Error(`boost-sms ${res.status}: ${out.slice(0, 300)}`);
   console.log('boost-sms sent', res.status, out.slice(0, 200)); // contains the message id (GET /sms/status/{id})
 }
@@ -57,6 +59,7 @@ Deno.serve(async (req) => {
     await sendSms(phone, `รหัส D Point: ${code} ใช้ได้ 5 นาที ห้ามบอกรหัสนี้กับผู้อื่น`);
   } catch (e) {
     console.error(String(e));
+    if (e instanceof RateLimited) return fail(429, 'SMS rate limit reached, too many requests — try again in a minute');
     return fail(502, 'sms provider error');
   }
   return new Response('{}', { headers: { 'content-type': 'application/json' } });

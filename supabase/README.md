@@ -27,17 +27,16 @@ Supabase เป็นคนสร้างรหัส 6 หลักและ�
    - กด Generate secret แล้วคัดลอกค่า `v1,whsec_...`
 3. **Edge Functions → Secrets** เพิ่ม
    - `SEND_SMS_HOOK_SECRET` = ค่าจากข้อ 2
-   - `BOOST_SMS_API_BASE` = Base URL ของ API (ส่วนที่อยู่หน้า `/sms/send` ในหน้า API Docs ของ boost-sms)
-   - `BOOST_SMS_API_KEY` = API Key ที่สร้างใน boost-sms → SMS API
+   - `BOOST_SMS_API_KEY` = API Key ที่สร้างใน boost-sms → คีย์ API (ขึ้นต้น `sk_live_`; ต้องซื้อแพ็กเกจก่อน แพ็กเกจทดลองใช้ API ไม่ได้)
    - `BOOST_SMS_SENDER` = ชื่อผู้ส่งที่อนุมัติแล้ว เช่น `DPoint` (ไม่ใส่ก็ได้ จะใช้ชื่อเริ่มต้นของบัญชี)
-   - `BOOST_SMS_AUTH_HEADER` = ใส่เฉพาะถ้าเอกสารบอกให้ส่ง key ใน header อื่น เช่น `X-API-Key` (ค่าเริ่มต้น `Authorization: Bearer <key>`)
 4. **Authentication → Sign In / Providers → Phone: เปิด** · SMS OTP Expiry = `300` วินาที · ความยาวรหัส 6 หลัก
    - ยังเปิด **Allow anonymous sign-ins** ไว้ (ปุ่ม "ลองใช้บัญชีตัวอย่าง" และบัญชีเดิมที่ยังไม่ยืนยันเบอร์)
 5. รัน `schema.sql` ใหม่ (เบอร์ของลูกค้าจะเอามาจากเบอร์ที่ยืนยันแล้วเท่านั้น)
 6. แก้ `js/config.js` → `SMS_OTP = true` แล้ว deploy
 - ลูกค้าเดิมที่สมัครก่อนเปิด SMS: หน้า **ตั้งค่า → ยืนยันเบอร์ด้วย SMS** ผูกเบอร์เข้ากับบัญชีเดิม แสตมป์ไม่หาย และเข้าจากเครื่องอื่นได้
 - ดูว่าส่ง SMS สำเร็จไหม: Edge Functions → send-sms → Logs
-- ฟังก์ชันเรียก `POST {BOOST_SMS_API_BASE}/sms/send` ด้วย `{ to: "+66…", message, sender_name }` ข้อความ: "รหัส D Point: 123456 ใช้ได้ 5 นาที ห้ามบอกรหัสนี้กับผู้อื่น" (1 ข้อความ SMS)
+- ข้อจำกัดของ boost-sms: ส่ง SMS ได้ 10 ครั้ง/นาที ต่อ API key (เกินแล้วแอพจะบอกให้รอสักครู่) — ถ้าคนสมัครพร้อมกันเยอะ ขอเพิ่มลิมิตกับ boost-sms
+- ฟังก์ชันเรียก `POST https://app.boost-sms.com/api/v1/sms/send` ด้วย `{ to: "+66…", message, sender_name }` ข้อความ: "รหัส D Point: 123456 ใช้ได้ 5 นาที ห้ามบอกรหัสนี้กับผู้อื่น" (1 ข้อความ SMS)
 
 ## 3. ตรวจว่าใช้งานได้
 - เปิด `https://app.getpointie.com/` → ถ้าต่อสำเร็จ หน้า ตั้งค่า จะเขียนว่า "ข้อมูลซิงก์กับเซิร์ฟเวอร์"
