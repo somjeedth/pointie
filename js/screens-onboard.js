@@ -69,7 +69,7 @@ export function login() {
       </form>
       <div class="col spacer">
         <button class="btn btn-primary" id="sendOtp" form="phoneForm" ${isValidPhone(d) ? '' : 'disabled'}>ขอรหัส OTP</button>
-        <p class="muted xs center">การดำเนินการต่อถือว่าคุณยอมรับ <a class="link-u" href="#/legal">ข้อกำหนดการใช้งาน</a> และ <a class="link-u" href="#/legal">นโยบายความเป็นส่วนตัว</a></p>
+        <p class="muted xs center">การดำเนินการต่อถือว่าคุณยอมรับ <a class="link-u" href="#/terms">ข้อกำหนดการใช้งาน</a> และ <a class="link-u" href="#/privacy">นโยบายความเป็นส่วนตัว</a></p>
       </div>`,
     mount(root) {
       const input = root.querySelector('#phone'), btn = root.querySelector('#sendOtp'), pf = root.querySelector('#pf');

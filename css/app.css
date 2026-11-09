@@ -723,3 +723,5 @@ button.gen-row svg { color: var(--muted); flex: none; }
 .doc-sec p, .doc-sec li { font-size: 14px; line-height: 1.6; color: var(--ink); }
 .doc-sec ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
 .doc-sec a { color: var(--primary); }
+.doc-intro { display: flex; flex-direction: column; gap: 6px; }
+.doc-intro p { font-size: 14px; line-height: 1.6; }

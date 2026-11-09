@@ -146,79 +146,151 @@ export function editStyle() {
   };
 }
 
-// ---------- privacy policy & terms ----------
-// Set this to the address people can write to about their data before launch.
-export const PRIVACY_CONTACT = '';
+// ---------- privacy policy & terms of use ----------
+// Issued by the operator of D Point. Keep both languages in step when editing.
+export const COMPANY = { th: 'บริษัท ทรีพีเอ็น บิสซิเนส โซลูชั่น จำกัด', en: '3PN Business Solution Co., Ltd.' };
+export const PRIVACY_CONTACT = 'work@3pnbusinesssolution.com';
 const UPDATED = { th: '9 พฤศจิกายน 2569', en: '9 November 2026' };
-const doc = (title, sections) => ({
+const mail = `<a href="mailto:${PRIVACY_CONTACT}">${PRIVACY_CONTACT}</a>`;
+const ul = (items) => `<ul>${items.map((x) => `<li>${x}</li>`).join('')}</ul>`;
+const doc = (title, intro, sections) => ({
   cls: 'doc',
   html: `<div class="topbar">${backBtn(store.me ? '/profile' : '/welcome')}<h1>${title}</h1><span style="width:40px"></span></div>
-    <p class="xs muted">${t('ปรับปรุงล่าสุด', 'Last updated')} ${t(UPDATED.th, UPDATED.en)}</p>
-    ${sections.map(([h, body]) => `<section class="doc-sec"><h2>${h}</h2>${body}</section>`).join('')}`,
+    <div class="doc-intro"><p class="xs muted">${t('มีผลบังคับใช้ / ปรับปรุงล่าสุด', 'Effective / last updated')}: ${t(UPDATED.th, UPDATED.en)}</p>${intro}</div>
+    ${sections.map(([h, body], i) => `<section class="doc-sec"><h2>${i + 1}. ${h}</h2>${body}</section>`).join('')}
+    <p class="center xs muted">© ${new Date().getFullYear()} ${t(COMPANY.th, COMPANY.en)}</p>`,
 });
-const ul = (items) => `<ul>${items.map((x) => `<li>${x}</li>`).join('')}</ul>`;
 
 export function privacy() {
-  const contact = PRIVACY_CONTACT ? `<a href="mailto:${esc(PRIVACY_CONTACT)}">${esc(PRIVACY_CONTACT)}</a>` : '';
   if (getLang() === 'en') {
-    return doc('Privacy policy', [
-      ['Summary', '<p>D Point is a digital stamp card for local shops. We only collect what is needed to run your cards, levels and rewards. Shops see your nickname and your activity at their own shop, never your real name, phone number or birthday.</p>'],
-      ['What we collect', ul([
-        '<b>Account:</b> mobile number (to sign in with a one-time code), nickname, profile picture.',
-        '<b>Identity:</b> first name, last name and date of birth (to confirm you are 13 or older, for birthday treats and anonymous per-generation summaries).',
-        '<b>Preferences:</b> the places and styles you pick.',
-        '<b>Activity:</b> stamps, visits, rewards you redeem, reviews you write, badges, level and XP.',
-        '<b>Location:</b> only if you allow it, used on your device to show distances. It is not sent to our server or to shops.',
+    return doc('Privacy policy', `<p>${COMPANY.en} (the "<b>Company</b>", "<b>we</b>"), the provider of D Point, respects your privacy. This policy explains how we collect, use, disclose and protect your personal data when you use the D Point customer app (app.getpointie.com), the merchant website (store.getpointie.com) and our website (getpointie.com) (together, the "<b>Service</b>"), in line with Thailand's Personal Data Protection Act B.E. 2562 (2019) ("<b>PDPA</b>"). We are the data controller for the data described here.</p>`, [
+      ['Personal data we collect', ul([
+        '<b>Account data:</b> mobile number, nickname, profile picture or avatar.',
+        '<b>Identity data:</b> first name, last name and date of birth.',
+        '<b>Preferences:</b> the places and styles you choose.',
+        '<b>Usage data:</b> stamps, shop visits (date and time), rewards and redemption codes, reviews and ratings, badges, level, XP, missions and notifications.',
+        '<b>Location:</b> only if you allow it, processed on your device to show distances; it is not sent to our servers or to shops.',
+        '<b>Technical data:</b> sign-in session data, device and browser type and error logs needed to run and secure the Service.',
+        '<b>Shop owners and business enquiries:</b> name, email, phone number and shop details given when you register a shop or fill in our sign-up form.',
       ])],
-      ['How we use it', ul(['Run your stamp cards, rewards, levels and member tiers', 'Stop abuse (one stamp per shop per day, stand codes, redemption codes)', 'Suggest shops and deals that fit you', 'Show shops overall statistics so they can improve'])],
-      ['What shops can see', ul([
-        'Your nickname, level, member tier and generation (e.g. Gen Z), not your age or birthday',
-        'Your stamps, visits, redemptions and reviews at <b>their</b> shop only',
-        'They <b>cannot</b> see your real name, phone number, birthday, location or activity at other shops',
+      ['How we collect it', '<p>Directly from you when you sign up, edit your profile, tap or scan a D Point stand, redeem rewards or write reviews, and automatically from your device while you use the Service.</p>'],
+      ['Purposes and legal bases', ul([
+        '<b>To provide the Service</b> (contract): create and secure your account, sign you in with a one-time code, keep your stamp cards, rewards, levels and member tiers.',
+        '<b>To prevent fraud and abuse</b> (legitimate interests): one stamp per shop per day, stand codes, redemption codes, checking reviews come from real visits.',
+        '<b>To personalise</b> (legitimate interests): suggest shops, missions and deals that fit your preferences.',
+        '<b>To give shops insights</b> (legitimate interests): statistics such as visits, returning customers and anonymous summaries by generation.',
+        '<b>Birthday treats and age check</b> (contract / consent): confirm you are at least 13 and offer birthday benefits.',
+        '<b>To comply with law</b> (legal obligation) and to establish or defend legal claims.',
       ])],
-      ['Who processes the data', `<p>We use service providers to run D Point: Supabase (database and sign-in), Vercel (website hosting) and an SMS provider (to send your sign-in code, which receives only your phone number and the code). We do not sell your data.</p>`],
-      ['How long we keep it', '<p>For as long as you have an account. When you delete your account, your profile, identity, cards, stamps and reviews are deleted immediately. Shops keep only anonymous totals (e.g. number of stamps that day) without your nickname.</p>'],
-      ['Your rights (Thai PDPA)', ul(['See and correct your data in Profile', 'Delete your account at any time: Profile → Delete account', 'Withdraw consent, object, or ask for a copy of your data', 'Complain to the Office of the Personal Data Protection Committee'])],
-      ['Contact', contact ? `<p>Questions about your data: ${contact}</p>` : '<p>Questions about your data: contact the D Point team.</p>'],
+      ['Who we share it with', ul([
+        '<b>Participating shops</b> see your nickname, level, member tier, generation (e.g. Gen Z, not your age or birthday) and your stamps, visits, redemptions and reviews <b>at their shop only</b>. Shops never see your real name, mobile number, birthday, location or activity at other shops.',
+        '<b>Other users</b> can see your nickname, level and reviews you publish.',
+        '<b>Service providers</b> acting on our instructions: Supabase (database and authentication), Vercel (hosting) and BoostSMS (sending sign-in codes; it receives only your mobile number and the code).',
+        '<b>Authorities</b> where required by law or a court order.',
+        'We do <b>not</b> sell your personal data.',
+      ])],
+      ['International transfers', '<p>Our service providers may store or process data on servers outside Thailand. Where this happens we rely on providers with appropriate safeguards as required by the PDPA.</p>'],
+      ['How long we keep it', '<p>We keep your data while your account is active. When you delete your account, your profile, identity data, cards, stamps, rewards and reviews are deleted immediately, and your nickname is removed from shop records; shops keep only anonymous totals. Copies in system backups are overwritten in the normal backup cycle. We may keep data longer only where the law requires it.</p>'],
+      ['Children', '<p>The Service is for users aged 13 and over. Users under 20 should use the Service with the knowledge and consent of a parent or guardian. If we learn that we hold data of a child under 13, we will delete it.</p>'],
+      ['Security', '<p>Data is encrypted in transit (HTTPS). Database tables cannot be read directly from the app: every action goes through server functions that check who you are, and shops can only reach data about their own shop. Access by our staff is limited to what is needed to run the Service.</p>'],
+      ['Cookies and device storage', '<p>We use your browser\'s local storage to keep you signed in and to remember settings such as language and dark mode. We do not use advertising trackers. Shop pages include a Google Maps map, which is provided by Google under its own privacy policy.</p>'],
+      ['Your rights', ul([
+        'Access and get a copy of your data, and ask how we obtained it',
+        'Correct your data (most of it in Profile)',
+        'Delete your account and data (Profile → Delete account)',
+        'Object to or restrict processing, and ask to receive or transfer your data',
+        'Withdraw consent at any time (this does not affect processing already carried out)',
+        'Complain to the Office of the Personal Data Protection Committee (PDPC)',
+      ]) + `<p>Email us at ${mail} to use these rights. We will respond within 30 days.</p>`],
+      ['Changes to this policy', '<p>We may update this policy. The effective date at the top shows the latest version, and we will tell you in the app about significant changes.</p>'],
+      ['Contact us', `<p><b>${COMPANY.en}</b><br>Provider of D Point<br>Email: ${mail}</p>`],
     ]);
   }
-  return doc('นโยบายความเป็นส่วนตัว', [
-    ['สรุปสั้นๆ', '<p>D Point เป็นบัตรสะสมแต้มดิจิทัลสำหรับร้านค้า เราเก็บเฉพาะข้อมูลที่จำเป็นต่อการสะสมแต้ม เลเวล และรางวัลของคุณ ร้านค้าเห็นแค่ชื่อเล่นและกิจกรรมของคุณที่ร้านของเขาเท่านั้น ไม่เห็นชื่อจริง เบอร์โทร หรือวันเกิด</p>'],
-    ['ข้อมูลที่เราเก็บ', ul([
-      '<b>บัญชี:</b> เบอร์มือถือ (ใช้เข้าสู่ระบบด้วยรหัส OTP) ชื่อเล่น รูปโปรไฟล์',
-      '<b>ข้อมูลยืนยันตัวตน:</b> ชื่อ นามสกุล และวันเกิด (ใช้ยืนยันว่าอายุ 13 ปีขึ้นไป ให้สิทธิพิเศษวันเกิด และสรุปรีวิวตามช่วงวัยแบบไม่ระบุตัวตน)',
-      '<b>ความชอบ:</b> สถานที่และสไตล์ที่คุณเลือก',
-      '<b>กิจกรรม:</b> แสตมป์ การไปร้าน รางวัลที่แลก รีวิวที่เขียน Badge เลเวล และ XP',
-      '<b>ตำแหน่ง:</b> เฉพาะเมื่อคุณอนุญาต ใช้ในเครื่องของคุณเพื่อคำนวณระยะทางเท่านั้น ไม่ส่งขึ้นเซิร์ฟเวอร์และร้านค้าไม่เห็น',
+  return doc('นโยบายความเป็นส่วนตัว', `<p>${COMPANY.th} (“<b>บริษัท</b>” หรือ “<b>ผู้ให้บริการ</b>”) ในฐานะผู้ให้บริการ D Point ให้ความสำคัญกับความเป็นส่วนตัวของคุณ นโยบายนี้อธิบายวิธีที่บริษัทเก็บรวบรวม ใช้ เปิดเผย และคุ้มครองข้อมูลส่วนบุคคลของคุณ เมื่อคุณใช้แอพ D Point สำหรับลูกค้า (app.getpointie.com) เว็บไซต์สำหรับร้านค้า (store.getpointie.com) และเว็บไซต์ getpointie.com (รวมเรียกว่า “<b>บริการ</b>”) ตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 (“<b>PDPA</b>”) โดยบริษัทเป็นผู้ควบคุมข้อมูลส่วนบุคคลตามนโยบายนี้</p>`, [
+    ['ข้อมูลส่วนบุคคลที่เราเก็บรวบรวม', ul([
+      '<b>ข้อมูลบัญชี:</b> เบอร์โทรศัพท์มือถือ ชื่อเล่น รูปโปรไฟล์หรือรูปอวาตาร์',
+      '<b>ข้อมูลยืนยันตัวตน:</b> ชื่อ นามสกุล และวันเดือนปีเกิด',
+      '<b>ข้อมูลความชอบ:</b> ประเภทสถานที่และสไตล์ที่คุณเลือก',
+      '<b>ข้อมูลการใช้บริการ:</b> แสตมป์ การเข้าร้าน (วันและเวลา) รางวัลและรหัสแลกรางวัล รีวิวและคะแนน Badge เลเวล XP ภารกิจ และการแจ้งเตือน',
+      '<b>ข้อมูลตำแหน่ง:</b> เฉพาะเมื่อคุณอนุญาต และประมวลผลในเครื่องของคุณเพื่อคำนวณระยะทางเท่านั้น ไม่ส่งขึ้นเซิร์ฟเวอร์และร้านค้าไม่เห็น',
+      '<b>ข้อมูลทางเทคนิค:</b> ข้อมูลการเข้าสู่ระบบ ประเภทอุปกรณ์และเบราว์เซอร์ และบันทึกข้อผิดพลาดที่จำเป็นต่อการให้บริการและการรักษาความปลอดภัย',
+      '<b>เจ้าของร้านและผู้ติดต่อเชิงธุรกิจ:</b> ชื่อ อีเมล เบอร์โทรศัพท์ และข้อมูลร้าน ที่ให้ไว้ตอนสมัครร้านค้าหรือกรอกแบบฟอร์มสมัครใช้งาน',
     ])],
-    ['เราใช้ข้อมูลเพื่อ', ul(['ให้บริการบัตรสะสม รางวัล เลเวล และระดับสมาชิก', 'ป้องกันการโกง (ร้านละ 1 แสตมป์ต่อวัน รหัสสแตนด์ รหัสแลกรางวัล)', 'แนะนำร้านและโปรที่ตรงกับความชอบ', 'แสดงสถิติภาพรวมให้ร้านค้าเพื่อปรับปรุงบริการ'])],
-    ['ร้านค้าเห็นอะไรบ้าง', ul([
-      'ชื่อเล่น เลเวล ระดับสมาชิก และช่วงวัย (เช่น Gen Z) ไม่เห็นอายุหรือวันเกิด',
-      'แสตมป์ การมาร้าน การแลกรางวัล และรีวิว เฉพาะที่<b>ร้านของเขา</b>',
-      'ร้านค้า<b>ไม่เห็น</b>ชื่อจริง เบอร์โทร วันเกิด ตำแหน่ง หรือกิจกรรมที่ร้านอื่น',
+    ['แหล่งที่มาของข้อมูล', '<p>บริษัทได้รับข้อมูลจากคุณโดยตรงเมื่อคุณสมัคร แก้ไขโปรไฟล์ แตะหรือสแกนสแตนด์ D Point แลกรางวัล หรือเขียนรีวิว และจากอุปกรณ์ของคุณโดยอัตโนมัติระหว่างใช้บริการ</p>'],
+    ['วัตถุประสงค์และฐานทางกฎหมายในการประมวลผล', ul([
+      '<b>เพื่อให้บริการตามสัญญา:</b> สร้างและดูแลบัญชี ยืนยันตัวตนด้วยรหัส OTP บันทึกบัตรสะสม แสตมป์ รางวัล เลเวล และระดับสมาชิก',
+      '<b>เพื่อป้องกันการทุจริตและการใช้งานผิดวัตถุประสงค์ (ประโยชน์โดยชอบด้วยกฎหมาย):</b> จำกัดร้านละ 1 แสตมป์ต่อวัน ตรวจรหัสสแตนด์และรหัสแลกรางวัล และตรวจว่ารีวิวมาจากลูกค้าที่มาร้านจริง',
+      '<b>เพื่อปรับบริการให้ตรงกับคุณ (ประโยชน์โดยชอบด้วยกฎหมาย):</b> แนะนำร้าน ภารกิจ และโปรโมชันที่ตรงกับความชอบ',
+      '<b>เพื่อให้ข้อมูลเชิงสถิติแก่ร้านค้า (ประโยชน์โดยชอบด้วยกฎหมาย):</b> เช่น จำนวนการมาร้าน ลูกค้าที่กลับมาซ้ำ และสรุปตามช่วงวัยแบบไม่ระบุตัวตน',
+      '<b>เพื่อตรวจสอบอายุและมอบสิทธิพิเศษวันเกิด (สัญญา/ความยินยอม):</b> ยืนยันว่าคุณอายุ 13 ปีขึ้นไป และมอบสิทธิประโยชน์ในวันเกิด',
+      '<b>เพื่อปฏิบัติตามกฎหมาย</b> และเพื่อก่อตั้งสิทธิเรียกร้องหรือต่อสู้ข้อเรียกร้องตามกฎหมาย',
     ])],
-    ['ผู้ให้บริการที่ประมวลผลข้อมูล', '<p>เราใช้ผู้ให้บริการเพื่อให้ D Point ทำงานได้ ได้แก่ Supabase (ฐานข้อมูลและระบบเข้าสู่ระบบ) Vercel (โฮสต์เว็บไซต์) และผู้ให้บริการ SMS (ส่งรหัส OTP โดยได้รับเฉพาะเบอร์โทรและรหัส) เราไม่ขายข้อมูลของคุณ</p>'],
-    ['ระยะเวลาเก็บข้อมูล', '<p>เก็บตราบที่คุณยังมีบัญชี เมื่อลบบัญชี ข้อมูลโปรไฟล์ ข้อมูลยืนยันตัวตน บัตรสะสม แสตมป์ และรีวิวจะถูกลบทันที ร้านค้าจะเหลือเพียงยอดรวมแบบไม่ระบุตัวตน (เช่น จำนวนแสตมป์ในวันนั้น) โดยไม่มีชื่อเล่นของคุณ</p>'],
-    ['สิทธิของคุณตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล (PDPA)', ul(['ดูและแก้ไขข้อมูลได้ที่หน้าโปรไฟล์', 'ลบบัญชีได้ทุกเมื่อ: โปรไฟล์ → ลบบัญชี', 'ถอนความยินยอม คัดค้าน หรือขอสำเนาข้อมูลของคุณ', 'ร้องเรียนต่อสำนักงานคณะกรรมการคุ้มครองข้อมูลส่วนบุคคล'])],
-    ['ติดต่อเรา', contact ? `<p>สอบถามเรื่องข้อมูลส่วนบุคคล: ${contact}</p>` : '<p>สอบถามเรื่องข้อมูลส่วนบุคคล: ติดต่อทีมงาน D Point</p>'],
+    ['การเปิดเผยข้อมูลส่วนบุคคล', ul([
+      '<b>ร้านค้าที่เข้าร่วม</b> เห็นชื่อเล่น เลเวล ระดับสมาชิก ช่วงวัย (เช่น Gen Z โดยไม่เห็นอายุหรือวันเกิด) และแสตมป์ การมาร้าน การแลกรางวัล และรีวิว <b>เฉพาะที่ร้านของตน</b> ร้านค้าไม่เห็นชื่อจริง เบอร์โทรศัพท์ วันเกิด ตำแหน่ง หรือกิจกรรมของคุณที่ร้านอื่น',
+      '<b>ผู้ใช้อื่น</b> เห็นชื่อเล่น เลเวล และรีวิวที่คุณเผยแพร่',
+      '<b>ผู้ให้บริการที่ประมวลผลข้อมูลแทนบริษัท</b> ตามคำสั่งของบริษัท ได้แก่ Supabase (ฐานข้อมูลและระบบยืนยันตัวตน) Vercel (โฮสต์เว็บไซต์) และ BoostSMS (ส่งรหัส OTP โดยได้รับเฉพาะเบอร์โทรศัพท์และรหัส)',
+      '<b>หน่วยงานของรัฐ</b> เมื่อกฎหมายหรือคำสั่งศาลกำหนด',
+      'บริษัท<b>ไม่ขาย</b>ข้อมูลส่วนบุคคลของคุณ',
+    ])],
+    ['การส่งหรือโอนข้อมูลไปต่างประเทศ', '<p>ผู้ให้บริการของบริษัทอาจจัดเก็บหรือประมวลผลข้อมูลบนเซิร์ฟเวอร์ที่ตั้งอยู่นอกประเทศไทย ในกรณีดังกล่าวบริษัทจะเลือกใช้ผู้ให้บริการที่มีมาตรการคุ้มครองข้อมูลที่เหมาะสมตามที่ PDPA กำหนด</p>'],
+    ['ระยะเวลาการเก็บรักษาข้อมูล', '<p>บริษัทเก็บข้อมูลตลอดระยะเวลาที่คุณมีบัญชี เมื่อคุณลบบัญชี ข้อมูลโปรไฟล์ ข้อมูลยืนยันตัวตน บัตรสะสม แสตมป์ รางวัล และรีวิวจะถูกลบทันที และชื่อเล่นของคุณจะถูกลบออกจากบันทึกของร้านค้า ร้านค้าจะเหลือเพียงยอดรวมแบบไม่ระบุตัวตน สำเนาในระบบสำรองข้อมูลจะถูกเขียนทับตามรอบปกติของระบบ บริษัทอาจเก็บข้อมูลนานกว่านี้เฉพาะเมื่อกฎหมายกำหนด</p>'],
+    ['ผู้เยาว์', '<p>บริการนี้สำหรับผู้ที่มีอายุ 13 ปีขึ้นไป ผู้ใช้ที่อายุต่ำกว่า 20 ปีควรใช้บริการโดยผู้ปกครองรับทราบและให้ความยินยอม หากบริษัทพบว่ามีข้อมูลของผู้ที่อายุต่ำกว่า 13 ปี บริษัทจะลบข้อมูลนั้น</p>'],
+    ['การรักษาความปลอดภัยของข้อมูล', '<p>ข้อมูลถูกเข้ารหัสระหว่างการรับส่ง (HTTPS) แอพไม่สามารถอ่านตารางข้อมูลได้โดยตรง ทุกการทำงานต้องผ่านฟังก์ชันบนเซิร์ฟเวอร์ที่ตรวจสอบตัวตนของผู้ใช้ และร้านค้าเข้าถึงได้เฉพาะข้อมูลของร้านตนเอง พนักงานของบริษัทเข้าถึงข้อมูลได้เท่าที่จำเป็นต่อการให้บริการเท่านั้น</p>'],
+    ['คุกกี้และการจัดเก็บข้อมูลในอุปกรณ์', '<p>บริษัทใช้พื้นที่จัดเก็บในเบราว์เซอร์ (local storage) เพื่อให้คุณอยู่ในระบบและจดจำการตั้งค่า เช่น ภาษาและโหมดมืด บริษัทไม่ใช้เครื่องมือติดตามเพื่อการโฆษณา หน้าร้านค้ามีแผนที่ Google Maps ซึ่งให้บริการโดย Google ภายใต้นโยบายความเป็นส่วนตัวของ Google</p>'],
+    ['สิทธิของเจ้าของข้อมูลส่วนบุคคล', ul([
+      'สิทธิขอเข้าถึงและขอรับสำเนาข้อมูล รวมถึงขอให้เปิดเผยการได้มาซึ่งข้อมูล',
+      'สิทธิขอแก้ไขข้อมูลให้ถูกต้อง (ทำได้เองส่วนใหญ่ที่หน้าโปรไฟล์)',
+      'สิทธิขอลบข้อมูล (ลบบัญชีได้ที่ โปรไฟล์ → ลบบัญชี)',
+      'สิทธิคัดค้านหรือขอระงับการประมวลผล และสิทธิขอรับหรือขอให้ส่งโอนข้อมูล',
+      'สิทธิถอนความยินยอมได้ทุกเมื่อ (ไม่กระทบการประมวลผลที่ได้ทำไปแล้ว)',
+      'สิทธิร้องเรียนต่อสำนักงานคณะกรรมการคุ้มครองข้อมูลส่วนบุคคล',
+    ]) + `<p>ใช้สิทธิได้โดยส่งอีเมลมาที่ ${mail} บริษัทจะดำเนินการภายใน 30 วัน</p>`],
+    ['การเปลี่ยนแปลงนโยบาย', '<p>บริษัทอาจปรับปรุงนโยบายนี้เป็นครั้งคราว วันที่มีผลบังคับใช้ด้านบนแสดงฉบับล่าสุด และหากมีการเปลี่ยนแปลงที่สำคัญ บริษัทจะแจ้งให้ทราบในแอพ</p>'],
+    ['ช่องทางติดต่อ', `<p><b>${COMPANY.th}</b><br>ผู้ให้บริการ D Point<br>อีเมล: ${mail}</p>`],
   ]);
 }
 
 export function terms() {
   if (getLang() === 'en') {
-    return doc('Terms of use', [
-      ['Using D Point', ul(['You must be 13 or older.', 'One account per person and phone number.', 'Keep your sign-in code private.'])],
-      ['Stamps & rewards', ul(['One stamp per shop per day, unless the shop runs a promotion (e.g. double stamps).', 'Rewards are redeemed in front of shop staff with a 4-digit code.', 'Each shop sets its own card, rewards and promotions and may change or end them.', 'Stamps and rewards have no cash value and cannot be transferred.'])],
-      ['Reviews', ul(['Only customers who have visited can review.', 'Be honest and respectful; we may remove reviews that are abusive, fake or off-topic.'])],
-      ['Fair use', '<p>Collecting stamps without a real visit, sharing stand links, or any other abuse may lead to stamps being removed or the account being closed.</p>'],
-      ['Changes', '<p>We may update these terms. We will show the new date on this page.</p>'],
+    return doc('Terms of use', `<p>These terms are an agreement between you and ${COMPANY.en} (the "<b>Company</b>"), the provider of D Point. By signing up for or using D Point you agree to these terms and to our Privacy policy.</p>`, [
+      ['Definitions', ul(['"<b>Service</b>" means the D Point app, the merchant website and getpointie.com.', '"<b>Participating shop</b>" means a business that uses D Point to run its stamp card.', '"<b>Stamp</b>" and "<b>reward</b>" mean the points and benefits each participating shop offers on its card.'])],
+      ['Eligibility and your account', ul(['You must be at least 13 years old. Users under 20 should have a parent\'s or guardian\'s consent.', 'One account per person and per mobile number. The information you give must be true and up to date.', 'Keep your one-time code and your device secure; you are responsible for activity on your account.'])],
+      ['Stamps and rewards', ul([
+        'You can collect one stamp per shop per day, unless the shop runs a promotion such as double stamps.',
+        'Each participating shop sets its own card, rewards, promotions and member perks and may change or end them.',
+        'Rewards are redeemed in front of shop staff using a 4-digit code.',
+        'Stamps and rewards have no cash value, cannot be exchanged for cash and cannot be transferred or sold.',
+        'Goods and services are provided by the participating shop, which is responsible for their quality. The Company is not a party to your purchase.',
+      ])],
+      ['Levels, tiers and badges', '<p>XP, levels, member tiers and badges are calculated by the system from your real activity. We may adjust how they are calculated to keep them fair; perks of each tier are set by participating shops.</p>'],
+      ['Reviews and your content', ul(['Only customers who have visited a shop can review it. Reviews must be honest, respectful and about your own experience.', 'You keep ownership of your reviews and allow the Company and the shop to display them in the Service.', 'We may remove content that is false, offensive, unlawful, infringes others\' rights or is off-topic.'])],
+      ['Prohibited use', ul(['Collecting stamps without a real visit, or sharing, copying or reusing stand links or QR codes', 'Using bots, scripts or multiple accounts, or interfering with the Service', 'Impersonating others or using other people\'s data', 'Reverse engineering or copying the Service'])],
+      ['Suspension and termination', '<p>We may remove stamps or rewards obtained improperly, and suspend or close accounts that break these terms. You can delete your account at any time in Profile; unredeemed stamps and rewards are then lost.</p>'],
+      ['Intellectual property', '<p>The D Point name, logo, mascot, design and software belong to the Company or its licensors. Shop names and artwork belong to the respective shops.</p>'],
+      ['Service availability and liability', '<p>We aim to keep the Service running but provide it "as is" and may change, pause or stop features. To the extent permitted by law, the Company is not liable for indirect losses, for the acts of participating shops, or for interruptions beyond our reasonable control.</p>'],
+      ['Changes to these terms', '<p>We may update these terms. The effective date at the top shows the latest version. If you keep using the Service after a change, you accept the updated terms.</p>'],
+      ['Governing law', '<p>These terms are governed by the laws of Thailand, and the Thai courts have jurisdiction.</p>'],
+      ['Contact us', `<p><b>${COMPANY.en}</b><br>Provider of D Point<br>Email: ${mail}</p>`],
     ]);
   }
-  return doc('ข้อกำหนดการใช้งาน', [
-    ['การใช้งาน D Point', ul(['ผู้ใช้ต้องมีอายุ 13 ปีขึ้นไป', 'หนึ่งคนหนึ่งบัญชีต่อหนึ่งเบอร์มือถือ', 'อย่าบอกรหัส OTP ของคุณกับผู้อื่น'])],
-    ['แสตมป์และรางวัล', ul(['ได้ร้านละ 1 แสตมป์ต่อวัน เว้นแต่ร้านจัดโปร เช่น แสตมป์ x2', 'แลกรางวัลต่อหน้าพนักงานร้านด้วยรหัส 4 หลัก', 'แต่ละร้านกำหนดบัตร รางวัล และโปรของตัวเอง และอาจเปลี่ยนแปลงหรือยกเลิกได้', 'แสตมป์และรางวัลไม่มีมูลค่าเป็นเงินและโอนให้ผู้อื่นไม่ได้'])],
-    ['รีวิว', ul(['รีวิวได้เฉพาะลูกค้าที่เคยมาร้านจริง', 'เขียนอย่างสุภาพและตรงความจริง เราอาจลบรีวิวที่หยาบคาย ปลอม หรือไม่เกี่ยวข้อง'])],
-    ['การใช้งานอย่างเป็นธรรม', '<p>การเก็บแสตมป์โดยไม่ได้ไปร้านจริง การแชร์ลิงก์สแตนด์ หรือการใช้งานในทางที่ผิดอื่นๆ อาจทำให้แสตมป์ถูกลบหรือบัญชีถูกระงับ</p>'],
-    ['การเปลี่ยนแปลง', '<p>เราอาจปรับปรุงข้อกำหนดนี้ และจะแสดงวันที่ปรับปรุงล่าสุดไว้ในหน้านี้</p>'],
+  return doc('ข้อกำหนดการใช้งาน', `<p>ข้อกำหนดนี้เป็นข้อตกลงระหว่างคุณกับ${COMPANY.th} (“<b>บริษัท</b>” หรือ “<b>ผู้ให้บริการ</b>”) ผู้ให้บริการ D Point การสมัครหรือใช้งาน D Point ถือว่าคุณยอมรับข้อกำหนดนี้และนโยบายความเป็นส่วนตัวของบริษัท</p>`, [
+    ['คำนิยาม', ul(['“<b>บริการ</b>” หมายถึง แอพ D Point เว็บไซต์สำหรับร้านค้า และเว็บไซต์ getpointie.com', '“<b>ร้านค้าที่เข้าร่วม</b>” หมายถึง ผู้ประกอบการที่ใช้ D Point ทำบัตรสะสมแต้มของร้าน', '“<b>แสตมป์</b>” และ “<b>รางวัล</b>” หมายถึง แต้มและสิทธิประโยชน์ที่ร้านค้าที่เข้าร่วมกำหนดไว้บนบัตรของร้าน'])],
+    ['คุณสมบัติผู้ใช้และบัญชี', ul(['ผู้ใช้ต้องมีอายุ 13 ปีขึ้นไป ผู้ที่อายุต่ำกว่า 20 ปีควรได้รับความยินยอมจากผู้ปกครอง', 'หนึ่งคนมีได้หนึ่งบัญชีต่อหนึ่งเบอร์มือถือ ข้อมูลที่ให้ไว้ต้องเป็นความจริงและเป็นปัจจุบัน', 'คุณต้องเก็บรหัส OTP และอุปกรณ์ของคุณให้ปลอดภัย และรับผิดชอบการใช้งานที่เกิดขึ้นในบัญชีของคุณ'])],
+    ['แสตมป์และรางวัล', ul([
+      'สะสมได้ร้านละ 1 แสตมป์ต่อวัน เว้นแต่ร้านจัดโปรโมชัน เช่น แสตมป์ x2',
+      'ร้านค้าที่เข้าร่วมแต่ละร้านกำหนดบัตร รางวัล โปรโมชัน และสิทธิ์สมาชิกของตนเอง และอาจเปลี่ยนแปลงหรือยกเลิกได้',
+      'การแลกรางวัลต้องทำต่อหน้าพนักงานร้านโดยใช้รหัส 4 หลัก',
+      'แสตมป์และรางวัลไม่มีมูลค่าเป็นเงิน แลกเป็นเงินสดไม่ได้ และโอนหรือขายต่อไม่ได้',
+      'สินค้าและบริการเป็นของร้านค้าที่เข้าร่วม ซึ่งรับผิดชอบต่อคุณภาพของสินค้าและบริการนั้น บริษัทไม่ได้เป็นคู่สัญญาในการซื้อขายระหว่างคุณกับร้านค้า',
+    ])],
+    ['เลเวล ระดับสมาชิก และ Badge', '<p>XP เลเวล ระดับสมาชิก และ Badge คำนวณโดยระบบจากกิจกรรมจริงของคุณ บริษัทอาจปรับวิธีคำนวณเพื่อความเป็นธรรม ส่วนสิทธิประโยชน์ของแต่ละระดับกำหนดโดยร้านค้าที่เข้าร่วม</p>'],
+    ['รีวิวและเนื้อหาของผู้ใช้', ul(['รีวิวได้เฉพาะลูกค้าที่เคยมาร้านจริง รีวิวต้องตรงความจริง สุภาพ และมาจากประสบการณ์ของคุณเอง', 'คุณยังเป็นเจ้าของรีวิวของคุณ และอนุญาตให้บริษัทและร้านค้าแสดงรีวิวนั้นในบริการ', 'บริษัทอาจลบเนื้อหาที่ไม่เป็นความจริง หยาบคาย ผิดกฎหมาย ละเมิดสิทธิผู้อื่น หรือไม่เกี่ยวข้อง'])],
+    ['ข้อห้ามในการใช้งาน', ul(['เก็บแสตมป์โดยไม่ได้ไปร้านจริง หรือแชร์ คัดลอก หรือนำลิงก์และ QR ของสแตนด์ไปใช้ซ้ำ', 'ใช้บอท สคริปต์ หรือหลายบัญชี หรือรบกวนการทำงานของบริการ', 'แอบอ้างเป็นผู้อื่นหรือใช้ข้อมูลของผู้อื่น', 'ทำวิศวกรรมย้อนกลับหรือคัดลอกบริการ'])],
+    ['การระงับและยกเลิกบัญชี', '<p>บริษัทอาจลบแสตมป์หรือรางวัลที่ได้มาโดยไม่ถูกต้อง และระงับหรือปิดบัญชีที่ฝ่าฝืนข้อกำหนดนี้ คุณลบบัญชีได้ทุกเมื่อที่หน้าโปรไฟล์ โดยแสตมป์และรางวัลที่ยังไม่ได้แลกจะสิ้นสุดลง</p>'],
+    ['ทรัพย์สินทางปัญญา', '<p>ชื่อ D Point โลโก้ มาสคอต การออกแบบ และซอฟต์แวร์เป็นของบริษัทหรือผู้อนุญาตให้ใช้สิทธิ ชื่อร้านและภาพบนบัตรเป็นของร้านค้าแต่ละราย</p>'],
+    ['การให้บริการและข้อจำกัดความรับผิด', '<p>บริษัทพยายามให้บริการได้อย่างต่อเนื่อง แต่ให้บริการ “ตามสภาพ” และอาจเปลี่ยนแปลง หยุดชั่วคราว หรือยุติฟีเจอร์บางส่วนได้ เท่าที่กฎหมายอนุญาต บริษัทไม่ต้องรับผิดต่อความเสียหายทางอ้อม การกระทำของร้านค้าที่เข้าร่วม หรือการหยุดชะงักที่อยู่นอกเหนือการควบคุมตามสมควรของบริษัท</p>'],
+    ['การเปลี่ยนแปลงข้อกำหนด', '<p>บริษัทอาจปรับปรุงข้อกำหนดนี้ วันที่มีผลบังคับใช้ด้านบนแสดงฉบับล่าสุด การใช้บริการต่อหลังการเปลี่ยนแปลงถือว่าคุณยอมรับข้อกำหนดฉบับใหม่</p>'],
+    ['กฎหมายที่ใช้บังคับ', '<p>ข้อกำหนดนี้อยู่ภายใต้กฎหมายไทย และให้ศาลไทยมีเขตอำนาจในการพิจารณาข้อพิพาท</p>'],
+    ['ช่องทางติดต่อ', `<p><b>${COMPANY.th}</b><br>ผู้ให้บริการ D Point<br>อีเมล: ${mail}</p>`],
   ]);
 }
