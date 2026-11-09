@@ -259,5 +259,4 @@ em { font-style: normal; color: var(--primary); }
   .tk-track + .tk-track, .tk-track .tk-item ~ .tk-item { display: none; }
 }
 @media (max-width: 720px) { .ticker { height: 32px; font-size: 13px; } .tk-track { animation-duration: 26s; } }
-.foot-co { font-size: 12px; color: var(--on-dark-muted); }
 .consent a { color: var(--primary); text-decoration: underline; }
