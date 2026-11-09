@@ -40,9 +40,9 @@ export function steps(total, current) {
   return `<div class="steps" aria-label="ขั้นตอนที่ ${current} จาก ${total}">${s}</div>`;
 }
 
-// Floating pill nav: the active tab grows into a labelled pill; the NFC circle on the right opens the scanner.
+// Floating pill nav: the active tab grows into a labelled pill; the mascot circle (NFC badge + 'สแกน') on the right opens the scanner.
 export const SCAN_STYLE = 'pill';
-const NFC_ICON = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><g transform="translate(-0.8 0)"><path d="M5 9a4.5 4.5 0 0 1 0 6"/><path d="M8.5 6.5a8.5 8.5 0 0 1 0 11"/><path d="M12 4a12.5 12.5 0 0 1 0 16"/><path d="M15.5 1.8a16 16 0 0 1 0 20.4"/></g></svg>';
+const NFC_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><g transform="translate(-0.8 0)"><path d="M5 9a4.5 4.5 0 0 1 0 6"/><path d="M8.5 6.5a8.5 8.5 0 0 1 0 11"/><path d="M12 4a12.5 12.5 0 0 1 0 16"/><path d="M15.5 1.8a16 16 0 0 1 0 20.4"/></g></svg>';
 export function nav(active) {
   const item = (key, to, ic, label, full = label) =>
     `<a href="#${to}" class="tab ${active === key ? 'on' : ''}" aria-label="${full}" ${active === key ? 'aria-current="page"' : ''}>${icon(ic, 22)}<span class="lbl">${label}</span></a>`;
@@ -51,7 +51,7 @@ export function nav(active) {
     ${item('map', '/map', 'map', 'แมพ')}
     ${item('cards', '/cards', 'card', 'บัตร', 'บัตรของฉัน')}
     ${item('profile', '/profile', 'user', 'โปรไฟล์')}
-    <a href="#/scan" class="scan ${active === 'scan' ? 'on' : ''}" aria-label="สแกนรับแสตมป์ (NFC / QR)"><span class="scan-btn">${NFC_ICON}<span class="scan-lbl">สแกน</span></span></a>
+    <a href="#/scan" class="scan ${active === 'scan' ? 'on' : ''}" aria-label="สแกนรับแสตมป์ (NFC / QR)"><span class="scan-btn"><img class="scan-face" src="img/pointie-face.png" width="52" height="52" alt=""></span><span class="scan-nfc">${NFC_ICON}</span><span class="scan-lbl">สแกน</span></a>
   </div></nav>`;
 }
 
