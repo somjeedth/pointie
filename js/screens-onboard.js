@@ -51,7 +51,7 @@ let phoneDraft = '';
 export function login() {
   const d = normalizePhone(phoneDraft);
   return {
-    html: `<div class="topbar">${backBtn('/welcome')}${steps(3, 1)}<span style="width:40px"></span></div>
+    html: `<div class="topbar">${backBtn('/welcome')}${steps(5, 1)}<span style="width:40px"></span></div>
       <div class="row" style="align-items:flex-start;margin-top:8px">
         <div class="col" style="gap:8px;flex:1">
           <h1 class="h1">เบอร์มือถือ<br>ของคุณ</h1>
@@ -135,7 +135,7 @@ export function otp() {
     return `<div class="${cls}">${esc(dch)}</div>`;
   }).join('');
   return {
-    html: `<div class="topbar">${backBtn('/login')}${steps(3, 2)}<span style="width:40px"></span></div>
+    html: `<div class="topbar">${backBtn('/login')}${steps(5, 2)}<span style="width:40px"></span></div>
       ${info.real ? '' : `<div class="card-soft row" style="gap:10px;padding:10px 14px">
         ${icon('phone', 18)}<span class="small">SMS (จำลอง): รหัส D Point ของคุณคือ <b style="letter-spacing:.12em">${info.code}</b></span>
       </div>`}
@@ -197,7 +197,7 @@ export function otp() {
         }
         if (r.ok) {
           otpState = { code: '', status: 'normal', tries: 3 };
-          if (r.isNew || !store.me.user.setupDone) go('/setup');
+          if (r.isNew || !store.me.user.setupDone) go('/join/name');
           else { toast(`ยินดีต้อนรับกลับ ${store.me.user.nick}!`); go(returnTo.take() || '/home'); }
         } else if (r.reason === 'wrong') {
           otpState = { ...otpState, status: 'wrong', tries: r.tries };

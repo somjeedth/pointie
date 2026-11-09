@@ -303,16 +303,30 @@ export function cards(p, query) {
   const head = `<div class="between"><h1 class="h2" style="font-size:22px">บัตรของฉัน</h1><span class="muted small">${all.length} ใบ</span></div>`;
 
   if (!all.length && !me.redeemed.length) {
+    const welcome = query.get('welcome') === '1';
+    const dots = Array.from({ length: 10 }, (_, i) => `<span class="ec-dot" style="animation-delay:${i * 0.08}s">${i === 9 ? '🎁' : ''}</span>`).join('');
     return {
       nav: 'cards',
       html: `${head}
-        <div class="col" style="align-items:center;text-align:center;gap:10px;margin-top:30px">
-          <svg width="150" height="120" viewBox="0 0 150 120" fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="6 6" aria-hidden="true"><rect x="18" y="14" width="70" height="96" rx="12" transform="rotate(-10 53 62)"/><rect x="62" y="8" width="70" height="96" rx="12" transform="rotate(8 97 56)"/></svg>
-          <h2 class="h2">ยังไม่มีบัตรสะสมแต้ม</h2>
-          <p class="muted small">แตะมือถือที่จุด NFC ของร้านที่ร่วมรายการ<br>บัตรใบแรกจะมาอยู่ที่นี่ทันที</p>
+        ${welcome ? `<div class="welcome-chip">${icon('sparkle', 16)}ยินดีต้อนรับ ${esc(me.user.nick || '')}! บัตรใบแรกของคุณรออยู่</div>` : ''}
+        <div class="empty-card" aria-hidden="true">
+          <div class="ec-top"><span class="xs bold" style="letter-spacing:.1em">D POINT CARD</span>${wordmark(16, 'on-blue')}</div>
+          <div class="ec-scan">
+            <svg class="ec-frame" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M4 15V8a4 4 0 0 1 4-4h7M33 4h7a4 4 0 0 1 4 4v7M44 33v7a4 4 0 0 1-4 4h-7M15 44H8a4 4 0 0 1-4-4v-7"/></svg>
+            <span class="ec-ring r1"></span><span class="ec-ring r2"></span>
+            <img src="img/pointie-face.png" alt="">
+          </div>
+          <div class="ec-dots">${dots}</div>
+          <div class="ec-foot"><span>0/10 แสตมป์</span><span>รอสแกนครั้งแรก</span></div>
         </div>
-        <div class="card row"><span class="initials sm">${icon('pin', 18)}</span><span class="small"><b>มี ${SHOPS.length} ร้าน</b> ใกล้คุณที่สะสมแต้มได้</span></div>
-        <a class="btn btn-primary" href="#/map">ดูร้านบนแมพ</a>`,
+        <div class="col center" style="gap:6px;align-items:center">
+          <h2 class="h2" style="font-size:20px">สแกนที่ร้านโปรด เพื่อสะสมรางวัล</h2>
+          <p class="muted small">มองหาป้าย D Point ที่หน้าร้านหรือเคาน์เตอร์<br>แตะมือถือ หรือสแกน QR แล้วบัตรใบแรกจะมาอยู่ที่นี่ทันที</p>
+        </div>
+        <div class="col" style="gap:10px">
+          <a class="btn btn-primary" href="#/scan">${icon('nfc', 20, 2.4)}สแกนเลย</a>
+          <a class="btn btn-ghost" href="#/map">${icon('pin', 18)}หาร้านใกล้คุณ · ${SHOPS.length} ร้าน</a>
+        </div>`,
     };
   }
 

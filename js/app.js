@@ -2,6 +2,7 @@
 import { store, ensureWeek, peekLevelUp, bootRemote, isLinking } from './store.js';
 import { nav, toast } from './ui.js';
 import { morphChildren, runMount } from './dom.js';
+import { joinName, joinBirthday, joinLikes, joinTour } from './screens-join.js';
 import { welcome, login, otp, setup, invite, prefPlaces, prefStyle, prefLocation, returnTo, resetOtpScreen } from './screens-onboard.js';
 import { home, notifications, map, scan, cards, profile, badges, reviews, settings, legal } from './screens-main.js';
 import { tap, offline, storePage, redeemPage, levelup } from './screens-flow.js';
@@ -14,6 +15,10 @@ const ROUTES = [
   [/^\/legal$/, legal, { open: true }],
   [/^\/tap\/(?<id>[\w-]+)$/, tap, { open: true }],
   [/^\/setup$/, setup, {}],
+  [/^\/join\/name$/, joinName, {}],
+  [/^\/join\/birthday$/, joinBirthday, {}],
+  [/^\/join\/likes$/, joinLikes, {}],
+  [/^\/join\/tour$/, joinTour, {}],
   [/^\/invite$/, invite, {}],
   [/^\/prefs\/places$/, prefPlaces, {}],
   [/^\/prefs\/style$/, prefStyle, {}],
@@ -58,7 +63,7 @@ function resolve() {
   const [re, fn, opt] = hit;
   if (!me && !opt.guest && !opt.open) { returnTo.set(path); return { redirect: '/welcome' }; }
   if (me && opt.guest && !(isLinking() && /^\/(login|otp)$/.test(path))) return { redirect: '/home' };
-  if (me && !me.user.setupDone && path !== '/setup' && !opt.open) return { redirect: '/setup' };
+  if (me && !me.user.setupDone && !/^\/(setup|join\/(name|birthday))$/.test(path) && !opt.open) return { redirect: '/join/name' };
   if (me && LEVELUP_INTERCEPT.has(path) && peekLevelUp()) return { redirect: '/levelup' };
   return { fn, params: path.match(re).groups || {}, query, path };
 }
