@@ -48,8 +48,7 @@ export function nav(active) {
     `<a href="#${to}" class="tab ${active === key ? 'on' : ''}" aria-label="${full}" ${active === key ? 'aria-current="page"' : ''}>${icon(ic, 22)}<span class="lbl">${label}</span></a>`;
   return `<nav class="nav" aria-label="เมนูหลัก"><div class="nav-pill">
     ${item('home', '/home', 'home', 'หน้าแรก')}
-    ${item('map', '/map', 'map', 'แมพ')}
-    ${item('cards', '/cards', 'card', 'บัตร', 'บัตรของฉัน')}
+    ${item('cards', '/cards', 'card', 'บัตรของฉัน')}
     ${item('profile', '/profile', 'user', 'โปรไฟล์')}
     <a href="#/scan" class="scan ${active === 'scan' ? 'on' : ''}" aria-label="สแกนรับแสตมป์ (NFC / QR)"><span class="scan-btn"><img class="scan-face" src="img/pointie-face.png" width="52" height="52" alt=""></span><span class="scan-nfc">${NFC_ICON}</span><span class="scan-lbl">สแกน</span></a>
   </div></nav>`;

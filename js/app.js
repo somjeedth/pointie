@@ -4,7 +4,7 @@ import { nav, toast } from './ui.js';
 import { morphChildren, runMount } from './dom.js';
 import { joinName, joinBirthday, joinLikes, joinTour } from './screens-join.js';
 import { welcome, login, otp, setup, invite, prefPlaces, prefStyle, prefLocation, returnTo, resetOtpScreen } from './screens-onboard.js';
-import { home, notifications, map, scan, cards, profile, badges, reviews, settings, legal } from './screens-main.js';
+import { home, notifications, scan, cards, profile, badges, reviews, settings, legal } from './screens-main.js';
 import { tap, offline, storePage, redeemPage, levelup } from './screens-flow.js';
 
 const ROUTES = [
@@ -25,7 +25,6 @@ const ROUTES = [
   [/^\/prefs\/location$/, prefLocation, {}],
   [/^\/home$/, home, {}],
   [/^\/notifications$/, notifications, {}],
-  [/^\/map$/, map, {}],
   [/^\/scan$/, scan, {}],
   [/^\/cards$/, cards, {}],
   [/^\/profile$/, profile, {}],
@@ -37,7 +36,7 @@ const ROUTES = [
   [/^\/levelup$/, levelup, {}],
   [/^\/offline\/(?<id>[\w-]+)$/, offline, {}],
 ];
-const LEVELUP_INTERCEPT = new Set(['/home', '/profile', '/cards', '/map']);
+const LEVELUP_INTERCEPT = new Set(['/home', '/profile', '/cards']);
 
 const app = document.getElementById('app');
 let current = null; // { screen, cleanup, path }

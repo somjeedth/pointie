@@ -73,7 +73,7 @@ export function home() {
         ${missions}
       </section>
       <section class="col">
-        <div class="section-h"><h2>ร้านใกล้ตัว</h2><a class="link" href="#/map">ดูบนแมพ</a></div>
+        <div class="section-h"><h2>ร้านที่ร่วมรายการ</h2></div>
         <div class="hscroll" role="tablist">${[['all', 'ทั้งหมด'], ...Object.entries(CAT).map(([k, v]) => [k, v.label])].map(([k, l]) => `<button class="chip ${homeCat === k ? 'on' : ''}" data-act="cat" data-k="${k}" role="tab" aria-selected="${homeCat === k}">${l}</button>`).join('')}</div>
         <div class="hscroll" id="shopList" style="gap:12px"></div>
       </section>
@@ -345,7 +345,7 @@ export function cards(p, query) {
         </div>
         <div class="col" style="gap:10px">
           <a class="btn btn-primary" href="#/scan">${icon('nfc', 20, 2.4)}สแกนเลย</a>
-          <a class="btn btn-ghost" href="#/map">${icon('pin', 18)}หาร้านใกล้คุณ · ${SHOPS.length} ร้าน</a>
+          <a class="btn btn-ghost" href="#/home">${icon('pin', 18)}ดูร้านที่ร่วมรายการ · ${SHOPS.length} ร้าน</a>
         </div>`,
     };
   }

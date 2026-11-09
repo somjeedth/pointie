@@ -174,8 +174,8 @@ h1, h2, h3, p { margin: 0; }
 }
 .nav .tab svg { flex: none; }
 .nav .tab .lbl { max-width: 0; opacity: 0; transition: max-width .35s cubic-bezier(.2,.8,.2,1), opacity .2s; }
-.nav .tab.on { flex-grow: 2.6; background: var(--primary); color: #fff; box-shadow: 0 6px 16px rgba(8,101,245,.45); }
-.nav .tab.on .lbl { max-width: 90px; opacity: 1; animation: nav-lbl .35s ease-out; }
+.nav .tab.on { flex-grow: 2.2; background: var(--primary); color: #fff; box-shadow: 0 6px 16px rgba(8,101,245,.45); }
+.nav .tab.on .lbl { max-width: 110px; opacity: 1; animation: nav-lbl .35s ease-out; }
 @keyframes nav-lbl { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
 .nav .tab:not(.on):active { background: rgba(255,255,255,.08); }
 .nav a.scan { position: relative; flex: none; width: 60px; height: 60px; margin-left: 2px; text-decoration: none; }
