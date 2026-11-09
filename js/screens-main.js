@@ -307,10 +307,10 @@ function tapScene() {
       <rect transform="${plane(O.x, O.y, O.t)}" x="3.5" y="${O.h / 2 - 7}" width="5" height="14" rx="2.5" fill="#082B76"/>
       <g class="tchk"><ellipse cx="${kx}" cy="${ky}" rx="15" ry="9" fill="#0865F5"/><path d="M${kx - 6} ${ky - 1}l4 4 8-7" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></g>`;
   return `<div class="tap-scene"><svg viewBox="0 0 240 150" width="100%" height="100%">
-      <ellipse cx="${M.x + M.w * 0.52}" cy="${M.y + M.h - 3}" rx="40" ry="8" fill="rgba(8,43,118,.28)"/>
+      <ellipse cx="${M.x + M.w * 0.52}" cy="${M.y + M.h - 3}" rx="40" ry="8" fill="rgba(8,43,118,.12)"/>
       <g class="tm"><image href="img/pointie-point.png" x="${M.x}" y="${M.y}" width="${M.w}" height="${M.h}"/></g>
       <circle class="tw w1" cx="${star.x}" cy="${star.y}" r="20" fill="none" stroke="#17D8F8" stroke-width="2.6"/>
-      <circle class="tw w2" cx="${star.x}" cy="${star.y}" r="20" fill="none" stroke="#FFFFFF" stroke-width="2.2"/>
+      <circle class="tw w2" cx="${star.x}" cy="${star.y}" r="20" fill="none" stroke="#0865F5" stroke-width="2.2"/>
       <g class="tphone">${phone}</g>
     </svg><span class="tplus">+1 แสตมป์</span></div>`;
 }
@@ -335,11 +335,9 @@ export function cards(p, query) {
       nav: 'cards',
       html: `${head}
         ${welcome ? `<div class="welcome-chip">${icon('sparkle', 16)}ยินดีต้อนรับ ${esc(me.user.nick || '')}! บัตรใบแรกของคุณรออยู่</div>` : ''}
-        <div class="empty-card" aria-hidden="true">
-          <div class="ec-top"><span class="xs bold" style="letter-spacing:.1em">D POINT CARD</span>${wordmark(16, 'on-blue')}</div>
+        <div class="tap-stage" aria-hidden="true">
           ${tapScene()}
-          <div class="ec-dots">${dots}</div>
-          <div class="ec-foot"><span>0/10 แสตมป์</span><span class="ec-status"><i class="ec-live"></i>กำลังสแกน<b class="ec-ell"><i>.</i><i>.</i><i>.</i></b></span></div>
+          <span class="ec-status"><i class="ec-live"></i>กำลังรอสแกน<b class="ec-ell"><i>.</i><i>.</i><i>.</i></b></span>
         </div>
         <div class="col center" style="gap:6px;align-items:center">
           <h2 class="h2" style="font-size:20px">สแกนที่ร้านโปรด เพื่อสะสมรางวัล</h2>
