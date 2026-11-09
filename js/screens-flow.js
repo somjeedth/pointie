@@ -3,6 +3,7 @@
 import { icon } from './icons.js';
 import {
   esc, go, toast, bigStampCard, starsHtml, sheet, fireworks, playFireworks, cardBg, cardBgStyle, letterHtml, cardEn, stampGrid,
+  wordmark,
 } from './ui.js';
 import { shopById, CAT, SAMPLE_REVIEWS, MISSIONS, XP, levelTitle, unlocksFor, tierFor, tierById, GENS, GEN_ORDER, GEN_MIN_REVIEWS, genEmoji, genMood, genOf, sampleGenReviews, SHOPS } from './data.js';
 import { loadEvents } from './catalog.js';
@@ -14,7 +15,7 @@ import { returnTo } from './screens-onboard.js';
 import { openText } from './screens-main.js';
 import { embedFor, mapsUrl } from './geo.js';
 
-const brandBar = () => `<div class="topbar"><div class="brand"><img src="img/app-icon.png" alt="">Pointie</div><div class="nfc-ok">แตะ NFC สำเร็จ</div></div>`;
+const brandBar = () => `<div class="topbar"><div class="brand">${wordmark(26)}</div><div class="nfc-ok">แตะ NFC สำเร็จ</div></div>`;
 
 // ================= TAP / COLLECT =================
 let tapResult = null; // { shopId, res }
@@ -86,7 +87,7 @@ export function tap({ id }, query) {
       html: `${brandBar()}
         <div class="stampcard-wrap">${bigStampCard(shop, have, { newIdx: have, foot: `ครั้งที่ ${visits}` })}</div>
         <div class="row" style="position:relative;gap:10px;padding:8px 14px 8px 8px;border-radius:18px;background:var(--soft);border:1px solid var(--soft-line)">
-          <img src="img/pointie-jump.png" alt="Pointie กระโดดดีใจ" style="height:72px;margin-top:-26px;flex:none">
+          <img src="img/pointie-jump.png" alt="D Point กระโดดดีใจ" style="height:72px;margin-top:-26px;flex:none">
           <div class="col" style="gap:4px;flex:1;min-width:0">
             <b style="font-size:18px">${r.isNewShop && Object.keys(me.cards).length === 1 ? 'ได้แสตมป์แรกแล้ว!' : 'ได้แสตมป์แล้ว!'}</b>
             <div class="row" style="gap:6px;flex-wrap:wrap"><span class="pill primary">+${r.added} แสตมป์${r.added - (r.tierBonus || 0) > 1 ? ' (x2)' : ''}</span>${r.tierBonus ? `<span class="pill teal">โบนัส ${tierFor(me.user.lv).name} +${r.tierBonus}</span>` : ''}<span class="pill violet">+${XP.stamp} XP</span><span class="pill dark">ภารกิจ ${mp}/${stampMission.goal}</span></div>
@@ -260,7 +261,7 @@ export function storePage({ id }, query) {
         <div class="card col">
           <div class="row" style="gap:16px"><div class="col center" style="gap:2px;align-items:center"><span class="rating-big">${s.rating}</span>${starsHtml(s.rating, 12)}<span class="xs muted">${s.reviewsCount} รีวิว</span></div>
             <div class="col" style="flex:1;gap:4px">${s.dist5.map((p, i) => `<div class="dist-row"><span>${5 - i}</span><div class="bar"><i style="width:${p}%"></i></div></div>`).join('')}</div></div>
-          <div class="ai-sum"><div class="row" style="gap:8px"><img src="img/pointie-point.png" alt=""><span class="xs bold accent">Pointie สรุปจากรีวิวของคนที่ไปจริง</span></div><p class="small">${esc(s.summary)}</p></div>
+          <div class="ai-sum"><div class="row" style="gap:8px"><img src="img/pointie-point.png" alt=""><span class="xs bold accent">D Point สรุปจากรีวิวของคนที่ไปจริง</span></div><p class="small">${esc(s.summary)}</p></div>
           <div class="row" style="flex-wrap:wrap;gap:6px">${tags}</div>
         </div>
       </section>
@@ -323,7 +324,7 @@ export function storePage({ id }, query) {
       async share() {
         const url = `${location.origin}${location.pathname}#/store/${id}`;
         try {
-          if (navigator.share) await navigator.share({ title: s.name, text: `${s.name} บน Pointie`, url });
+          if (navigator.share) await navigator.share({ title: s.name, text: `${s.name} บน D Point`, url });
           else { await navigator.clipboard.writeText(url); toast('คัดลอกลิงก์ร้านแล้ว'); }
         } catch { /* cancelled */ }
       },
@@ -369,7 +370,7 @@ export function redeemPage({ id }) {
   return {
     html: `<div class="topbar"><a class="icon-btn" href="#/cards" aria-label="ย้อนกลับ">${icon('back')}</a><h1>แลกรางวัล</h1></div>
       <div style="position:relative;height:430px;flex:none">
-        <img id="rPointie" src="img/pointie-cheer.png" alt="" style="position:absolute;right:-6px;top:-40px;height:104px;z-index:5;transition:transform .5s cubic-bezier(.2,1.6,.4,1) .15s,opacity .3s .15s;transform:translateY(60px) scale(.5);opacity:0">
+        <img id="rMascot" src="img/pointie-cheer.png" alt="" style="position:absolute;right:-6px;top:-40px;height:104px;z-index:5;transition:transform .5s cubic-bezier(.2,1.6,.4,1) .15s,opacity .3s .15s;transform:translateY(60px) scale(.5);opacity:0">
         <div id="rCard" class="${cardBg(k)}" style="position:relative;height:100%;border-radius:26px;overflow:hidden;${cardBgStyle(k)}box-shadow:var(--shadow);transition:transform .18s ease-out;color:#fff;display:flex;flex-direction:column;padding:18px 16px 16px">
           <div class="between"><span class="xs bold" style="letter-spacing:.08em">${cardEn(k)}</span><span class="full-tag" id="rBadge" style="padding:2px 8px;border-radius:999px;background:#fff;color:#000;font-size:11px;font-weight:700">${isDone ? 'บัตรใบใหม่' : 'ครบแล้ว!'}</span></div>
           ${letterHtml(k, 44).replace('class="letter"', 'class="letter" style="margin-top:40px"')}
@@ -407,7 +408,7 @@ export function redeemPage({ id }) {
           root.querySelector('#rBadge').textContent = 'บัตรใบใหม่';
           root.querySelector('#rCap').textContent = `อีก ${k.need} ดวง`;
           root.querySelector('#rRubber').style.cssText += ';transform:scale(1) rotate(-12deg);opacity:1';
-          root.querySelector('#rPointie').style.cssText += ';transform:none;opacity:1';
+          root.querySelector('#rMascot').style.cssText += ';transform:none;opacity:1';
           root.querySelector('#rCard').style.transform = ph === 2 ? 'scale(.97)' : 'scale(1)';
           root.querySelectorAll('.cf').forEach((el) => {
             const i = +el.dataset.i; const ang = (i / 12) * Math.PI * 2; const dist = 120 + (i % 3) * 40;
@@ -422,7 +423,7 @@ export function redeemPage({ id }) {
         if (ph >= 3) { done.style.opacity = 1; done.style.transform = 'none'; done.style.pointerEvents = 'auto'; }
         playFireworks(root, ph);
       };
-      if (isDone) { root.querySelector('#rRubber').style.cssText += ';transform:scale(1) rotate(-12deg);opacity:1'; root.querySelector('#rPointie').style.cssText += ';transform:none;opacity:1'; apply(3); }
+      if (isDone) { root.querySelector('#rRubber').style.cssText += ';transform:scale(1) rotate(-12deg);opacity:1'; root.querySelector('#rMascot').style.cssText += ';transform:none;opacity:1'; apply(3); }
       redeemApply = apply;
       return () => { redeemTimers.forEach(clearTimeout); };
     },
@@ -456,9 +457,9 @@ export function levelup() {
   const pct = Math.round((d.xp / d.need) * 100);
   return {
     cls: 'celebrate',
-    html: `<div style="position:absolute;left:50%;top:140px;width:520px;height:520px;margin-left:-260px;border-radius:50%;background:radial-gradient(circle,rgba(255,122,46,.38) 0%,rgba(255,122,46,.1) 40%,rgba(0,0,0,0) 68%);transition:transform .6s ease-out,opacity .6s;transform:scale(.3);opacity:0" id="lvGlow"></div>
+    html: `<div style="position:absolute;left:50%;top:140px;width:520px;height:520px;margin-left:-260px;border-radius:50%;background:radial-gradient(circle,rgba(8,101,245,.38) 0%,rgba(8,101,245,.1) 40%,rgba(0,0,0,0) 68%);transition:transform .6s ease-out,opacity .6s;transform:scale(.3);opacity:0" id="lvGlow"></div>
       <div class="topbar" style="width:100%;position:relative;z-index:3"><span></span><a class="icon-btn" href="#/home" aria-label="ปิด">${icon('close')}</a></div>
-      <img id="lvP" src="img/pointie-cheer.png" alt="Pointie ฉลอง" style="height:200px;position:relative;z-index:2;transition:transform .6s cubic-bezier(.2,1.6,.4,1),opacity .3s;transform:translateY(80px) scale(.6);opacity:0">
+      <img id="lvP" src="img/pointie-cheer.png" alt="D Point ฉลอง" style="height:200px;position:relative;z-index:2;transition:transform .6s cubic-bezier(.2,1.6,.4,1),opacity .3s;transform:translateY(80px) scale(.6);opacity:0">
       <div id="lvT" style="position:relative;z-index:2;margin-top:14px;font-family:Kanit,sans-serif;font-style:italic;font-weight:800;font-size:56px;line-height:1;color:#FFD23F;text-shadow:0 4px 0 #8C2F1C;transition:transform .5s cubic-bezier(.2,1.6,.4,1) .1s,opacity .2s .1s;transform:scale(2.2) rotate(-10deg);opacity:0">LEVEL UP!</div>
       <div class="row" style="position:relative;z-index:2;justify-content:center;margin-top:12px;gap:10px"><span class="bold muted" style="font-size:20px">Lv.</span>
         <span class="lv-num"><span id="lvOld" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:38px;font-weight:700;transition:transform .45s cubic-bezier(.2,1.6,.4,1) .25s">${d.from}</span><span id="lvNew" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:38px;font-weight:700;transition:transform .45s cubic-bezier(.2,1.6,.4,1) .25s;transform:translateY(64px)">${d.to}</span></span></div>

@@ -1,4 +1,4 @@
-// Router & bootstrap for the Pointie customer web app.
+// Router & bootstrap for the D Point customer web app.
 import { store, ensureWeek, peekLevelUp, bootRemote, isLinking } from './store.js';
 import { nav, toast } from './ui.js';
 import { morphChildren, runMount } from './dom.js';
@@ -39,7 +39,7 @@ let current = null; // { screen, cleanup, path }
 
 function applyTheme() {
   document.documentElement.dataset.theme = store.theme;
-  document.querySelector('meta[name="theme-color"]').content = store.theme === 'dark' ? '#000000' : '#FFF8F2';
+  document.querySelector('meta[name="theme-color"]').content = store.theme === 'dark' ? '#050C1F' : '#F4F9FF';
 }
 
 function parse() {
@@ -90,7 +90,7 @@ function render(keepState = false) {
   current.cleanup = runMount(screen, root, { rerender: () => render(true) });
   if (!patch) {
     const h1 = root.querySelector('h1');
-    document.title = h1 ? `${h1.textContent.trim()} · Pointie` : 'Pointie';
+    document.title = h1 ? `${h1.textContent.trim()} · D Point` : 'D Point';
   }
 }
 
@@ -102,7 +102,7 @@ app.addEventListener('click', (e) => {
   if (!el || el.dataset.act === 'closeSheet') return;
   if (el.dataset.act === 'shareCard') {
     const url = el.dataset.url;
-    (navigator.share ? navigator.share({ title: 'นามบัตร Pointie', url }) : navigator.clipboard.writeText(url).then(() => toast('คัดลอกลิงก์นามบัตรแล้ว'))).catch(() => {});
+    (navigator.share ? navigator.share({ title: 'นามบัตร D Point', url }) : navigator.clipboard.writeText(url).then(() => toast('คัดลอกลิงก์นามบัตรแล้ว'))).catch(() => {});
     return;
   }
   const fn = current?.screen.actions?.[el.dataset.act];

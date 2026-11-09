@@ -1,4 +1,4 @@
-/* Pointie merchant web — layered on top of ../css/app.css tokens/components */
+/* D Point merchant web — layered on top of ../css/app.css tokens/components */
 body.merchant { background: var(--bg); display: block; padding: 0; }
 .m-shell { display: grid; grid-template-columns: 240px 1fr; min-height: 100dvh; }
 .m-side {
@@ -167,7 +167,7 @@ details.sub summary { cursor: pointer; font-weight: 600; }
   .print-area { position: absolute; left: 0; top: 0; width: 100%; }
 }
 .print-area { display: none; }
-@media print { .print-area { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 40px; color: #000; background: #fff; text-align: center; font-family: 'IBM Plex Sans Thai', sans-serif; } }
+@media print { .print-area { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 40px; color: #000; background: #fff; text-align: center; font-family: 'Prompt', sans-serif; } }
 
 .art-up { display: flex; gap: 16px; align-items: flex-start; }
 .art-thumb { position: relative; width: 120px; aspect-ratio: 1080 / 1560; border-radius: 14px; display: flex; align-items: center; justify-content: center; overflow: hidden; flex: none; }

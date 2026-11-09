@@ -1,7 +1,7 @@
 // Onboarding & auth screens: Splash (A1), Phone (A2), OTP (A3), Setup (A4),
 // Invite (B1), Places (B2), Style (B3), Location (B4).
 import { icon } from './icons.js';
-import { esc, go, toast, steps, backBtn, avatarHtml } from './ui.js';
+import { esc, go, toast, steps, backBtn, avatarHtml, wordmark } from './ui.js';
 import { AVATARS, PLACES, STYLES, AREAS, XP, refreshDistances } from './data.js';
 import { setOrigin } from './geo.js';
 import {
@@ -23,8 +23,8 @@ export function welcome() {
     cls: 'splash',
     html: `<div class="glow"></div>${dots}
       <div class="col" style="align-items:center;margin-top:auto;gap:6px;position:relative">
-        <img class="mascot" src="img/pointie-cheer.png" alt="Pointie">
-        <div class="title">Pointie</div>
+        <img class="mascot" src="img/pointie-cheer.png" alt="D Point">
+        <h1 class="sr-only">D Point</h1>${wordmark(54)}
         <div class="muted" style="font-size:16px">แตะ · สะสม · เลเวลอัป</div>
       </div>
       <div class="col spacer" style="width:100%;position:relative">
@@ -108,7 +108,7 @@ export function serverErrorText(msg = '') {
   if (/anonymous/i.test(msg)) return 'Supabase ยังไม่เปิด "Allow anonymous sign-ins" (Authentication → Sign In / Providers)';
   if (/captcha/i.test(msg)) return 'Supabase เปิด CAPTCHA ไว้ แอพยังไม่รองรับ ให้ปิดที่ Authentication → Attack Protection';
   if (/rate limit|too many/i.test(msg)) return 'ลองบ่อยเกินไป รอสักครู่แล้วลองใหม่';
-  if (/function .* does not exist|could not find the function/i.test(msg)) return 'ฐานข้อมูลยังไม่มีฟังก์ชันของ Pointie ให้รัน schema.sql ใหม่';
+  if (/function .* does not exist|could not find the function/i.test(msg)) return 'ฐานข้อมูลยังไม่มีฟังก์ชันของ D Point ให้รัน schema.sql ใหม่';
   if (/timeout|failed to fetch|network/i.test(msg)) return 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่';
   return `เข้าสู่ระบบไม่สำเร็จ: ${msg || 'ไม่ทราบสาเหตุ'}`;
 }
@@ -137,7 +137,7 @@ export function otp() {
   return {
     html: `<div class="topbar">${backBtn('/login')}${steps(3, 2)}<span style="width:40px"></span></div>
       ${info.real ? '' : `<div class="card-soft row" style="gap:10px;padding:10px 14px">
-        ${icon('phone', 18)}<span class="small">SMS (จำลอง): รหัส Pointie ของคุณคือ <b style="letter-spacing:.12em">${info.code}</b></span>
+        ${icon('phone', 18)}<span class="small">SMS (จำลอง): รหัส D Point ของคุณคือ <b style="letter-spacing:.12em">${info.code}</b></span>
       </div>`}
       <div class="col" style="align-items:center;text-align:center;gap:8px">
         <img src="img/pointie-wink.png" alt="" style="height:120px">
@@ -317,12 +317,12 @@ export function setup(params, query) {
         if (missing.length) return fail('กรอกข้อมูลให้ครบทุกช่องนะ', missing);
         const birth = birthIso(dd);
         if (birth === 'bad') return fail('วันเกิดไม่ถูกต้อง ตรวจวันที่อีกครั้ง', ['bd']);
-        if (ageOf(birth) < 13) return fail('Pointie ใช้งานได้ตั้งแต่อายุ 13 ปีขึ้นไป', ['by']);
+        if (ageOf(birth) < 13) return fail('D Point ใช้งานได้ตั้งแต่อายุ 13 ปีขึ้นไป', ['by']);
         setupBusy = true;
         const btn = document.getElementById('go'); btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
         const r = await saveIdentity({ firstName: dd.first, lastName: dd.last, birthDate: birth });
         setupBusy = false; btn.disabled = false; btn.textContent = edit ? 'บันทึก' : 'ต่อไป';
-        if (!r.ok) return fail(r.reason === 'too_young' ? 'Pointie ใช้งานได้ตั้งแต่อายุ 13 ปีขึ้นไป' : r.reason === 'server' ? serverErrorText(r.message) : 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง', ['first']);
+        if (!r.ok) return fail(r.reason === 'too_young' ? 'D Point ใช้งานได้ตั้งแต่อายุ 13 ปีขึ้นไป' : r.reason === 'server' ? serverErrorText(r.message) : 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง', ['first']);
         const { nick, avatar, photo } = dd;
         if (edit) { updateProfile({ nick: nick.trim().slice(0, 20), avatar, photo }); setupDraft = null; toast('บันทึกโปรไฟล์แล้ว'); go('/profile'); return; }
         const first = !store.me.user.setupDone;
@@ -344,7 +344,7 @@ export function invite() {
   return {
     cls: 'flush',
     html: `<div style="position:absolute;inset:0;padding:16px 20px;opacity:.35;filter:blur(1px)">
-        <div class="brand"><img src="img/app-icon.png" alt="">Pointie</div>
+        <div class="brand">${wordmark(26)}</div>
         <div class="col" style="align-items:center;margin-top:40px">
           <img src="img/pointie-jump.png" alt="" style="height:150px">
           <div class="h1" style="font-size:30px">ได้แสตมป์แรกแล้ว!</div>
@@ -352,9 +352,9 @@ export function invite() {
       </div>
       <div class="sheet-backdrop" style="background:rgba(0,0,0,.55)">
         <div class="sheet" role="dialog" aria-labelledby="inviteTitle" style="align-items:center;text-align:center;overflow:visible">
-          <img src="img/pointie-cheer.png" alt="Pointie ดีใจ" style="height:130px;margin-top:-80px">
+          <img src="img/pointie-cheer.png" alt="D Point ดีใจ" style="height:130px;margin-top:-80px">
           <span class="pill soft">ภารกิจแรกของคุณ</span>
-          <h2 id="inviteTitle" class="h1" style="font-size:24px">บอก Pointie หน่อย<br>ว่าชอบอะไร</h2>
+          <h2 id="inviteTitle" class="h1" style="font-size:24px">บอก D Point หน่อย<br>ว่าชอบอะไร</h2>
           <p class="muted small">จะได้แนะนำร้าน โปร และภารกิจที่ตรงใจ${esc(me?.user.nick ? 'คุณ' + me.user.nick : 'คุณ')}<br>ใช้เวลาไม่ถึง 30 วินาที</p>
           <div class="invite-stats" style="width:100%">
             <div><b>3 ข้อ</b>แตะเลือก ไม่ต้องพิมพ์</div>
@@ -462,7 +462,7 @@ export function prefLocation(p, q) {
   return {
     html: `${top}
       <div class="loc-hero"><img src="img/pointie-point.png" alt=""></div>
-      <div class="col center" style="gap:6px"><h1 class="h1" style="font-size:24px">ให้ Pointie หาร้านใกล้คุณ</h1><p class="muted">อนุญาตตำแหน่งเพื่อให้แนะนำได้แม่นขึ้น</p></div>
+      <div class="col center" style="gap:6px"><h1 class="h1" style="font-size:24px">ให้ D Point หาร้านใกล้คุณ</h1><p class="muted">อนุญาตตำแหน่งเพื่อให้แนะนำได้แม่นขึ้น</p></div>
       <div class="col" style="gap:12px">
         <div class="feat-li"><span class="ic">${icon('pin', 18)}</span>ร้านที่ชอบ ใกล้ตัวคุณตอนนี้</div>
         <div class="feat-li"><span class="ic">${icon('tag', 18)}</span>โปรและกิจกรรมในย่านที่คุณไปบ่อย</div>

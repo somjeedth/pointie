@@ -9,7 +9,7 @@ import { SMS_OTP } from './config.js';
 
 const KEY_ACCOUNTS = 'pointie.accounts.v1';
 const KEY_SESSION = 'pointie.session.v1';
-const KEY_THEME = 'pointie.theme';
+const KEY_THEME = 'dpoint.theme';
 export const DEMO_PHONE = '0812345678';
 
 const safe = {
@@ -58,7 +58,7 @@ function blankProfile(phone) {
     },
     cards: {}, reviews: [], redeemed: [], favs: [], badges: [], pinned: [],
     week: { key: weekKey(), newCafes: [], stamps: 0, reviews: 0, claimed: [] },
-    notifications: [{ id: 1, text: 'ยินดีต้อนรับสู่ Pointie! แตะ NFC ที่ร้านเพื่อรับแสตมป์แรก', at: new Date().toISOString(), read: false }],
+    notifications: [{ id: 1, text: 'ยินดีต้อนรับสู่ D Point! แตะ NFC ที่ร้านเพื่อรับแสตมป์แรก', at: new Date().toISOString(), read: false }],
     pending: {},
   };
 }
@@ -99,7 +99,7 @@ const listeners = new Set();
 export const store = {
   accounts: safe.get(KEY_ACCOUNTS, {}),
   session: safe.get(KEY_SESSION, null), // { phone }
-  theme: safe.get(KEY_THEME, 'dark'),
+  theme: safe.get(KEY_THEME, 'light'),
   get me() { return this.session && this.accounts[this.session.phone]; },
   get loggedIn() { return !!this.me; },
 };

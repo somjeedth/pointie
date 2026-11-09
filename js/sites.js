@@ -1,4 +1,4 @@
-// Where each Pointie site lives. On getpointie.com every site has its own domain;
+// Where each D Point site lives. On getpointie.com every site has its own domain;
 // anywhere else (vercel.app previews, localhost) they are folders of one origin.
 const PROD = {
   landing: 'https://getpointie.com/',

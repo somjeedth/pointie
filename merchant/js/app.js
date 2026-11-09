@@ -1,6 +1,6 @@
-// Pointie merchant web: router, layout and views.
+// D Point merchant web: router, layout and views.
 import { icon } from '../../js/icons.js';
-import { esc, toast, bigStampCard, starsHtml, cardBg, cardBgStyle, letterHtml, isCardArt } from '../../js/ui.js';
+import { esc, toast, bigStampCard, starsHtml, cardBg, cardBgStyle, letterHtml, isCardArt, wordmark } from '../../js/ui.js';
 import { morphChildren, runMount } from '../../js/dom.js';
 import qrcode from './vendor/qrcode.js';
 import * as api from './api.js';
@@ -54,7 +54,7 @@ function shell(active, me, shop, body) {
   const badge = { redeem: pending, reviews: unreplied };
   return `<div class="m-shell" id="shell">
     <aside class="m-side" aria-label="เมนูร้านค้า">
-      <div class="brand"><img src="/img/app-icon.png" alt="">Pointie <span class="pill soft" style="font-size:11px">ร้านค้า</span></div>
+      <div class="brand">${wordmark(26)} <span class="pill soft" style="font-size:11px">ร้านค้า</span></div>
       <div class="shopname">ร้านของคุณ<b>${esc(shop.name)}</b>${shop.paused ? '<span class="status void">ซ่อนจากแอพ</span>' : ''}</div>
       <nav class="m-nav">${NAV.map(([k, l, ic]) => `<a href="#/${k}" class="${active === k ? 'on' : ''}" ${active === k ? 'aria-current="page"' : ''}>${icon(ic, 18)}${l}${badge[k] ? `<span class="badge-n">${badge[k]}</span>` : ''}</a>`).join('')}</nav>
       <div class="foot m-nav">
@@ -75,7 +75,7 @@ const head = (title, sub, right = '') => `<div class="m-head"><div><h1>${title}<
 function loginView() {
   return {
     html: `<div class="auth">
-      <div class="hero"><img src="/img/pointie-cheer.png" alt=""><h1 class="h1">Pointie สำหรับร้านค้า</h1><p class="muted">ดูลูกค้าประจำ ออกแบบบัตรสะสม ตั้งโปร และยืนยันการแลกรางวัล<br>ในที่เดียว</p><a class="link-u" href="${siteUrl('landing')}">รู้จัก Pointie สำหรับร้านค้า →</a></div>
+      <div class="hero"><img src="/img/pointie-cheer.png" alt=""><h1 class="h1">D Point สำหรับร้านค้า</h1><p class="muted">ดูลูกค้าประจำ ออกแบบบัตรสะสม ตั้งโปร และยืนยันการแลกรางวัล<br>ในที่เดียว</p><a class="link-u" href="${siteUrl('landing')}">รู้จัก D Point สำหรับร้านค้า →</a></div>
       <div class="box"><form class="form" id="f">
         <h2 class="h1" style="font-size:24px">เข้าสู่ระบบร้านค้า</h2>
         <label class="field"><span>อีเมล</span><input class="inp" name="email" type="email" autocomplete="email" required></label>
@@ -125,7 +125,7 @@ function showErr(r, msg) { const el = r.querySelector('#err'); el.textContent = 
 function signupView() {
   return {
     html: `<div class="auth">
-      <div class="hero"><img src="/img/pointie-point.png" alt=""><h1 class="h1">เปิดร้านบน Pointie</h1><p class="muted">ตั้งค่าเสร็จในไม่กี่นาที แล้ววางสแตนด์ NFC ให้ลูกค้าแตะรับแสตมป์ได้เลย</p></div>
+      <div class="hero"><img src="/img/pointie-point.png" alt=""><h1 class="h1">เปิดร้านบน D Point</h1><p class="muted">ตั้งค่าเสร็จในไม่กี่นาที แล้ววางสแตนด์ NFC ให้ลูกค้าแตะรับแสตมป์ได้เลย</p></div>
       <div class="box"><form class="form" id="f">
         <h2 class="h1" style="font-size:24px">สมัครร้านใหม่</h2>
         ${shopFields()}
@@ -200,13 +200,13 @@ function barChart(series) {
 }
 function heatmap(heat) {
   const max = Math.max(1, ...heat.flat());
-  const lvl = (v) => (v === 0 ? 'background:var(--track)' : `background:rgba(255,122,46,${[0.28, 0.45, 0.62, 0.8, 1][Math.min(4, Math.floor((v / max) * 4.999))]})`);
+  const lvl = (v) => (v === 0 ? 'background:var(--track)' : `background:rgba(8,101,245,${[0.28, 0.45, 0.62, 0.8, 1][Math.min(4, Math.floor((v / max) * 4.999))]})`);
   let h = '<span></span>' + Array.from({ length: 14 }, (_, i) => `<span class="hd">${i % 2 ? '' : 8 + i}</span>`).join('');
   for (const d of [1, 2, 3, 4, 5, 6, 0]) {
     h += `<span class="rl">${DAYS[d]}</span>` + heat[d].map((v, i) => `<span class="cell" style="${lvl(v)}" data-tip="${DAYS_FULL[d]} ${8 + i}:00–${9 + i}:00 · ${v} ครั้ง"></span>`).join('');
   }
   return `<div class="chart" id="heat"><div class="heat" role="img" aria-label="ช่วงเวลาที่ลูกค้ามาบ่อย">${h}</div><div class="tip" hidden></div></div>
-    <div class="legend-scale">น้อย${[0.28, 0.45, 0.62, 0.8, 1].map((a) => `<i style="background:rgba(255,122,46,${a})"></i>`).join('')}มาก</div>`;
+    <div class="legend-scale">น้อย${[0.28, 0.45, 0.62, 0.8, 1].map((a) => `<i style="background:rgba(8,101,245,${a})"></i>`).join('')}มาก</div>`;
 }
 function bindTips(rootEl) {
   rootEl.querySelectorAll('.chart').forEach((ch) => {
@@ -584,7 +584,7 @@ function standsView(me, shop) {
       `<div class="panel"><h2>วิธีเขียนลิงก์ลงแท็ก NFC</h2><div class="howto">
         <div><b class="n">1</b><span>${canNfc ? 'กด <b>เขียนลงแท็ก NFC</b> แล้วแตะแท็กเปล่าที่ด้านหลังมือถือ' : 'ใช้ Android Chrome กดปุ่ม <b>เขียนลงแท็ก NFC</b> ในหน้านี้ หรือใช้แอพ NFC Tools (iPhone/Android)'}</span></div>
         <div><b class="n">2</b><span>ถ้าใช้แอพอื่น: เลือก “เขียน URL” แล้ววางลิงก์ของสแตนด์</span></div>
-        <div><b class="n">3</b><span>แปะแท็กบนสแตนด์คู่กับ QR — iPhone และ Android จะเปิดแอพ Pointie ให้ลูกค้าทันที</span></div></div></div>
+        <div><b class="n">3</b><span>แปะแท็กบนสแตนด์คู่กับ QR — iPhone และ Android จะเปิดแอพ D Point ให้ลูกค้าทันที</span></div></div></div>
       <div class="print-area" id="printArea"></div>`,
     mount(r) {
       r.querySelector('#add').addEventListener('submit', (e) => {
@@ -600,7 +600,7 @@ function standsView(me, shop) {
       print(el) {
         const s = shop.stands.find((x) => x.id === el.dataset.id);
         const pa = document.getElementById('printArea');
-        pa.innerHTML = `<h1 style="font-size:36px;margin:0">${esc(shop.name)}</h1><p style="font-size:20px;margin:0">แตะมือถือ หรือสแกน QR เพื่อรับแสตมป์</p><div style="width:320px">${qrSvg(api.tapUrl(shop.id, s))}</div><p style="font-size:14px;margin:0">Pointie · ${esc(s.name)}</p>`;
+        pa.innerHTML = `<h1 style="font-size:36px;margin:0">${esc(shop.name)}</h1><p style="font-size:20px;margin:0">แตะมือถือ หรือสแกน QR เพื่อรับแสตมป์</p><div style="width:320px">${qrSvg(api.tapUrl(shop.id, s))}</div><p style="font-size:14px;margin:0">D Point · ${esc(s.name)}</p>`;
         window.print();
       },
       async nfc(el) {
@@ -673,7 +673,7 @@ function settingsView(me, shop) {
       <p class="small muted" style="max-width:640px">${api.isRemote() ? 'ข้อมูลซิงก์กับเซิร์ฟเวอร์ (Supabase) — เห็นการแตะจากมือถือลูกค้าทุกเครื่อง' : 'เวอร์ชันเดโม: ข้อมูลร้านและกิจกรรมของลูกค้าเก็บในเบราว์เซอร์นี้ ใช้ร่วมกับแอพลูกค้าบนโดเมนเดียวกัน'}</p>`,
     actions: {
       pause() { act(api.saveShop(shop.id, { paused: !shop.paused }), shop.paused ? 'ร้านกลับมาแสดงในแอพแล้ว' : 'ซ่อนร้านจากแอพลูกค้าแล้ว'); },
-      theme() { const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = t; try { localStorage.setItem('pointie.theme', JSON.stringify(t)); } catch { /* ignore */ } rerender(); },
+      theme() { const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = t; try { localStorage.setItem('dpoint.theme', JSON.stringify(t)); } catch { /* ignore */ } rerender(); },
       resetDemo() { api.resetDemoData(); toast('สร้างข้อมูลตัวอย่างใหม่แล้ว'); go('/dashboard'); },
       async logout() { await api.logout(); go('/login'); },
     },
@@ -707,7 +707,7 @@ function render(keep = false) {
   if (same) { tpl.querySelector('.m-main')?.classList.add('no-enter'); morphChildren(root, tpl); } else { root.innerHTML = view.html; window.scrollTo(0, 0); }
   current = { key, view };
   runMount(view, root, { rerender });
-  document.title = `${(root.querySelector('h1')?.textContent || 'Pointie').trim()} · Pointie ร้านค้า`;
+  document.title = `${(root.querySelector('h1')?.textContent || 'D Point').trim()} · D Point ร้านค้า`;
 }
 root.addEventListener('click', (e) => {
   const el = e.target.closest('[data-act]'); if (!el) return;
@@ -728,7 +728,7 @@ window.addEventListener('hashchange', async () => {
 });
 window.addEventListener('storage', (e) => { if (e.key && e.key.startsWith('pointie.')) render(true); }); // live updates from the customer app tab
 
-try { const t = JSON.parse(localStorage.getItem('pointie.theme') || '"dark"'); document.documentElement.dataset.theme = t; } catch { /* ignore */ }
+try { const t = JSON.parse(localStorage.getItem('dpoint.theme') || '"light"'); document.documentElement.dataset.theme = t; } catch { /* ignore */ }
 api.init().then((mode) => {
   document.documentElement.dataset.backend = mode;
   render(false);

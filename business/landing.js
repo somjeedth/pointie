@@ -1,4 +1,4 @@
-// Pointie for business — live numbers, ROI calculator, small interactions.
+// D Point for business — live numbers, ROI calculator, small interactions.
 import { icon } from '../js/icons.js';
 import * as remote from '../js/remote.js';
 import { siteUrl } from '../js/sites.js';
@@ -16,7 +16,7 @@ document.querySelectorAll('[data-icon]').forEach((el) => { el.innerHTML = icon(e
 // Only real activity (see public_stats in supabase/schema.sql). A number is shown
 // once it is big enough to mean something; if none is, the strip stays hidden.
 const LIVE = [
-  ['shops', 'ร้านที่ใช้ Pointie', 3],
+  ['shops', 'ร้านที่ใช้ D Point', 3],
   ['customers', 'ลูกค้าที่สมัครแล้ว', 20],
   ['stamps', 'แสตมป์ที่แจกไปแล้ว', 50],
   ['redemptions', 'รางวัลที่ลูกค้าแลกแล้ว', 5],

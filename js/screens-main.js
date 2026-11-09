@@ -1,7 +1,7 @@
 // Main tab screens: Home, Map, Scan, My cards, Profile (+ sub pages).
 import { icon } from './icons.js';
 import {
-  esc, go, toast, nav, avatarHtml, toneStyle, cardBg, cardBgStyle, hasArt, letterHtml, cardEn, stampGrid, starsHtml, sheet, backBtn,
+  esc, go, toast, nav, avatarHtml, wordmark, toneStyle, cardBg, cardBgStyle, hasArt, letterHtml, cardEn, stampGrid, starsHtml, sheet, backBtn,
 } from './ui.js';
 import { getOrigin, setOrigin, locateMe, embedFor, mapsUrl } from './geo.js';
 import { SHOPS, CAT, shopById, MISSIONS, BADGES, xpNeed, levelTitle, unlocksFor, totalVisits, catVisitStats, STYLES, TIERS, tierFor, nextTier, refreshDistances } from './data.js';
@@ -65,8 +65,8 @@ export function home() {
         <div class="between xs semi"><span>${u.xp} / ${need} XP</span><span>${nextTier(u.lv) ? `อีก ${nextTier(u.lv).min - u.lv} เลเวลถึงระดับ ${nextTier(u.lv).name}` : 'ระดับสูงสุด Legend'}</span></div>
       </a>
       <${fullCard ? `a href="#/cards?shop=${fullCard[0]}"` : 'div'} class="pointie-says" style="text-decoration:none;color:inherit">
-        <img src="img/pointie-point.png" alt="Pointie">
-        <div class="col" style="gap:2px;flex:1;min-width:0"><span class="xs bold accent">Pointie บอกว่า</span><span class="semi" style="font-size:14px;line-height:1.45">${esc(tip)}</span></div>
+        <img src="img/pointie-point.png" alt="D Point">
+        <div class="col" style="gap:2px;flex:1;min-width:0"><span class="xs bold accent">D Point บอกว่า</span><span class="semi" style="font-size:14px;line-height:1.45">${esc(tip)}</span></div>
       </${fullCard ? 'a' : 'div'}>
       <section class="col">
         <div class="section-h"><h2>ภารกิจประจำสัปดาห์</h2><span class="pill soft">เหลือ ${daysLeftInWeek()} วัน</span></div>
@@ -249,7 +249,7 @@ export function scan() {
               const codes = await det.detect(video);
               const id = codes.map((c) => parseTagUrl(c.rawValue)).find(Boolean);
               if (id) { stopScan(); go('/tap/' + id); return; }
-              if (codes.length) msg.textContent = 'QR นี้ไม่ใช่ของร้านใน Pointie';
+              if (codes.length) msg.textContent = 'QR นี้ไม่ใช่ของร้านใน D Point';
             } catch { /* frame not ready */ }
             camLoop = requestAnimationFrame(loop);
           };
@@ -422,7 +422,7 @@ export function profile() {
     html: `<div class="between"><h1 class="h2" style="font-size:22px">โปรไฟล์</h1><a class="icon-btn" href="#/settings" aria-label="ตั้งค่า">${icon('settings')}</a></div>
       <div class="member ${u.frame === 'gold' ? 'frame-gold' : ''}">
         <div class="ring"></div>
-        <div class="between xs bold" style="letter-spacing:.08em"><span>MEMBER CARD</span><span class="row" style="gap:4px;letter-spacing:0"><img src="img/app-icon.png" alt="" style="width:18px;height:18px;border-radius:5px">Pointie</span></div>
+        <div class="between xs bold" style="letter-spacing:.08em"><span>MEMBER CARD</span>${wordmark(16, 'on-blue')}</div>
         <div class="row">${avatarHtml(u)}<div class="col" style="gap:2px;min-width:0"><b style="font-size:22px;line-height:1.2">${esc(u.nick)}</b><span class="small semi">@${esc(u.handle)}</span><span class="row" style="gap:6px;flex-wrap:wrap"><span class="lvpill">Lv.${u.lv} · ${levelTitle(u.lv)}</span><span class="lvpill">${tierFor(u.lv).name}</span></span></div></div>
         ${styleTags.length ? `<div class="row xs bold" style="gap:6px;flex-wrap:wrap">${styleTags.map((t) => `<span>#${t}</span>`).join('')}</div>` : ''}
         <div class="bar"><i style="width:${Math.round((u.xp / need) * 100)}%"></i></div>
@@ -527,7 +527,7 @@ export function settings() {
         <button data-act="logout">${icon('logout')}ออกจากระบบ</button>
         <button data-act="delete" style="color:var(--red)">${icon('trash')}ลบบัญชีและข้อมูลทั้งหมด</button>
       </div></div>
-      <p class="center xs muted">Pointie เวอร์ชันเว็บ · ${document.documentElement.dataset.backend === 'remote' ? 'ข้อมูลซิงก์กับเซิร์ฟเวอร์' : 'โหมดเดโม ข้อมูลเก็บในเครื่องนี้เท่านั้น'}</p>`,
+      <p class="center xs muted">D Point เวอร์ชันเว็บ · ${document.documentElement.dataset.backend === 'remote' ? 'ข้อมูลซิงก์กับเซิร์ฟเวอร์' : 'โหมดเดโม ข้อมูลเก็บในเครื่องนี้เท่านั้น'}</p>`,
     mount(root, ctx) {
       needsPhoneLink().then((v) => { const b = root.querySelector('#linkPhone'); if (b) b.hidden = !v; });
     },

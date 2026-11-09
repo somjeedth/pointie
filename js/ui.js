@@ -40,7 +40,7 @@ export function steps(total, current) {
   return `<div class="steps" aria-label="ขั้นตอนที่ ${current} จาก ${total}">${s}</div>`;
 }
 
-// Centre "scan" button: the Pointie coin face ('face') or the face inside scan corners ('frame').
+// Centre "scan" button: the D Point coin face ('face') or the face inside scan corners ('frame').
 export const SCAN_STYLE = 'frame';
 const SCAN_FRAME = '<svg class="scan-frame" width="38" height="38" viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" aria-hidden="true"><path d="M4 15V8a4 4 0 0 1 4-4h7M33 4h7a4 4 0 0 1 4 4v7M44 33v7a4 4 0 0 1-4 4h-7M15 44H8a4 4 0 0 1-4-4v-7"/></svg>';
 export function nav(active) {
@@ -115,7 +115,7 @@ export function fireworks(bursts) {
       const dx = Math.round(Math.cos(ang) * r), dy = Math.round(Math.sin(ang) * r);
       const star = k % 2 === 0;
       const s = star ? (b.big ? 20 : 14) : 7;
-      const color = k % 3 === 0 ? '#FF7A2E' : b.c;
+      const color = k % 3 === 0 ? '#17D8F8' : b.c;
       html += `<span class="fw" data-dx="${dx}" data-dy="${dy}" data-k="${k}" data-d="${b.d}" style="left:${b.x}%;top:${b.y}px;width:${s}px;height:${s}px;margin:-${s / 2}px 0 0 -${s / 2}px;border-radius:50%;background:${star ? 'transparent' : color};color:${color};transform:scale(0);">${star ? `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>` : ''}</span>`;
     }
     html += `<span class="ring" data-d="${b.d}" data-big="${b.big ? 1 : 0}" style="left:${b.x}%;top:${b.y}px;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;border:3px solid ${b.c};transform:scale(0);"></span>`;
@@ -141,3 +141,6 @@ export function playFireworks(root, phase) {
     else { el.style.transition = 'none'; el.style.transform = 'scale(0)'; el.style.opacity = 1; }
   });
 }
+
+// D Point wordmark: blue on light surfaces, white (orange spark kept) on dark ones.
+export const wordmark = (h = 28, cls = '') => `<span class="wordmark ${cls}" style="height:${h}px" role="img" aria-label="D Point"><img class="wm-light" src="/img/logo-dpoint.png" alt="" height="${h}"><img class="wm-dark" src="/img/logo-dpoint-white.png" alt="" height="${h}"></span>`;

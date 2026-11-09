@@ -1,14 +1,14 @@
 {
-  "name": "Pointie — แตะ · สะสม · เลเวลอัป",
-  "short_name": "Pointie",
+  "name": "D Point — แตะ · สะสม · เลเวลอัป",
+  "short_name": "D Point",
   "description": "สะสมแสตมป์ทุกร้านในบัตรเดียว แตะ NFC รับแสตมป์ ทำภารกิจ เลเวลอัป",
   "lang": "th",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#000000",
-  "theme_color": "#000000",
+  "background_color": "#F4F9FF",
+  "theme_color": "#0865F5",
   "icons": [
     { "src": "img/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "img/icon-512.png", "sizes": "512x512", "type": "image/png" },

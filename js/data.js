@@ -199,11 +199,11 @@ export const AREAS = [
 ];
 
 export const AVATARS = [
-  { src: 'img/pointie-point.png', label: 'Pointie ชูมือ' },
-  { src: 'img/pointie-wink.png', label: 'Pointie ขยิบตา' },
-  { src: 'img/pointie-jump.png', label: 'Pointie กระโดด' },
-  { src: 'img/pointie-wow.png', label: 'Pointie ตกใจ' },
-  { src: 'img/pointie-cheer.png', label: 'Pointie ดีใจ' },
+  { src: 'img/pointie-point.png', label: 'D Point ชูมือ' },
+  { src: 'img/pointie-wink.png', label: 'D Point ขยิบตา' },
+  { src: 'img/pointie-jump.png', label: 'D Point กระโดด' },
+  { src: 'img/pointie-wow.png', label: 'D Point ตกใจ' },
+  { src: 'img/pointie-cheer.png', label: 'D Point ดีใจ' },
 ];
 
 export const MISSIONS = [
