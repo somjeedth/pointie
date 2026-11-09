@@ -304,20 +304,20 @@ export function cards(p, query) {
 
   if (!all.length && !me.redeemed.length) {
     const welcome = query.get('welcome') === '1';
-    const dots = Array.from({ length: 10 }, (_, i) => `<span class="ec-dot" style="animation-delay:${i * 0.08}s">${i === 9 ? '🎁' : ''}</span>`).join('');
+    const dots = Array.from({ length: 10 }, (_, i) => `<span class="ec-dot">${i === 9 ? '🎁' : ''}</span>`).join('');
     return {
       nav: 'cards',
       html: `${head}
         ${welcome ? `<div class="welcome-chip">${icon('sparkle', 16)}ยินดีต้อนรับ ${esc(me.user.nick || '')}! บัตรใบแรกของคุณรออยู่</div>` : ''}
-        <div class="empty-card" aria-hidden="true">
+        <div class="empty-card" aria-hidden="true"><span class="ec-beam"></span>
           <div class="ec-top"><span class="xs bold" style="letter-spacing:.1em">D POINT CARD</span>${wordmark(16, 'on-blue')}</div>
           <div class="ec-scan">
             <svg class="ec-frame" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M4 15V8a4 4 0 0 1 4-4h7M33 4h7a4 4 0 0 1 4 4v7M44 33v7a4 4 0 0 1-4 4h-7M15 44H8a4 4 0 0 1-4-4v-7"/></svg>
-            <span class="ec-ring r1"></span><span class="ec-ring r2"></span>
+            <span class="ec-ring r1"></span><span class="ec-ring r2"></span><span class="ec-ring r3"></span><span class="ec-laser"></span>
             <img src="img/pointie-face.png" alt="">
           </div>
           <div class="ec-dots">${dots}</div>
-          <div class="ec-foot"><span>0/10 แสตมป์</span><span>รอสแกนครั้งแรก</span></div>
+          <div class="ec-foot"><span>0/10 แสตมป์</span><span class="ec-status"><i class="ec-live"></i>กำลังสแกน<b class="ec-ell"><i>.</i><i>.</i><i>.</i></b></span></div>
         </div>
         <div class="col center" style="gap:6px;align-items:center">
           <h2 class="h2" style="font-size:20px">สแกนที่ร้านโปรด เพื่อสะสมรางวัล</h2>
