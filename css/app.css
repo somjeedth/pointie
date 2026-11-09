@@ -664,3 +664,30 @@ button.gen-row svg { color: var(--muted); flex: none; }
   .empty-card .ec-beam, .ec-laser, .ec-ring, .ec-dot, .ec-frame, .ec-scan img, .ec-live, .ec-ell i { animation: none !important; }
   .ec-ell i { opacity: 1; } .empty-card .ec-beam { display: none; }
 }
+
+/* empty card: isometric phone tapping the mascot coin */
+.empty-card { aspect-ratio: 1.2; }
+.tap-scene { position: relative; flex: 1; min-height: 0; margin: 2px -6px 6px; }
+.tap-scene svg { display: block; overflow: visible; filter: drop-shadow(0 10px 14px rgba(8,43,118,.28)); }
+.tphone { animation: tp-move 3.4s cubic-bezier(.4,0,.2,1) infinite; }
+@keyframes tp-move {
+  0% { transform: translate(46px,-34px); opacity: 0; }
+  14% { opacity: 1; }
+  22% { transform: translate(0,-16px); }
+  32%, 58% { transform: translate(0,0); }
+  70% { transform: translate(0,-16px); opacity: 1; }
+  86%, 100% { transform: translate(46px,-34px); opacity: 0; }
+}
+.tw { transform-box: fill-box; transform-origin: center; opacity: 0; animation: tp-wave 3.4s ease-out infinite; }
+.tw.w2 { animation-delay: .3s; }
+@keyframes tp-wave { 0%, 31% { transform: scale(.5); opacity: 0; } 33% { opacity: .95; } 62%, 100% { transform: scale(1.9); opacity: 0; } }
+.coin { transform-box: fill-box; transform-origin: center; animation: tp-coin 3.4s ease-in-out infinite; }
+@keyframes tp-coin { 0%, 30%, 60%, 100% { filter: none; } 36% { filter: brightness(1.15) drop-shadow(0 0 6px #FFD34B); } }
+.tchk { transform-box: fill-box; transform-origin: center; opacity: 0; animation: tp-chk 3.4s ease-out infinite; }
+@keyframes tp-chk { 0%, 33% { opacity: 0; transform: scale(.4); } 38% { opacity: 1; transform: scale(1.15); } 42%, 60% { opacity: 1; transform: scale(1); } 68%, 100% { opacity: 0; transform: scale(1); } }
+.tplus { position: absolute; left: 24%; top: 6%; padding: 3px 10px; border-radius: 999px; background: #FFD34B; color: #082B76; font-size: 12px; font-weight: 800; box-shadow: 0 6px 14px rgba(8,43,118,.25); opacity: 0; animation: tp-plus 3.4s ease-out infinite; }
+@keyframes tp-plus { 0%, 34% { opacity: 0; transform: translateY(10px) scale(.7); } 40% { opacity: 1; transform: translateY(0) scale(1.08); } 44%, 62% { opacity: 1; transform: translateY(-4px) scale(1); } 72%, 100% { opacity: 0; transform: translateY(-14px) scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .tphone, .tw, .coin, .tchk, .tplus { animation: none !important; }
+  .tchk { opacity: 1; }
+}

@@ -289,6 +289,37 @@ export function scan() {
 
 // ================= MY CARDS =================
 let cardsState = { idx: 0, tab: 'all' };
+// Isometric "tap your phone on the D Point coin" scene for the empty card wallet.
+// Shapes are drawn flat and projected with the isometric plane matrix; thickness = stacked layers.
+function tapScene() {
+  const cx = 112, cy = 30;
+  const plane = (z) => `matrix(0.866,0.5,-0.866,0.5,${cx},${cy - z})`;
+  const slab = (x, y, w, h, r, t, side, top, cls = '') => {
+    let g = '';
+    for (let z = 0; z < t; z += 1) g += `<rect transform="${plane(z)}" x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="${side}" ${z === 0 ? 'stroke="#082B76" stroke-width="1.2"' : ''}/>`;
+    return g + `<rect class="${cls}" transform="${plane(t)}" x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="${top}" stroke="#082B76" stroke-width="1.2"/>`;
+  };
+  // puck (NFC tag) — the mascot coin lies on it
+  const P = { x: 8, y: 52, s: 56, t: 9 };
+  const pcx = P.x + P.s / 2, pcy = P.y + P.s / 2;
+  const sx = cx + (pcx - pcy) * 0.866, sy = cy + (pcx + pcy) * 0.5 - P.t;
+  const face = 21; // coin radius on the plane
+  const puck = slab(P.x, P.y, P.s, P.s, 10, P.t, '#BBD3F5', '#FFFFFF')
+    + `<g transform="${plane(P.t)}"><circle class="tw w1" cx="${pcx}" cy="${pcy}" r="22" fill="none" stroke="#17D8F8" stroke-width="2.4"/><circle class="tw w2" cx="${pcx}" cy="${pcy}" r="22" fill="none" stroke="#FFFFFF" stroke-width="2"/></g>`
+    + `<ellipse cx="${sx}" cy="${sy + 1.5}" rx="${face * 1.2247}" ry="${face * 0.7071}" fill="#E07A00"/>`
+    + `<image class="coin" href="img/pointie-face.png" x="${sx - face * 1.2247}" y="${sy - face * 0.7071}" width="${face * 2.449}" height="${face * 1.414}" preserveAspectRatio="none"/>`;
+  // phone (lies flat, hovers above the puck)
+  const F = { x: 40, y: 50, w: 104, h: 50, t: 5, z: 15 };
+  const fcx = F.x + F.w / 2 + 8, fcy = F.y + F.h / 2;
+  const kx = cx + (fcx - fcy) * 0.866, ky = cy + (fcx + fcy) * 0.5 - F.t;
+  const ph = `<g transform="translate(0,-${F.z})">${slab(F.x, F.y, F.w, F.h, 9, F.t, '#9FB8E0', '#FFFFFF')}
+      <rect transform="${plane(F.t)}" x="${F.x + 4}" y="${F.y + 4}" width="${F.w - 8}" height="${F.h - 8}" rx="6" fill="#EAF8FF" stroke="#082B76" stroke-width=".8"/>
+      <rect transform="${plane(F.t)}" x="${F.x + 3.5}" y="${F.y + F.h / 2 - 7}" width="5" height="14" rx="2.5" fill="#082B76"/>
+      <g class="tchk"><ellipse cx="${kx}" cy="${ky}" rx="15" ry="9" fill="#0865F5"/><path d="M${kx - 6} ${ky - 1}l4 4 8-7" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></g>
+    </g>`;
+  return `<div class="tap-scene"><svg viewBox="0 0 240 150" width="100%" height="100%">${puck}<g class="tphone">${ph}</g></svg><span class="tplus">+1 แสตมป์</span></div>`;
+}
+
 export function cards(p, query) {
   const me = store.me;
   const all = Object.entries(me.cards).map(([id, c]) => ({ shop: shopById(id), c })).filter((x) => x.shop)
@@ -309,13 +340,9 @@ export function cards(p, query) {
       nav: 'cards',
       html: `${head}
         ${welcome ? `<div class="welcome-chip">${icon('sparkle', 16)}ยินดีต้อนรับ ${esc(me.user.nick || '')}! บัตรใบแรกของคุณรออยู่</div>` : ''}
-        <div class="empty-card" aria-hidden="true"><span class="ec-beam"></span>
+        <div class="empty-card" aria-hidden="true">
           <div class="ec-top"><span class="xs bold" style="letter-spacing:.1em">D POINT CARD</span>${wordmark(16, 'on-blue')}</div>
-          <div class="ec-scan">
-            <svg class="ec-frame" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M4 15V8a4 4 0 0 1 4-4h7M33 4h7a4 4 0 0 1 4 4v7M44 33v7a4 4 0 0 1-4 4h-7M15 44H8a4 4 0 0 1-4-4v-7"/></svg>
-            <span class="ec-ring r1"></span><span class="ec-ring r2"></span><span class="ec-ring r3"></span><span class="ec-laser"></span>
-            <img src="img/pointie-face.png" alt="">
-          </div>
+          ${tapScene()}
           <div class="ec-dots">${dots}</div>
           <div class="ec-foot"><span>0/10 แสตมป์</span><span class="ec-status"><i class="ec-live"></i>กำลังสแกน<b class="ec-ell"><i>.</i><i>.</i><i>.</i></b></span></div>
         </div>
