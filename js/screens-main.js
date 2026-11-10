@@ -316,6 +316,9 @@ function tapScene() {
     </svg><span class="tplus">+1 แสตมป์</span></div>`;
 }
 
+let lastDrag = 0;
+// carousel offset: centre card idx (card width --cw, gap 14px)
+const slide = (i) => `calc(50% - var(--cw) / 2 - ${i} * (var(--cw) + 14px))`;
 export function cards(p, query) {
   const me = store.me;
   const all = Object.entries(me.cards).map(([id, c]) => ({ shop: shopById(id), c })).filter((x) => x.shop)
@@ -370,7 +373,6 @@ export function cards(p, query) {
     const full = c.have >= shop.card.need; const k = shop.card;
     return `<button class="bigcard ${i === idx ? '' : 'off'}" data-act="pick" data-i="${i}" aria-label="${esc(shop.name)}">
       <span class="bgfill ${cardBg(k)}" style="position:absolute;inset:0;border-radius:26px;${cardBgStyle(k)}"></span>
-      ${full ? '<img class="peek" src="img/pointie-wink.png" alt="">' : ''}
       <span class="inner">
         <span class="between"><span class="xs bold" style="letter-spacing:.08em">${cardEn(k)}</span>${full ? '<span class="full-tag">ครบแล้ว!</span>' : ''}</span>
         ${letterHtml(k)}
@@ -381,7 +383,7 @@ export function cards(p, query) {
   return {
     nav: 'cards',
     html: `${head}${tabs}
-      ${list.length ? `<div class="carousel" id="car"><div class="track" id="track" style="transform:translateX(calc(50% - 145px - ${idx * 304}px))">${big}</div></div>
+      ${list.length ? `<div class="carousel" id="car"><div class="track" id="track" style="transform:translateX(${slide(idx)})">${big}</div></div>
       <div class="dots">${list.map((_, i) => `<i class="${i === idx ? 'on' : ''}"></i>`).join('')}</div>
       <div class="card between">
         <div class="col" style="gap:0"><span class="xs muted">รางวัลเมื่อครบ</span><b>${esc(cur.shop.card.reward)}</b></div>
@@ -393,11 +395,11 @@ export function cards(p, query) {
     mount(root) {
       const car = root.querySelector('#car'); if (!car) return;
       const track = root.querySelector('#track');
-      const STEP = 304; // card width 290 + gap 14
-      const base = () => `calc(50% - 145px - ${idx * STEP}px)`;
+      const base = () => slide(idx);
       let x0 = null, y0 = 0, dx = 0, horiz = null;
       car.addEventListener('pointerdown', (e) => {
         if (e.pointerType === 'mouse' && e.button !== 0) return;
+        if (e.pointerType === 'mouse') e.preventDefault(); // stop text selection / native drag eating the gesture
         x0 = e.clientX; y0 = e.clientY; dx = 0; horiz = null;
       });
       car.addEventListener('pointermove', (e) => {
@@ -413,6 +415,7 @@ export function cards(p, query) {
         if (x0 == null) return;
         x0 = null; track.classList.remove('dragging');
         if (!horiz || Math.abs(dx) < 50) { track.style.transform = `translateX(${base()})`; return; }
+        lastDrag = Date.now(); // the click that follows a mouse drag must not pick the card under the pointer
         cardsState.idx = Math.max(0, Math.min(list.length - 1, idx + (dx < 0 ? 1 : -1)));
         window.dispatchEvent(new Event('rerender'));
       };
@@ -423,7 +426,7 @@ export function cards(p, query) {
       car.addEventListener('click', (e) => { if (horiz && Math.abs(dx) >= 8) { e.stopPropagation(); e.preventDefault(); } }, true);
     },
     actions: {
-      pick(el) { const fromMini = el.classList.contains('minicard'); cardsState.idx = +el.dataset.i; if (cardsState.tab !== 'all') cardsState.tab = 'all'; window.dispatchEvent(new Event('rerender')); if (fromMini) root().scrollTo({ top: 0, behavior: 'smooth' }); },
+      pick(el) { if (!el.classList.contains('minicard') && Date.now() - lastDrag < 400) return; const fromMini = el.classList.contains('minicard'); cardsState.idx = +el.dataset.i; if (cardsState.tab !== 'all') cardsState.tab = 'all'; window.dispatchEvent(new Event('rerender')); if (fromMini) root().scrollTo({ top: 0, behavior: 'smooth' }); },
       tab(el) { cardsState.tab = el.dataset.k; cardsState.idx = 0; window.dispatchEvent(new Event('rerender')); },
     },
   };

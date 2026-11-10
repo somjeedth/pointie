@@ -224,7 +224,7 @@ h1, h2, h3, p { margin: 0; }
 .stampcard-wrap > .peek { position: absolute; right: 6px; top: -22px; height: 70px; z-index: 2; transform: rotate(8deg); }
 .stampcard {
   position: relative; border-radius: 26px; overflow: hidden; box-shadow: var(--shadow); color: #fff;
-  min-height: 470px; display: flex; flex-direction: column; padding: 20px 18px 16px;
+  width: var(--cw); height: var(--ch); margin: 0 auto; display: flex; flex-direction: column; padding: 20px 18px 16px;
 }
 .stampcard .bgfill { position: absolute; inset: 0; }
 .bg-photo { background-color: #2E3A33; background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.05) 0 14px, rgba(255,255,255,0) 14px 28px); }
@@ -270,7 +270,7 @@ h1, h2, h3, p { margin: 0; }
 .track { display: flex; gap: 14px; transition: transform .35s cubic-bezier(.2,.8,.2,1); will-change: transform; }
 .track.dragging { transition: none; }
 .bigcard {
-  position: relative; flex: none; width: 290px; height: 430px; padding: 0; border: 0; border-radius: 26px; color: #fff;
+  position: relative; flex: none; width: var(--cw); height: var(--ch); padding: 0; border: 0; border-radius: 26px; color: #fff;
   box-shadow: var(--shadow); transition: transform .35s cubic-bezier(.2,.8,.2,1), opacity .35s; text-align: left;
   will-change: transform, opacity; contain: layout paint;
 }
@@ -725,3 +725,10 @@ button.gen-row svg { color: var(--muted); flex: none; }
 .doc-sec a { color: var(--primary); }
 .doc-intro { display: flex; flex-direction: column; gap: 6px; }
 .doc-intro p { font-size: 14px; line-height: 1.6; }
+
+/* stamp card size, shared by the wallet carousel, redeem, tap pages and the merchant preview (artwork 1080 × 1330) */
+:root { --cw: min(calc(100vw - 40px), 350px); --ch: 430px; }
+.stamp { width: min(100%, 62px); height: auto; aspect-ratio: 1; justify-self: center; }
+.bigcard .stamp { width: min(100%, 58px); height: auto; }
+.bigcard .stamp.sm { width: min(100%, 52px); height: auto; }
+.redeem-card { position: relative; width: var(--cw); height: var(--ch); margin: 0 auto; flex: none; }
