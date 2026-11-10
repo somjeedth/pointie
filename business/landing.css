@@ -9,7 +9,7 @@
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; scroll-padding-top: 110px; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 'Prompt', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 'IBM Plex Sans Thai', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
 img { max-width: 100%; display: block; }
 a { color: inherit; }
 h1, h2, h3, p { margin: 0; }

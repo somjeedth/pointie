@@ -34,7 +34,7 @@
 html, body { margin: 0; height: 100%; }
 body {
   background: var(--outer); color: var(--ink);
-  font: 15px/1.45 'Prompt', system-ui, -apple-system, sans-serif;
+  font: 15px/1.45 'IBM Plex Sans Thai', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 button, input { font: inherit; color: inherit; }

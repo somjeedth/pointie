@@ -483,7 +483,7 @@ export function profile() {
       <section class="col">
         <h2 class="menu-h">${t('การตั้งค่า', 'Settings')}</h2>
         <div class="card menu-card"><div class="menu-list">
-          <button data-act="lang">${icon('compass')}<span>${t('ภาษา', 'Language')}</span><span class="chev small">${getLang() === 'en' ? 'English' : 'ไทย'} ${icon('chev', 16)}</span></button>
+          <button data-act="lang">${icon('globe')}<span>${t('ภาษา', 'Language')}</span><span class="chev small">${getLang() === 'en' ? 'English' : 'ไทย'} ${icon('chev', 16)}</span></button>
           <button data-act="theme">${icon(store.theme === 'dark' ? 'moon' : 'sun')}<span>${t('โหมดมืด', 'Dark mode')}</span><span class="switch ${store.theme === 'dark' ? 'on' : ''}" aria-hidden="true"></span></button>
           ${row('#/notifications', 'bell', t('การแจ้งเตือน', 'Notifications'), '')}
         </div></div>
