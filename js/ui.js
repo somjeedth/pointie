@@ -55,7 +55,7 @@ export function nav(active) {
   </div></nav>`;
 }
 
-// Full-card artwork uploaded by the shop (recommended 1080 × 1330 px, ~4:5 portrait).
+// Full-card artwork uploaded by the shop (recommended 1080 × 1600 px, ~2:3 portrait).
 export const isCardArt = (src) => typeof src === 'string' && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(src);
 export const hasArt = (card) => isCardArt(card.art);
 export const cardBg = (card) => hasArt(card) ? 'bg-art' : card.photo ? 'bg-photo' : 'bg-dots';

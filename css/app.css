@@ -726,8 +726,8 @@ button.gen-row svg { color: var(--muted); flex: none; }
 .doc-intro { display: flex; flex-direction: column; gap: 6px; }
 .doc-intro p { font-size: 14px; line-height: 1.6; }
 
-/* stamp card size, shared by the wallet carousel, redeem, tap pages and the merchant preview (artwork 1080 × 1330) */
-:root { --cw: min(calc(100vw - 40px), 350px); --ch: 430px; }
+/* stamp card size, shared by the wallet carousel, redeem, tap pages and the merchant preview (artwork 1080 × 1600) */
+:root { --cw: 290px; --ch: 430px; }
 .stamp { width: min(100%, 62px); height: auto; aspect-ratio: 1; justify-self: center; }
 .bigcard .stamp { width: min(100%, 58px); height: auto; }
 .bigcard .stamp.sm { width: min(100%, 52px); height: auto; }

@@ -395,7 +395,7 @@ function shopView(me, shop) {
 
 // ======================= card designer =======================
 // Downscale an uploaded image so it fits comfortably in storage (keeps transparency).
-function shrinkImage(file, maxW = 720, maxH = 887) {
+function shrinkImage(file, maxW = 720, maxH = 1067) {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file); const img = new Image();
     img.onload = () => {
@@ -430,7 +430,7 @@ function cardView(me, shop) {
               <div class="col" style="gap:8px">
                 <label class="btn btn-ghost btn-sm" style="height:40px;cursor:pointer">${icon('camera', 16)}${isCardArt(c.art) ? 'เปลี่ยนรูป' : 'อัปโหลดรูป'}<input type="file" accept="image/png,image/jpeg,image/webp" id="artFile" class="sr-only"></label>
                 ${isCardArt(c.art) ? `<button type="button" class="btn btn-danger btn-sm" style="height:40px" data-act="artRemove">${icon('trash', 16)}ลบรูป</button>` : ''}
-                <div class="size-spec"><b>ขนาดแนะนำ 1080 × 1330 px</b><span>แนวตั้ง สัดส่วนประมาณ 4:5 · JPG / PNG / WebP</span></div>
+                <div class="size-spec"><b>ขนาดแนะนำ 1080 × 1600 px</b><span>แนวตั้ง สัดส่วนประมาณ 2:3 · JPG / PNG / WebP</span></div>
               </div>
             </div>
             <small>รูปจะเต็มทั้งใบบัตร ครึ่งล่างมีช่องแสตมป์ทับ ให้วางโลโก้หรือข้อความสำคัญไว้ <b>ครึ่งบน</b> และเว้นขอบซ้าย-ขวาไว้เล็กน้อย เพราะบางหน้าจอจะตัดขอบรูปนิดหน่อย${isCardArt(c.art) ? '' : ' · ถ้ายังไม่ใส่รูป บัตรจะใช้สีพื้นและชื่อร้านด้านล่างแทน'}</small>
