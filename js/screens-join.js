@@ -53,7 +53,6 @@ export function joinName() {
           <label class="fld"><span>นามสกุล</span><input name="last" autocomplete="family-name" maxlength="60" value="${esc(d.last)}"></label>
         </div>
         <p class="alert join-err" hidden></p>
-        <p class="muted xs row" style="gap:6px;align-items:flex-start">${icon('lock', 14)}<span>ร้านค้าเห็นแค่ชื่อเล่น ชื่อจริงใช้ยืนยันตัวตนเท่านั้น</span></p>
       </form>
       <div class="col spacer"><button class="btn btn-primary" id="go" form="f">ต่อไป</button></div>`,
     mount(root) {
@@ -92,7 +91,6 @@ export function joinBirthday() {
           <div class="bday">${sel('bd', 'วัน', Array.from({ length: 31 }, (_, i) => [i + 1, i + 1]))}${sel('bm', 'เดือน', TH_MONTHS.map((m, i) => [i + 1, m]))}${sel('by', 'ปี พ.ศ.', years.map((y) => [y, y]))}</div>
         </div>
         <p class="alert join-err" hidden></p>
-        <p class="muted xs row" style="gap:6px;align-items:flex-start">${icon('lock', 14)}<span>ใช้งานได้ตั้งแต่อายุ 13 ปีขึ้นไป · ร้านค้าไม่เห็นวันเกิดของคุณ</span></p>
       </form>
       <div class="col spacer">
         ${store.me.user.setupDone ? '' : `<p class="row small" style="justify-content:center;gap:8px"><span class="pill violet">+${XP.signup} XP</span><span>โบนัสต้อนรับสมาชิกใหม่</span></p>`}
