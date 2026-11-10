@@ -54,7 +54,6 @@ export function home() {
         <div style="flex:1;min-width:0"><div class="h2" style="font-size:20px">สวัสดี ${esc(u.nick)}</div><div class="muted small">วันนี้ไปเก็บแสตมป์ที่ไหนดี?</div></div>
         <a class="icon-btn" href="#/notifications" aria-label="การแจ้งเตือน" style="width:44px;height:44px">${icon('bell')}${unread ? '<span class="dot"></span>' : ''}</a>
       </div>
-      <label class="input-wrap">${icon('search')}<span class="sr-only">ค้นหา</span><input id="homeQ" type="search" placeholder="ค้นหาร้าน คาเฟ่ กิจกรรม" value="${esc(homeQ)}"></label>
       ${hasIdentity() ? '' : `<a class="card-soft row" href="#/setup?edit=1" style="text-decoration:none;color:inherit;gap:10px;padding:10px 14px;border:1px solid var(--soft-line)"><span style="font-size:22px">🎂</span><span class="small" style="flex:1"><b>เพิ่มชื่อและวันเกิด</b><br><span class="muted">ยืนยันตัวตน และให้รีวิวของคุณนับในสรุปตามเจน</span></span><span class="muted">${icon('chev', 18)}</span></a>`}
       <a class="level-card" href="#/profile">
         <div class="ring"></div>
@@ -74,11 +73,6 @@ export function home() {
         ${missions}
       </section>
       <section class="col">
-        <div class="section-h"><h2>ร้านที่ร่วมรายการ</h2></div>
-        <div class="hscroll" role="tablist">${[['all', 'ทั้งหมด'], ...Object.entries(CAT).map(([k, v]) => [k, v.label])].map(([k, l]) => `<button class="chip ${homeCat === k ? 'on' : ''}" data-act="cat" data-k="${k}" role="tab" aria-selected="${homeCat === k}">${l}</button>`).join('')}</div>
-        <div class="hscroll" id="shopList" style="gap:12px"></div>
-      </section>
-      <section class="col">
         <div class="section-h"><h2>โปรโมชั่นและกิจกรรม</h2></div>
         ${events.map((e) => `<a class="card event" href="#/store/${e.shop.id}">
           <div class="date"><b>${e.day}</b><span>${e.mon}</span></div>
@@ -86,7 +80,7 @@ export function home() {
           <span class="muted">${icon('chev', 18)}</span></a>`).join('')}
       </section>`,
     mount(root) {
-      const list = root.querySelector('#shopList');
+      const list = root.querySelector('#shopList'); if (!list) return; // shop list hidden for now
       const draw = () => {
         const q = homeQ.trim();
         const shops = SHOPS.filter((s) => (homeCat === 'all' || s.cat === homeCat) && (!q || s.name.includes(q) || CAT[s.cat].label.includes(q) || s.area.includes(q)))
@@ -349,7 +343,6 @@ export function cards(p, query) {
         </div>
         <div class="col" style="gap:10px">
           <a class="btn btn-primary" href="#/scan">${icon('nfc', 20, 2.4)}สแกนเลย</a>
-          <a class="btn btn-ghost" href="#/home">${icon('pin', 18)}ดูร้านที่ร่วมรายการ · ${SHOPS.length} ร้าน</a>
         </div>`,
     };
   }
