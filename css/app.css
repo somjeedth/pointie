@@ -230,7 +230,7 @@ h1, h2, h3, p { margin: 0; }
 .bg-photo { background-color: #2E3A33; background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.05) 0 14px, rgba(255,255,255,0) 14px 28px); }
 .bg-dots { background-image: radial-gradient(rgba(255,255,255,.13) 2px, rgba(255,255,255,0) 2.6px); background-size: 18px 18px; }
 .stampcard .shade { position: absolute; left: 0; right: 0; bottom: 0; height: 62%; background: linear-gradient(rgba(0,0,0,0) 0%, rgba(0,0,0,.55) 35%, rgba(0,0,0,.82) 100%); }
-.stampcard > *:not(.bgfill):not(.shade):not(.photo-tag) { position: relative; }
+.stampcard > *:not(.bgfill):not(.shade):not(.photo-tag):not(.full-tag) { position: relative; }
 .stampcard .en { font-size: 13px; font-weight: 700; letter-spacing: .08em; }
 .photo-tag { position: absolute; top: 18px; right: 18px; padding: 3px 10px; border-radius: 999px; background: rgba(0,0,0,.45); color: #D9D9D9; font-size: 11px; font-weight: 600; }
 .letter {
@@ -259,11 +259,11 @@ h1, h2, h3, p { margin: 0; }
   color: #fff; text-align: left; border: 2px solid transparent; overflow: hidden;
 }
 .minicard.on { border-color: var(--primary); }
-.minicard .letter { align-self: flex-start; font-size: 17px; text-align: left; transform: rotate(-4deg); }
-.minicard .minibar { margin-top: auto; display: flex; gap: 3px; }
-.minicard .minibar i { flex: 1; height: 5px; border-radius: 999px; background: rgba(255,255,255,.25); }
-.minicard .minibar i.f { background: #F6EEDF; }
-.minicard .n { font-size: 12px; font-weight: 700; }
+.minicard > .letter { align-self: flex-start; font-size: 17px; text-align: left; transform: rotate(-4deg); }
+.minicard > .minibar { margin-top: auto; display: flex; gap: 3px; }
+.minicard > .minibar i { flex: 1; height: 5px; border-radius: 999px; background: rgba(255,255,255,.25); }
+.minicard > .minibar i.f { background: #F6EEDF; }
+.minicard > .n { font-size: 12px; font-weight: 700; }
 
 /* carousel */
 .carousel { margin: 0 -20px; overflow: hidden; padding: 30px 0 10px; touch-action: pan-y; }
@@ -806,3 +806,13 @@ button.gen-row svg { color: var(--muted); flex: none; }
   .intro *, .intro { animation: none !important; transition: opacity .2s !important; }
   .intro-spark { opacity: 1; }
 }
+
+/* one card design everywhere: the wallet carousel and the all-cards grid reuse .stampcard (gradient shade included) */
+.bigcard { overflow: visible; background: none; }
+.bigcard > .stampcard { width: 100%; height: 100%; margin: 0; box-shadow: none; }
+.stampcard .full-tag { position: absolute; top: 18px; right: 18px; padding: 3px 10px; border-radius: 999px; background: #fff; color: #000; font-size: 11px; font-weight: 700; z-index: 1; }
+.minicard { position: relative; display: block; aspect-ratio: 290 / 430; padding: 0; border-radius: 16px; overflow: hidden; border: 2px solid transparent; background: none; box-shadow: var(--shadow); }
+.minicard.on { border-color: var(--primary); }
+.minicard .mini-scale { position: absolute; left: 0; top: 0; width: 290px; height: 430px; transform-origin: 0 0; transform: scale(var(--k, .36)); pointer-events: none; }
+.minicard .mini-scale .stampcard { margin: 0; box-shadow: none; }
+.bigcard .stampcard .stamp { width: min(100%, 62px); height: auto; }

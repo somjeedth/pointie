@@ -81,17 +81,30 @@ export function stampGrid(card, have, { newIdx = -1, todayIdx = -1, sizeClass = 
   return `<div class="stamps" style="grid-template-columns: repeat(${cols}, minmax(0,1fr))">${cells}</div>`;
 }
 
+// The one stamp-card design (tap page, wallet, all-cards grid, merchant preview): background, gradient shade, lettering, stamps.
+// opts: newIdx / todayIdx (stamp highlights), foot (right of the footer), tag (pill top-right, e.g. "ครบแล้ว!").
 export function bigStampCard(shop, have, opts = {}) {
   const c = shop.card;
   return `<div class="stampcard">
     <div class="bgfill ${cardBg(c)}" style="${cardBgStyle(c)}"></div>
-    ${c.photo && !hasArt(c) ? '<div class="photo-tag">[รูปหน้าร้าน]</div>' : ''}
+    ${opts.tag ? `<div class="full-tag">${esc(opts.tag)}</div>` : c.photo && !hasArt(c) ? '<div class="photo-tag">[รูปหน้าร้าน]</div>' : ''}
     <div class="shade"></div>
     <div class="en">${cardEn(c)}</div>
     ${letterHtml(c)}
     ${stampGrid(c, have, opts)}
     <div class="foot"><span><b>${have}</b>/${c.need} · ครบรับ${esc(c.reward)}</span><span class="muted2">${opts.foot || ''}</span></div>
   </div>`;
+}
+
+// Small copy of the same card (290 × 430 scaled down to the box): call fitMiniCards(root) after rendering.
+export function miniStampCard(shop, have, opts = {}) {
+  return `<span class="mini-scale" aria-hidden="true">${bigStampCard(shop, have, opts)}</span>`;
+}
+export function fitMiniCards(root) {
+  root.querySelectorAll('.mini-scale').forEach((el) => {
+    const w = el.parentElement.clientWidth;
+    if (w) el.style.setProperty('--k', String(w / 290));
+  });
 }
 
 export function starsHtml(n, size = 14) {

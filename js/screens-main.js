@@ -1,7 +1,7 @@
 // Main tab screens: Home, Map, Scan, My cards, Profile (+ sub pages).
 import { icon } from './icons.js';
 import {
-  esc, go, toast, nav, avatarHtml, wordmark, toneStyle, cardBg, cardBgStyle, hasArt, letterHtml, cardEn, stampGrid, starsHtml, sheet, backBtn,
+  esc, go, toast, nav, avatarHtml, wordmark, toneStyle, cardBg, cardBgStyle, hasArt, starsHtml, sheet, backBtn, bigStampCard, miniStampCard, fitMiniCards,
 } from './ui.js';
 import { t, getLang, setLang } from './i18n.js';
 import { isNative, isAndroid, scanNfcTag, stopNfcScan, openNfcSettings, tagUrlToRoute } from './native.js';
@@ -383,14 +383,7 @@ export function cards(p, query) {
   const cur = list[idx];
   const big = list.map(({ shop, c }, i) => {
     const full = c.have >= shop.card.need; const k = shop.card;
-    return `<button class="bigcard ${i === idx ? '' : 'off'}" data-act="pick" data-i="${i}" aria-label="${esc(shop.name)}">
-      <span class="bgfill ${cardBg(k)}" style="position:absolute;inset:0;border-radius:26px;${cardBgStyle(k)}"></span>
-      <span class="inner">
-        <span class="between"><span class="xs bold" style="letter-spacing:.08em">${cardEn(k)}</span>${full ? '<span class="full-tag">ครบแล้ว!</span>' : ''}</span>
-        ${letterHtml(k)}
-        ${stampGrid(k, c.have, { sizeClass: k.need > 8 ? 'sm' : '' })}
-        <span class="between small semi" style="margin-top:12px"><span><b style="font-size:16px">${c.have}</b>/${k.need}</span><span>${full ? 'พร้อมแลก' : `อีก ${k.need - c.have} ดวง`}</span></span>
-      </span></button>`;
+    return `<button class="bigcard ${i === idx ? '' : 'off'}" data-act="pick" data-i="${i}" aria-label="${esc(shop.name)}">${bigStampCard(shop, c.have, { tag: full ? 'ครบแล้ว!' : '', foot: full ? 'พร้อมแลก' : `อีก ${k.need - c.have} ดวง` })}</button>`;
   }).join('');
   return {
     nav: 'cards',
@@ -402,9 +395,9 @@ export function cards(p, query) {
         ${cur.c.have >= cur.shop.card.need ? `<a class="btn btn-primary btn-sm" href="#/redeem/${cur.shop.id}">แลกรางวัล</a>` : `<a class="btn btn-ghost btn-sm" href="#/store/${cur.shop.id}">ดูร้าน</a>`}
       </div>` : '<div class="empty-note">ยังไม่มีบัตรที่พร้อมแลก</div>'}
       ${cardsState.tab === 'all' ? `<h2 class="h2" style="font-size:16px">บัตรทั้งหมด</h2>
-      <div class="mini-grid">${all.map(({ shop, c }, i) => `<button class="minicard ${cardBg(shop.card)} ${i === idx ? 'on' : ''}" style="${cardBgStyle(shop.card)}" data-act="pick" data-i="${i}" aria-label="${esc(shop.name)}">
-        ${letterHtml(shop.card)}<span class="minibar">${Array.from({ length: shop.card.need }, (_, j) => `<i class="${j < c.have ? 'f' : ''}"></i>`).join('')}</span><span class="n">${c.have}/${shop.card.need}</span></button>`).join('')}</div>` : ''}`,
+      <div class="mini-grid">${all.map(({ shop, c }, i) => `<button class="minicard ${i === idx ? 'on' : ''}" data-act="pick" data-i="${i}" aria-label="${esc(shop.name)} ${c.have}/${shop.card.need}">${miniStampCard(shop, c.have, { tag: c.have >= shop.card.need ? 'ครบแล้ว!' : '' })}</button>`).join('')}</div>` : ''}`,
     mount(root) {
+      fitMiniCards(root);
       const car = root.querySelector('#car'); if (!car) return;
       const track = root.querySelector('#track');
       const base = () => slide(idx);

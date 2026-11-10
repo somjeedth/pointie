@@ -187,3 +187,23 @@ details.sub summary { cursor: pointer; font-weight: 600; }
 .genbar .gv { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
 .genbar .gv small { color: var(--muted); font-weight: 500; }
 .gen-emoji { width: 36px; height: 36px; border-radius: 10px; background: var(--soft); display: inline-flex; align-items: center; justify-content: center; font-size: 20px; flex: none; }
+
+/* promos & events: one section per feature, header with icon + description + switch */
+.promo-sec { gap: 0; }
+.promo-sec .sec-body { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+.sec-head { display: flex; align-items: center; gap: 12px; }
+.sec-head b { font-size: 16px; }
+.sec-ic { width: 40px; height: 40px; flex: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: var(--bg); color: var(--muted); }
+.promo-sec.is-on > .sec-head .sec-ic { background: var(--soft); color: var(--accent); }
+.sec-head.small b { font-size: 14px; }
+.sec-head.small .sec-ic { width: 34px; height: 34px; border-radius: 10px; }
+.sub-sec { display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 14px; background: var(--bg); border: 1px solid var(--line); }
+.sub-sec .sec-ic { background: var(--surface); }
+.sec-switch { display: flex; flex-direction: column; align-items: center; gap: 4px; border: 0; background: none; padding: 0; color: var(--muted); cursor: pointer; flex: none; }
+.sec-switch .switch { margin-left: 0; }
+.event .date.ic { gap: 2px; }
+.event .date.ic span { font-size: 11px; }
+/* merchant login: logo + "for shops", contact the team (no self sign-up) */
+.hero-logo { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.contact-admin { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 14px; border-radius: 14px; border: 1px dashed var(--line); }
+.contact-admin .btn { width: auto; }

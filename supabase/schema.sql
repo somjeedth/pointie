@@ -619,7 +619,8 @@ grant execute on function
   public.customer_upsert(text, text, jsonb), public.my_state(), public.save_profile(jsonb, text), public.my_level(), public.save_identity(text, text, date),
   public.collect_stamp(text, text), public.redeem_card(text), public.submit_review(text, int, text), public.seed_demo_cards(),
   public.delete_my_account(),
-  public.merchant_create_shop(text, text, text, text), public.merchant_claim_sample(text),
+  -- merchant_create_shop / merchant_claim_sample are NOT granted: shops are opened by the D Point team only
+  -- (back office, service role) — no self sign-up from the merchant web.
   public.merchant_bundle(int), public.merchant_update_shop(jsonb),
   public.merchant_add_stand(text), public.merchant_update_stand(uuid, boolean, boolean), public.merchant_delete_stand(uuid),
   public.merchant_find_redemption(text), public.merchant_set_redemption(uuid, text), public.merchant_reply_review(uuid, text)

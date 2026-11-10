@@ -1,6 +1,6 @@
 // D Point merchant web: router, layout and views.
 import { icon } from '../../js/icons.js';
-import { esc, toast, bigStampCard, starsHtml, cardBg, cardBgStyle, letterHtml, isCardArt, wordmark } from '../../js/ui.js';
+import { esc, toast, bigStampCard, miniStampCard, fitMiniCards, starsHtml, cardBg, cardBgStyle, isCardArt, wordmark } from '../../js/ui.js';
 import { morphChildren, runMount } from '../../js/dom.js';
 import qrcode from './vendor/qrcode.js';
 import * as api from './api.js';
@@ -75,17 +75,15 @@ const head = (title, sub, right = '') => `<div class="m-head"><div><h1>${title}<
 function loginView() {
   return {
     html: `<div class="auth">
-      <div class="hero"><img src="/img/pointie-cheer.png" alt=""><h1 class="h1">D Point สำหรับร้านค้า</h1><p class="muted">ดูลูกค้าประจำ ออกแบบบัตรสะสม ตั้งโปร และยืนยันการแลกรางวัล<br>ในที่เดียว</p><a class="link-u" href="${siteUrl('landing')}">รู้จัก D Point สำหรับร้านค้า →</a></div>
+      <div class="hero"><img src="/img/pointie-cheer.png" alt=""><div class="hero-logo">${wordmark(44)}<span class="pill soft">สำหรับร้านค้า</span></div><p class="muted">ดูลูกค้าประจำ ออกแบบบัตรสะสม ตั้งโปร และยืนยันการแลกรางวัล<br>ในที่เดียว</p><a class="link-u" href="${siteUrl('landing')}">รู้จัก D Point สำหรับร้านค้า →</a></div>
       <div class="box"><form class="form" id="f">
         <h2 class="h1" style="font-size:24px">เข้าสู่ระบบร้านค้า</h2>
         <label class="field"><span>อีเมล</span><input class="inp" name="email" type="email" autocomplete="email" required></label>
         <label class="field"><span>รหัสผ่าน</span><input class="inp" name="password" type="password" autocomplete="current-password" required></label>
         <p class="alert" id="err" hidden style="justify-content:flex-start"></p>
         <button class="btn btn-primary">เข้าสู่ระบบ</button>
-        ${api.isRemote()
-          ? '<div class="demo-hint">อยากลองก่อน? กด <b>สมัครร้านใหม่</b> แล้วเลือก "ใช้ร้านตัวอย่าง" จะได้ร้านพร้อมข้อมูล Dashboard ย้อนหลังไว้ทดลอง</div>'
-          : `<div class="demo-hint">ลองใช้บัญชีตัวอย่างของ <b>บ้านกาแฟริมคลอง</b><br><span class="muted">${api.DEMO.email} / ${api.DEMO.password}</span><br><button type="button" class="link" data-act="demo" style="margin-top:6px">เข้าด้วยบัญชีตัวอย่าง →</button></div>`}
-        <p class="small muted center">ยังไม่มีบัญชีร้าน? <a class="link-u" href="#/signup">สมัครร้านใหม่</a></p>
+        ${api.isRemote() ? '' : `<div class="demo-hint">ลองใช้บัญชีตัวอย่างของ <b>บ้านกาแฟริมคลอง</b><br><span class="muted">${api.DEMO.email} / ${api.DEMO.password}</span><br><button type="button" class="link" data-act="demo" style="margin-top:6px">เข้าด้วยบัญชีตัวอย่าง →</button></div>`}
+        ${contactAdmin()}
       </form></div></div>`,
     mount(r) {
       r.querySelector('#f').addEventListener('submit', async (e) => {
@@ -99,79 +97,24 @@ function loginView() {
     actions: { async demo() { await api.login(api.DEMO.email, api.DEMO.password); go('/dashboard'); } },
   };
 }
-// Shop fields shared by sign-up and "create your shop" (remote: can start from a sample shop).
-function shopFields() {
-  return `${api.isRemote() ? `<label class="field"><span>เริ่มจาก</span><select class="inp" name="sample" id="sampleSel"><option value="">ร้านใหม่ของฉัน</option></select>
-      <small>เลือกร้านตัวอย่างเพื่อทดลอง: ได้ร้านพร้อมบัตร โปร และข้อมูล Dashboard ย้อนหลัง</small></label>` : ''}
-    <fieldset class="form new-only" style="border:0;padding:0;margin:0">
-      <label class="field"><span>ชื่อร้าน (ภาษาไทย)</span><input class="inp" name="shopName" required maxlength="40" placeholder="เช่น ขนมปังบ้านสวน"></label>
-      <label class="field"><span>ชื่อร้าน (อังกฤษ) — ใช้บนบัตรสะสม</span><input class="inp" name="shopNameEn" required maxlength="30" placeholder="BAAN SUAN BAKERY"></label>
-      <div class="row2">
-        <label class="field"><span>หมวด</span><select class="inp" name="cat">${Object.entries(api.CAT).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('')}</select></label>
-        <label class="field"><span>ย่าน</span><input class="inp" name="area" value="อารีย์" maxlength="30"></label>
-      </div>
-    </fieldset>`;
-}
-function mountShopFields(r) {
-  const sel = r.querySelector('#sampleSel'); if (!sel) return;
-  const fs = r.querySelector('.new-only');
-  sel.addEventListener('change', () => { fs.disabled = !!sel.value; fs.style.opacity = sel.value ? 0.4 : 1; });
-  api.samplesAvailable().then((list) => {
-    for (const s of list || []) sel.insertAdjacentHTML('beforeend', `<option value="${esc(s.id)}">ร้านตัวอย่าง: ${esc(s.name)}</option>`);
-    if (!list?.length) sel.closest('.field').hidden = true;
-  }).catch(() => { sel.closest('.field').hidden = true; });
-}
-function showErr(r, msg) { const el = r.querySelector('#err'); el.textContent = msg; el.hidden = false; }
-function signupView() {
+// Shop accounts are opened by the D Point team only (back office) — no self sign-up.
+const ADMIN_EMAIL = 'work@3pnbusinesssolution.com';
+const contactAdmin = () => `<div class="contact-admin">
+  <b>ยังไม่มีบัญชีร้าน?</b>
+  <span class="small muted">บัญชีร้านค้าเปิดโดยทีม D Point เท่านั้น ติดต่อทีมงานเพื่อเปิดร้าน</span>
+  <span class="row" style="gap:8px;flex-wrap:wrap;justify-content:center"><a class="btn btn-ghost btn-sm" href="${siteUrl('landing', '#apply')}">สมัครใช้งานร้านค้า</a><a class="btn btn-ghost btn-sm" href="mailto:${ADMIN_EMAIL}">${ADMIN_EMAIL}</a></span>
+</div>`;
+// Signed in but this login has no shop yet: the D Point team links it to a shop in the back office.
+function noShopView(me) {
   return {
     html: `<div class="auth">
-      <div class="hero"><img src="/img/pointie-point.png" alt=""><h1 class="h1">เปิดร้านบน D Point</h1><p class="muted">ตั้งค่าเสร็จในไม่กี่นาที แล้ววางสแตนด์ NFC ให้ลูกค้าแตะรับแสตมป์ได้เลย</p></div>
-      <div class="box"><form class="form" id="f">
-        <h2 class="h1" style="font-size:24px">สมัครร้านใหม่</h2>
-        ${shopFields()}
-        <label class="field"><span>ชื่อผู้ดูแล</span><input class="inp" name="name" required maxlength="40"></label>
-        <label class="field"><span>อีเมล</span><input class="inp" name="email" type="email" autocomplete="email" required></label>
-        <label class="field"><span>รหัสผ่าน (อย่างน้อย 8 ตัว)</span><input class="inp" name="password" type="password" minlength="8" autocomplete="new-password" required></label>
-        <p class="alert" id="err" hidden style="justify-content:flex-start"></p>
-        <button class="btn btn-primary" id="submit">สร้างร้าน</button>
-        <p class="small muted center">มีบัญชีแล้ว? <a class="link-u" href="#/login">เข้าสู่ระบบ</a></p>
-      </form></div></div>`,
-    mount(r) {
-      mountShopFields(r);
-      r.querySelector('#f').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = r.querySelector('#submit'); btn.disabled = true; btn.textContent = 'กำลังสร้างร้าน…';
-        const res = await api.signup(Object.fromEntries(new FormData(e.target)));
-        btn.disabled = false; btn.textContent = 'สร้างร้าน';
-        if (!res.ok) { showErr(r, res.error); return; }
-        toast('สร้างร้านแล้ว! เริ่มจากตั้งค่าข้อมูลร้านและปักหมุดบนแมพ');
-        go('/shop');
-      });
-    },
-  };
-}
-// Signed in (Supabase) but no shop yet — e.g. after confirming the e-mail.
-function createShopView(me) {
-  return {
-    html: `<div class="auth">
-      <div class="hero"><img src="/img/pointie-cheer.png" alt=""><h1 class="h1">อีกขั้นเดียว!</h1><p class="muted">${esc(me.email)}<br>ตั้งชื่อร้านของคุณเพื่อเริ่มใช้งาน</p></div>
-      <div class="box"><form class="form" id="f">
-        <h2 class="h1" style="font-size:24px">สร้างร้าน</h2>
-        ${shopFields()}
-        <p class="alert" id="err" hidden style="justify-content:flex-start"></p>
-        <button class="btn btn-primary" id="submit">สร้างร้าน</button>
+      <div class="hero"><img src="/img/pointie-point.png" alt=""><div class="hero-logo">${wordmark(44)}<span class="pill soft">สำหรับร้านค้า</span></div><p class="muted">${esc(me.email)}</p></div>
+      <div class="box"><div class="form">
+        <h2 class="h1" style="font-size:24px">บัญชีนี้ยังไม่มีร้าน</h2>
+        <p class="muted">ทีม D Point จะเปิดร้านและผูกกับบัญชีนี้ให้ ถ้าสมัครไว้แล้ว รอทีมงานติดต่อกลับได้เลย</p>
+        ${contactAdmin()}
         <button type="button" class="btn btn-text" data-act="logout">ออกจากระบบ</button>
-      </form></div></div>`,
-    mount(r) {
-      mountShopFields(r);
-      r.querySelector('#f').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = r.querySelector('#submit'); btn.disabled = true;
-        try { await api.createShop(Object.fromEntries(new FormData(e.target))); }
-        catch (err) { btn.disabled = false; showErr(r, 'สร้างร้านไม่สำเร็จ: ' + err.message); return; }
-        toast('สร้างร้านแล้ว!'); go('/shop');
-      });
-    },
+      </div></div></div>`,
     actions: { async logout() { await api.logout(); go('/login'); } },
   };
 }
@@ -449,10 +392,11 @@ function cardView(me, shop) {
         </form>
         <div class="preview">
           <div class="phone">${bigStampCard(preview, Math.min(c.need - 1, Math.ceil(c.need * 0.6)), { foot: 'ครั้งที่ 12' })}</div>
-          <div class="row" style="gap:10px"><div class="minicard ${cardBg(c)}" style="${cardBgStyle(c)}width:96px;flex:none">${letterHtml(c)}<span class="minibar">${Array.from({ length: c.need }, (_, j) => `<i class="${j < 3 ? 'f' : ''}"></i>`).join('')}</span><span class="n">3/${c.need}</span></div><p class="small muted">หน้าตาในหน้า "บัตรของฉัน"</p></div>
+          <div class="row" style="gap:12px"><div class="minicard" style="width:96px;flex:none">${miniStampCard(preview, 3)}</div><p class="small muted">การ์ดเล็กในหน้า "บัตรทั้งหมด" ของลูกค้า · บัตรทุกใบในแอพใช้หน้าตาเดียวกันกับพรีวิวด้านบน</p></div>
         </div>
       </div>`,
     mount(r) {
+      fitMiniCards(r);
       const form = r.querySelector('#f');
       form.addEventListener('input', (e) => { if (e.target.name) { cardDraft[e.target.name] = e.target.value; rerender(); } });
       r.querySelector('#artFile').addEventListener('change', async (e) => {
@@ -481,6 +425,12 @@ function cardView(me, shop) {
 
 // ======================= promos & events =======================
 let promoDraft = null;
+// Section header for the promos page: icon, title, one-line description, on/off switch.
+const secHead = (ic, title, desc, act, on, small = false) => `<div class="sec-head ${small ? 'small' : ''}">
+  <span class="sec-ic">${icon(ic, small ? 18 : 20)}</span>
+  <div class="col" style="gap:2px;flex:1;min-width:0"><b>${title}</b><span class="sub">${desc}</span></div>
+  <button type="button" class="sec-switch" data-act="${act}" role="switch" aria-checked="${on}" aria-label="${title}"><span class="switch ${on ? 'on' : ''}"></span><span class="xs semi">${on ? 'เปิด' : 'ปิด'}</span></button>
+</div>`;
 function promosView(me, shop) {
   if (!promoDraft || promoDraft._id !== shop.id) {
     promoDraft = { _id: shop.id, promo: !!shop.promo, promoText: shop.promoText || '', promoUntil: shop.promoUntil || '', double: shop.promoRule?.type === 'double', days: [...(shop.promoRule?.days || [])],
@@ -490,39 +440,43 @@ function promosView(me, shop) {
   const p = promoDraft;
   const evPreview = p.hasEvent && p.evTitle ? (() => { const d = p.evDate ? new Date(p.evDate) : null; return { day: d ? d.getDate() : '?', mon: d ? TH_M[d.getMonth()] : '' }; })() : null;
   return {
-    html: head('โปรและกิจกรรม', 'โปรจะขึ้นป้าย "โปร" บนแมพ และแสดงในหน้าแรกกับหน้าร้านของลูกค้า') +
+    html: head('โปรและกิจกรรม', 'เปิดเฉพาะอันที่ใช้ ลูกค้าจะเห็นในหน้าแรกและหน้าร้านของแอพทันทีหลังบันทึก') +
       `<div class="m-grid g-side">
         <form class="col" id="f" style="gap:16px">
-          <div class="panel form">
-            <button type="button" class="toggle" data-act="tgPromo"><span class="switch ${p.promo ? 'on' : ''}"></span>เปิดโปรโมชั่น</button>
-            ${p.promo ? `
-            <label class="field"><span>ข้อความโปร</span><input class="inp" name="promoText" value="${esc(p.promoText)}" maxlength="60" placeholder="เช่น แสตมป์ x2 ทุกวันพุธ"></label>
-            <label class="field"><span>ระยะเวลา</span><input class="inp" name="promoUntil" value="${esc(p.promoUntil)}" maxlength="30" placeholder="เช่น ถึง 30 พ.ย."></label>
-            <button type="button" class="toggle" data-act="tgDouble"><span class="switch ${p.double ? 'on' : ''}"></span>ให้แสตมป์ x2 อัตโนมัติ</button>
-            ${p.double ? `<div class="field"><span>วันที่ได้ x2</span><div class="daypick">${[1, 2, 3, 4, 5, 6, 0].map((d) => `<button type="button" class="${p.days.includes(d) ? 'on' : ''}" data-act="day" data-d="${d}">${DAYS[d]}</button>`).join('')}</div><small>ลูกค้าที่แตะในวันนี้จะได้ 2 ดวงทันที</small></div>` : ''}` : ''}
-          </div>
-          <div class="panel form">
-            <button type="button" class="toggle" data-act="tgEvent"><span class="switch ${p.hasEvent ? 'on' : ''}"></span>มีกิจกรรมพิเศษ</button>
-            ${p.hasEvent ? `
-            <label class="field"><span>ชื่อกิจกรรม</span><input class="inp" name="evTitle" value="${esc(p.evTitle)}" maxlength="60" placeholder="เช่น เวิร์กช็อปดริปกาแฟ"></label>
-            <div class="row2"><label class="field"><span>วันที่</span><input class="inp" type="date" name="evDate" value="${esc(p.evDate)}"></label><label class="field"><span>เวลา</span><input class="inp" type="time" name="evTime" value="${esc(p.evTime)}"></label></div>` : ''}
-          </div>
-          <div class="panel form">
-            <button type="button" class="toggle" data-act="tgTier"><span class="switch ${p.tpActive ? 'on' : ''}"></span>โปรสำหรับสมาชิกระดับสูง</button>
-            <p class="sub">สิทธิ์พิเศษเฉพาะลูกค้าที่ไปร้านต่างๆ บ่อย (เลเวลคำนวณจากการไปร้านจริงและรีวิว แก้เองไม่ได้)</p>
-            ${p.tpActive ? `
-            <div class="field"><span>ระดับขั้นต่ำ</span><div class="seg">${TIERS.filter((x) => x.id !== 'explorer').map((x) => `<button type="button" class="${p.tpTier === x.id ? 'on' : ''}" data-act="tpTier" data-v="${x.id}">${x.name} (Lv.${x.min}+)</button>`).join('')}</div></div>
-            <label class="field"><span>สิทธิ์ที่ได้</span><input class="inp" name="tpText" value="${esc(p.tpText)}" maxlength="60" placeholder="เช่น ท็อปปิ้งฟรี 1 อย่าง"></label>
-            <small class="sub">ลูกค้าจะแสดงบัตรสมาชิก (หน้าโปรไฟล์ในแอพ) ที่มีระดับกับพนักงาน</small>` : ''}
-          </div>
+          <section class="panel form promo-sec ${p.promo ? 'is-on' : ''}">
+            ${secHead('tag', 'โปรโมชั่น', 'ข้อความโปรที่ลูกค้าเห็น เช่น ลด 10% ทุกวันจันทร์', 'tgPromo', p.promo)}
+            ${p.promo ? `<div class="sec-body">
+              <label class="field"><span>ข้อความโปร</span><input class="inp" name="promoText" value="${esc(p.promoText)}" maxlength="60" placeholder="เช่น แสตมป์ x2 ทุกวันพุธ"></label>
+              <label class="field"><span>ระยะเวลา <small>(ไม่บังคับ)</small></span><input class="inp" name="promoUntil" value="${esc(p.promoUntil)}" maxlength="30" placeholder="เช่น ถึง 30 พ.ย."></label>
+              <div class="sub-sec">
+                ${secHead('sparkle', 'แสตมป์ x2 อัตโนมัติ', 'ลูกค้าที่แตะในวันที่เลือกจะได้ 2 ดวงทันที', 'tgDouble', p.double, true)}
+                ${p.double ? `<div class="field"><span>วันที่ได้ x2</span><div class="daypick">${[1, 2, 3, 4, 5, 6, 0].map((d) => `<button type="button" class="${p.days.includes(d) ? 'on' : ''}" data-act="day" data-d="${d}" aria-pressed="${p.days.includes(d)}">${DAYS[d]}</button>`).join('')}</div></div>` : ''}
+              </div>
+            </div>` : ''}
+          </section>
+          <section class="panel form promo-sec ${p.hasEvent ? 'is-on' : ''}">
+            ${secHead('clock', 'กิจกรรมพิเศษ', 'งานหรือกิจกรรมที่ร้าน เช่น เวิร์กช็อป ดนตรีสด', 'tgEvent', p.hasEvent)}
+            ${p.hasEvent ? `<div class="sec-body">
+              <label class="field"><span>ชื่อกิจกรรม</span><input class="inp" name="evTitle" value="${esc(p.evTitle)}" maxlength="60" placeholder="เช่น เวิร์กช็อปดริปกาแฟ"></label>
+              <div class="row2"><label class="field"><span>วันที่</span><input class="inp" type="date" name="evDate" value="${esc(p.evDate)}"></label><label class="field"><span>เวลา</span><input class="inp" type="time" name="evTime" value="${esc(p.evTime)}"></label></div>
+            </div>` : ''}
+          </section>
+          <section class="panel form promo-sec ${p.tpActive ? 'is-on' : ''}">
+            ${secHead('star', 'สิทธิ์สมาชิกระดับสูง', 'สิทธิ์เฉพาะลูกค้าที่ไปร้านต่างๆ บ่อย (ระดับคำนวณจากการไปร้านจริง)', 'tgTier', p.tpActive)}
+            ${p.tpActive ? `<div class="sec-body">
+              <div class="field"><span>ระดับขั้นต่ำ</span><div class="seg">${TIERS.filter((x) => x.id !== 'explorer').map((x) => `<button type="button" class="${p.tpTier === x.id ? 'on' : ''}" data-act="tpTier" data-v="${x.id}">${x.name} (Lv.${x.min}+)</button>`).join('')}</div></div>
+              <label class="field"><span>สิทธิ์ที่ได้</span><input class="inp" name="tpText" value="${esc(p.tpText)}" maxlength="60" placeholder="เช่น ท็อปปิ้งฟรี 1 อย่าง"></label>
+              <small class="sub">ลูกค้าแสดงบัตรสมาชิก (หน้าโปรไฟล์ในแอพ) ที่มีระดับให้พนักงานดู</small>
+            </div>` : ''}
+          </section>
           <div class="actions"><button class="btn btn-primary">บันทึกโปรและกิจกรรม</button></div>
         </form>
         <div class="preview"><div class="phone">
-          <span class="xs muted semi">พรีวิวในหน้าแรกของลูกค้า</span>
-          ${p.promo && p.promoText ? `<div class="card event"><div class="date"><b>${p.double && p.days.length === 1 ? 'ทุก' : '★'}</b><span>${p.double && p.days.length === 1 ? 'วัน' + DAYS_FULL[p.days[0]] : 'โปร'}</span></div><div class="col" style="flex:1;min-width:0;gap:3px"><span class="tag" style="background:var(--soft);color:var(--accent)">โปร</span><span class="semi">${esc(p.promoText)}</span><span class="small muted">${esc(shop.name)}</span></div></div>` : ''}
-          ${evPreview ? `<div class="card event"><div class="date"><b>${evPreview.day}</b><span>${evPreview.mon}</span></div><div class="col" style="flex:1;min-width:0;gap:3px"><span class="tag" style="background:var(--teal-soft);color:var(--teal)">กิจกรรม</span><span class="semi">${esc(p.evTitle)}</span><span class="small muted">${esc(shop.name)}</span></div></div>` : ''}
-          ${p.tpActive && p.tpText ? `<span class="xs muted semi">พรีวิวในหน้าร้าน</span><div class="tier-promo" style="--tc:${tierById(p.tpTier).color}"><span class="tp-badge">${tierById(p.tpTier).name}+</span><div class="col" style="gap:2px;flex:1"><b>${esc(p.tpText)}</b><span class="xs muted">สำหรับสมาชิก Lv.${tierById(p.tpTier).min} ขึ้นไป</span></div></div>` : ''}
-          ${!(p.promo && p.promoText) && !evPreview && !(p.tpActive && p.tpText) ? '<p class="small muted">ยังไม่มีโปรหรือกิจกรรม</p>' : ''}
+          <span class="xs muted semi">ลูกค้าจะเห็นแบบนี้ในแอพ</span>
+          ${p.promo && p.promoText ? `<div class="card event"><div class="date ic">${icon(p.double ? 'sparkle' : 'tag', 22)}<span>${p.double && p.days.length ? (p.days.length === 7 ? 'ทุกวัน' : p.days.length === 1 ? 'ทุก' + DAYS_FULL[p.days[0]] : p.days.length + ' วัน') : 'โปร'}</span></div><div class="col" style="flex:1;min-width:0;gap:3px"><span class="tag" style="background:var(--soft);color:var(--accent)">โปร</span><span class="semi">${esc(p.promoText)}</span><span class="small muted">${esc(shop.name)}${p.promoUntil ? ' · ' + esc(p.promoUntil) : ''}</span></div></div>` : ''}
+          ${evPreview ? `<div class="card event"><div class="date">${evPreview.day === '?' ? `${icon('clock', 22)}<span>เร็วๆ นี้</span>` : `<b>${evPreview.day}</b><span>${evPreview.mon}</span>`}</div><div class="col" style="flex:1;min-width:0;gap:3px"><span class="tag" style="background:var(--teal-soft);color:var(--teal)">กิจกรรม</span><span class="semi">${esc(p.evTitle)}</span><span class="small muted">${esc(shop.name)}${p.evDate ? ' · ' + esc(p.evTime) : ''}</span></div></div>` : ''}
+          ${p.tpActive && p.tpText ? `<div class="tier-promo" style="--tc:${tierById(p.tpTier).color}"><span class="tp-badge">${tierById(p.tpTier).name}+</span><div class="col" style="gap:2px;flex:1"><b>${esc(p.tpText)}</b><span class="xs muted">สำหรับสมาชิก Lv.${tierById(p.tpTier).min} ขึ้นไป · แสดงในหน้าร้าน</span></div></div>` : ''}
+          ${!(p.promo && p.promoText) && !evPreview && !(p.tpActive && p.tpText) ? '<p class="small muted">ยังไม่ได้เปิดโปรหรือกิจกรรม เปิดสวิตช์ทางซ้ายเพื่อเริ่ม</p>' : ''}
         </div></div>
       </div>`,
     mount(r) {
@@ -690,11 +644,11 @@ function render(keep = false) {
   const me = api.currentMerchant();
   let view; let key = path || 'dashboard';
   if (!me) {
-    if (key !== 'signup') key = 'login';
-    view = key === 'signup' ? signupView() : loginView();
+    key = 'login'; // no self sign-up: #/signup (and any page while signed out) shows the login page
+    view = loginView();
   } else if (!me.shopId || !api.getShop(me.shopId)) {
-    key = 'create-shop';
-    view = createShopView(me);
+    key = 'no-shop';
+    view = noShopView(me);
   } else {
     if (!VIEWS[key]) { location.replace('#/dashboard'); return; }
     const shop = api.getShop(me.shopId);
