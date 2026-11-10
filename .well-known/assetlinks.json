@@ -1,10 +1,14 @@
 [
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "com.dpointapp.th",
-      "sha256_cert_fingerprints": []
+      "sha256_cert_fingerprints": [
+        "4E:53:89:F6:C7:B9:89:A6:3D:05:64:84:B2:C3:44:13:8E:51:0F:F0:64:98:6B:AD:13:C6:AF:FC:6E:5E:0D:21"
+      ]
     }
   }
 ]
