@@ -7,25 +7,29 @@ export const isNative = () => !!window.Capacitor?.isNativePlatform?.();
 export const isAndroid = () => isNative() && window.Capacitor?.getPlatform?.() === 'android';
 
 let core = null;
+const proxies = {};
+// A Capacitor plugin proxy answers every property, `then` included, so it looks like a promise: returning it from an
+// async function (or awaiting it) waits forever. Hand it out wrapped and unwrap it with `.p` at the call site.
 async function plugin(name) {
   if (!isNative()) return null;
   core = core || await import('./vendor/capacitor-core.js');
-  return core.registerPlugin(name);
+  proxies[name] = proxies[name] || core.registerPlugin(name);
+  return { p: proxies[name] };
 }
 
 // ---------- NFC: native "Ready to Scan" sheet → the URL written on the tag ----------
 // Android: no system sheet, the scan screen itself is the prompt. Errors carry code NO_NFC / NFC_OFF / CANCELLED.
 export async function scanNfcTag() {
-  const nfc = await plugin('DPointNfc');
+  const nfc = (await plugin('DPointNfc'))?.p;
   const r = await nfc.scan({ message: 'แตะด้านบนของ iPhone ที่ป้าย D Point' });
   return r?.url || '';
 }
 export async function stopNfcScan() {
   if (!isAndroid()) return;
-  try { await (await plugin('DPointNfc')).stop(); } catch { /* ignore */ }
+  try { await (await plugin('DPointNfc')).p.stop(); } catch { /* ignore */ }
 }
 export async function openNfcSettings() {
-  try { await (await plugin('DPointNfc')).openSettings(); } catch { /* ignore */ }
+  try { await ((await plugin('DPointNfc'))?.p).openSettings(); } catch { /* ignore */ }
 }
 
 // ---------- Android: Google / Apple sign-in in a browser tab that comes back to com.dpointapp.th://auth ----------
@@ -34,11 +38,11 @@ let authWait = null; // { resolve, reject } while a sign-in tab is open
 export function takeAuthCallback(url) {
   if (!String(url || '').startsWith(APP_AUTH_REDIRECT) || !authWait) return false;
   authWait.resolve(url); authWait = null;
-  plugin('Browser').then((b) => b?.close?.()).catch(() => {});
+  plugin('Browser').then((w) => w?.p?.close?.()).catch(() => {});
   return true;
 }
 export async function browserSignIn(url) {
-  const browser = await plugin('Browser');
+  const browser = (await plugin('Browser'))?.p;
   if (authWait) authWait.reject(new Error('cancelled'));
   const done = new Promise((resolve, reject) => { authWait = { resolve, reject }; });
   // Closing the tab without finishing = cancelled (wait a moment: the return link can arrive just after the tab closes)
@@ -51,7 +55,7 @@ export async function browserSignIn(url) {
 const hex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
 let socialReady = false;
 export async function nativeSignIn(provider) {
-  const sl = await plugin('SocialLogin');
+  const sl = (await plugin('SocialLogin'))?.p;
   if (!socialReady) {
     await sl.initialize({
       apple: {},
@@ -81,7 +85,7 @@ export function tagUrlToRoute(url) {
   return null;
 }
 export async function onAppLinks(go) {
-  const app = await plugin('App');
+  const app = (await plugin('App'))?.p;
   if (!app) return;
   const open = (url) => { if (takeAuthCallback(url)) return; const route = tagUrlToRoute(url); if (route) go(route); };
   app.addListener('appUrlOpen', (e) => open(e.url));
