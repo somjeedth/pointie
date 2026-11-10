@@ -89,7 +89,7 @@ export function login() {
         btn.dataset.busy = '1'; btn.disabled = true; btn.textContent = 'กำลังส่งรหัส…';
         const r = await requestOtp(v);
         delete btn.dataset.busy; btn.disabled = false; btn.textContent = 'ขอรหัส OTP';
-        if (!r.ok) { toast(smsErrorText(r.message), 9000); console.warn('[pointie] OTP request failed:', r.message); return; }
+        if (!r.ok) { toast(smsErrorText(r.message) + (smsTestMode() ? ` (${r.message})` : ''), 12000); console.warn('[pointie] OTP request failed:', r.message); return; }
         resetOtpScreen();
         go('/otp');
       });
@@ -113,6 +113,8 @@ export function serverErrorText(msg = '') {
   return `เข้าสู่ระบบไม่สำเร็จ: ${msg || 'ไม่ทราบสาเหตุ'}`;
 }
 // Why sending the SMS failed.
+// ?sms=1 testing: also show the raw error so problems can be read off the screen.
+const smsTestMode = () => { try { return sessionStorage.getItem('dpoint.sms') === '1'; } catch { return false; } };
 export function smsErrorText(msg = '') {
   if (/provider|phone.*(disabled|not enabled)|unsupported/i.test(msg)) return 'Supabase ยังไม่เปิดเข้าสู่ระบบด้วยเบอร์โทร (Authentication → Sign In / Providers → Phone)';
   if (/hook/i.test(msg)) return 'ส่ง SMS ไม่สำเร็จ (Send SMS hook) ลองใหม่อีกครั้ง';
@@ -213,7 +215,7 @@ export function otp() {
         resending = true;
         const r = await requestOtp(i ? i.phone : normalizePhone(phoneDraft));
         resending = false;
-        if (!r.ok) { toast(smsErrorText(r.message), 9000); return; }
+        if (!r.ok) { toast(smsErrorText(r.message) + (smsTestMode() ? ` (${r.message})` : ''), 12000); return; }
         otpState = { code: '', status: 'normal', tries: 3 };
         toast('ส่งรหัสใหม่แล้ว');
         window.dispatchEvent(new Event('rerender'));

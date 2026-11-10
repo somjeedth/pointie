@@ -5,7 +5,7 @@
 //   SEND_SMS_HOOK_SECRET   the "v1,whsec_..." secret shown when you create the hook
 //   BOOST_SMS_API_BASE     optional, default https://app.boost-sms.com/api/v1
 //   BOOST_SMS_API_KEY      API key created in boost-sms → SMS API
-//   BOOST_SMS_SENDER       approved sender name, e.g. DPoint (optional; boost-sms default if unset)
+//   BOOST_SMS_SENDER       REQUIRED: a sender name approved in boost-sms → ชื่อผู้ส่ง (e.g. DPoint)
 //   BOOST_SMS_AUTH_HEADER  optional, default "Authorization" ("Bearer sk_live_…"); boost-sms also accepts "x-api-key"
 // boost-sms limits: SMS 10 req/min per key → 429 (passed on so the app says "try again shortly").
 // Deploy with "Verify JWT" OFF: Supabase Auth signs the request itself (checked below).
@@ -17,15 +17,16 @@ const env = (k: string) => Deno.env.get(k) ?? '';
 const e164 = (p: string) => { const d = p.replace(/\D/g, ''); return '+' + (d.startsWith('0') ? '66' + d.slice(1) : d); };
 
 // ---- the only part that depends on boost-sms's API ----
-// POST {base}/sms/send  { to, message, sender_name? }  — "to" accepts E.164 or local format.
+// POST {base}/sms/send  { to, message, sender }  — "to" accepts E.164 or local format.
+// The live API requires the sender as `sender` (or `senderName`), not `sender_name` as the docs table says.
 class RateLimited extends Error {}
 async function sendSms(phone: string, text: string): Promise<void> {
   const base = (env('BOOST_SMS_API_BASE') || 'https://app.boost-sms.com/api/v1').replace(/\/+$/, '');
   if (!env('BOOST_SMS_API_KEY')) throw new Error('BOOST_SMS_API_KEY not set');
+  if (!env('BOOST_SMS_SENDER')) throw new Error('BOOST_SMS_SENDER not set (approved sender name)');
   const header = env('BOOST_SMS_AUTH_HEADER') || 'Authorization';
   const key = env('BOOST_SMS_API_KEY');
-  const body: Record<string, string> = { to: e164(phone), message: text };
-  if (env('BOOST_SMS_SENDER')) body.sender_name = env('BOOST_SMS_SENDER');
+  const body = { to: e164(phone), message: text, sender: env('BOOST_SMS_SENDER') };
   const res = await fetch(`${base}/sms/send`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', accept: 'application/json', [header]: header.toLowerCase() === 'authorization' ? `Bearer ${key}` : key },
