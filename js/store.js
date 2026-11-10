@@ -197,13 +197,15 @@ export async function startOAuth(provider) {
     return { ok: true };
   } catch (e) { return { ok: false, message: e.message }; }
 }
+// Captured at module load, before any await, so nothing can change the address first.
+const BOOT_URL = { search: location.search, hash: location.hash, href: location.href };
 async function finishOAuth() {
-  let q; try { q = new URLSearchParams(location.search); } catch { return; }
+  let q; try { q = new URLSearchParams(BOOT_URL.search); } catch { return; }
   const code = q.get('code'); const err = q.get('error_description') || q.get('error');
   let pending = null;
   try { pending = JSON.parse(sessionStorage.getItem('dpoint.oauth')); sessionStorage.removeItem('dpoint.oauth'); } catch { /* ignore */ }
   // Implicit-flow return (#access_token=…&refresh_token=…), e.g. from an older cached script or some in-app browsers
-  let hp = null; try { hp = new URLSearchParams(location.hash.replace(/^#/, '')); } catch { /* ignore */ }
+  let hp = null; try { hp = new URLSearchParams(BOOT_URL.hash.replace(/^#/, '')); } catch { /* ignore */ }
   if (!code && !err && hp && hp.get('access_token') && hp.get('refresh_token')) {
     history.replaceState(null, '', location.pathname);
     try {
@@ -220,7 +222,10 @@ async function finishOAuth() {
   }
   if (!code && !err) {
     // came back from Google / Apple without a code: say so instead of silently showing the sign-in page again
-    if (pending && Date.now() - pending.at < 10 * 60000) oauthResult = { ok: false, message: `no sign-in code came back from ${pending.provider} (returned to ${location.href})` };
+    if (pending && Date.now() - pending.at < 10 * 60000) {
+      let opened = ''; try { opened = performance.getEntriesByType('navigation')[0]?.name || ''; } catch { /* ignore */ }
+      oauthResult = { ok: false, message: `no sign-in code came back from ${pending.provider} · opened: ${opened || BOOT_URL.href} · from: ${document.referrer || '-'}` };
+    }
     return;
   }
   history.replaceState(null, '', location.pathname + location.hash); // drop ?code=… from the address bar
