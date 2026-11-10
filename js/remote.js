@@ -14,7 +14,7 @@ export function client(app = 'customer') {
   if (!configured()) return null;
   if (!clients[app]) {
     clients[app] = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { persistSession: true, autoRefreshToken: true, storageKey: `pointie.auth.${app}`, detectSessionInUrl: false, flowType: 'pkce' },
+      auth: { persistSession: true, autoRefreshToken: true, storageKey: `pointie.auth.${app}`, detectSessionInUrl: false, flowType: 'implicit' }, // implicit: the sign-in works wherever Google/Apple lands (no code verifier tied to the starting tab)
     });
   }
   return clients[app];
