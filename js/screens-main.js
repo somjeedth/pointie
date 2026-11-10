@@ -9,7 +9,7 @@ import { SHOPS, CAT, shopById, MISSIONS, BADGES, xpNeed, levelTitle, unlocksFor,
 import {
   store, missionProgress, daysLeftInWeek, cardFor, thMonthYear, thDateTime, agoText, togglePin, pinSlots,
   markNotificationsRead, setTheme, logout, deleteAccount, resetDemo, DEMO_PHONE, prettyPhone, myReview, hasIdentity,
-  needsPhoneLink, setLinking,
+  needsPhoneLink, setLinking, signInMethod,
 } from './store.js';
 
 const shopStampText = (s) => { const c = cardFor(s.id); return c ? `${c.have}/${s.card.need} แสตมป์` : 'ยังไม่เคยไป'; };
@@ -484,7 +484,7 @@ export function profile() {
           ${row('#/me/birthday', 'sparkle', t('วันเกิด', 'Birthday'), me.identity?.birthDate ? fmtBirth(me.identity.birthDate) : `<span class="accent">${t('ยังไม่ได้ใส่', 'Not set')}</span>`)}
           ${row('#/me/style', 'heart', t('สไตล์และความชอบ', 'Style & interests'), likeSummary(u))}
           ${row('#/setup?edit=1', 'camera', t('รูปโปรไฟล์', 'Profile picture'), '')}
-          <div>${icon('phone')}<span>${t('เบอร์มือถือ', 'Mobile number')}</span><span class="chev small">${prettyPhone(me.phone)}</span></div>
+          <div id="acctRow">${icon(/^0\d{9}$/.test(me.phone) ? 'phone' : 'lock')}<span>${/^0\d{9}$/.test(me.phone) ? t('เบอร์มือถือ', 'Mobile number') : t('เข้าสู่ระบบด้วย', 'Signed in with')}</span><span class="chev small mv" id="acctVal">${/^0\d{9}$/.test(me.phone) ? prettyPhone(me.phone) : ''}</span></div>
           <button data-act="linkPhone" id="linkPhone" hidden>${icon('lock')}<span>${t('ยืนยันเบอร์ด้วย SMS', 'Verify number by SMS')}</span><span class="chev small" style="color:var(--primary)">${t('ใช้ได้ทุกเครื่อง', 'Use on any device')}</span></button>
         </div></div>
       </section>
@@ -519,6 +519,11 @@ export function profile() {
       <p class="center xs muted">D Point · ${document.documentElement.dataset.backend === 'remote' ? t('ข้อมูลซิงก์กับเซิร์ฟเวอร์', 'Synced with server') : t('โหมดเดโม ข้อมูลเก็บในเครื่องนี้', 'Demo mode, data stays on this device')}</p>`,
     mount(root) {
       needsPhoneLink().then((v) => { const b = root.querySelector('#linkPhone'); if (b) b.hidden = !v; });
+      if (!/^0\d{9}$/.test(store.me.phone)) signInMethod().then((m) => {
+        const el = root.querySelector('#acctVal'); if (!el || !m) return;
+        const name = { google: 'Google', apple: 'Apple', phone: t('เบอร์มือถือ', 'Mobile') }[m.provider] || m.provider;
+        el.textContent = m.email ? `${name} · ${m.email}` : name;
+      });
     },
     actions: {
       qr() {

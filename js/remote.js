@@ -14,7 +14,7 @@ export function client(app = 'customer') {
   if (!configured()) return null;
   if (!clients[app]) {
     clients[app] = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { persistSession: true, autoRefreshToken: true, storageKey: `pointie.auth.${app}`, detectSessionInUrl: false },
+      auth: { persistSession: true, autoRefreshToken: true, storageKey: `pointie.auth.${app}`, detectSessionInUrl: false, flowType: 'pkce' },
     });
   }
   return clients[app];

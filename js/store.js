@@ -159,12 +159,56 @@ export async function bootRemote() {
     console.warn('[pointie] Supabase unavailable, using local demo data', e);
     return 'fallback';
   }
+  await finishOAuth();
   try {
     const s = await remote.session('customer');
-    const st = s ? await remote.rpc('customer', 'my_state') : null;
+    let st = s ? await remote.rpc('customer', 'my_state') : null;
+    if (!st && s && oauthResult?.ok) {
+      // first Google / Apple sign-in: create the customer row and prefill the name step
+      const m = s.user?.user_metadata || {};
+      const full = String(m.full_name || m.name || '').trim();
+      const first = m.given_name || full.split(/\s+/)[0] || '';
+      const last = m.family_name || full.split(/\s+/).slice(1).join(' ') || '';
+      st = await remote.rpc('customer', 'customer_upsert', { p_nick: '', p_phone: null, p_profile: profilePayload(blankProfile(`u:${s.user.id}`)) });
+      try { if (first || last) sessionStorage.setItem('dpoint.join', JSON.stringify({ nick: first.slice(0, 20), first, last, bd: '', bm: '', by: '' })); } catch { /* ignore */ }
+    }
     if (st) { hydrate(st); ensureWeek(); save(); } else { store.session = null; save(); }
-  } catch (e) { console.warn('[pointie] could not load profile', e); }
+  } catch (e) { console.warn('[pointie] could not load profile', e); if (oauthResult?.ok) oauthResult = { ok: false, message: e.message }; }
   return 'remote';
+}
+
+// ---------- Google / Apple sign-in ----------
+let oauthResult = null; // set when the page was opened as the OAuth redirect: { ok, provider?, message? }
+export const takeOAuthResult = () => { const r = oauthResult; oauthResult = null; return r; };
+export const oauthAvailable = () => remoteOk;
+export async function startOAuth(provider) {
+  try {
+    const c = remote.client('customer');
+    const { data, error } = await remote.timed(c.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: location.origin + location.pathname, skipBrowserRedirect: true, ...(provider === 'google' ? { queryParams: { prompt: 'select_account' } } : {}) },
+    }));
+    if (error) return { ok: false, message: error.message };
+    location.assign(data.url);
+    return { ok: true };
+  } catch (e) { return { ok: false, message: e.message }; }
+}
+async function finishOAuth() {
+  let q; try { q = new URLSearchParams(location.search); } catch { return; }
+  const code = q.get('code'); const err = q.get('error_description') || q.get('error');
+  if (!code && !err) return;
+  history.replaceState(null, '', location.pathname + location.hash); // drop ?code=… from the address bar
+  if (err) { oauthResult = { ok: false, message: err }; return; }
+  try {
+    const c = remote.client('customer');
+    const { data, error } = await remote.timed(c.auth.exchangeCodeForSession(code));
+    oauthResult = error ? { ok: false, message: error.message } : { ok: true, provider: data?.session?.user?.app_metadata?.provider };
+  } catch (e) { oauthResult = { ok: false, message: e.message }; }
+}
+// How this account signs in, for the profile page: { provider, email }
+export async function signInMethod() {
+  if (!remoteOk) return null;
+  try { const s = await remote.session('customer'); const u = s?.user; return u ? { provider: u.app_metadata?.provider || (u.is_anonymous ? 'anonymous' : 'phone'), email: u.email || '' } : null; } catch { return null; }
 }
 async function ensureAnonSession(fresh = false) {
   const c = remote.client('customer');

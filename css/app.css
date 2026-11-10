@@ -732,3 +732,10 @@ button.gen-row svg { color: var(--muted); flex: none; }
 .bigcard .stamp { width: min(100%, 58px); height: auto; }
 .bigcard .stamp.sm { width: min(100%, 52px); height: auto; }
 .redeem-card { position: relative; width: var(--cw); height: var(--ch); margin: 0 auto; flex: none; }
+
+/* Google / Apple sign-in buttons */
+.btn-google, .btn-apple { gap: 10px; font-weight: 600; }
+.btn-google { background: #fff; color: #1F1F1F; border: 1px solid #DADCE0; }
+.btn-apple { background: #000; color: #fff; }
+[data-theme="dark"] .btn-apple { background: #fff; color: #000; }
+.splash .link-u { color: var(--primary); }

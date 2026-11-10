@@ -38,6 +38,31 @@ Supabase เป็นคนสร้างรหัส 6 หลักและ�
 - ข้อจำกัดของ boost-sms: ส่ง SMS ได้ 10 ครั้ง/นาที ต่อ API key (เกินแล้วแอพจะบอกให้รอสักครู่) — ถ้าคนสมัครพร้อมกันเยอะ ขอเพิ่มลิมิตกับ boost-sms
 - ฟังก์ชันเรียก `POST https://app.boost-sms.com/api/v1/sms/send` ด้วย `{ to: "+66…", message, sender }` ข้อความ: "รหัส D Point: 123456 ใช้ได้ 5 นาที ห้ามบอกรหัสนี้กับผู้อื่น" (1 ข้อความ SMS)
 
+## 2.2 เข้าสู่ระบบด้วย Google และ Apple
+แอพใช้ OAuth แบบ PKCE ของ Supabase (ปุ่มอยู่หน้าแรกของแอพลูกค้า) — Callback URL ของ Supabase คือ
+`https://vcerkaqjagvciuxjgktg.supabase.co/auth/v1/callback`
+และ Redirect URLs ใน Authentication → URL Configuration ต้องมี `https://app.getpointie.com/**`
+
+**Google**
+1. Google Cloud Console → APIs & Services → **OAuth consent screen**: External · ชื่อแอพ D Point · อีเมลซัพพอร์ต · Authorized domain `getpointie.com` · ใส่ลิงก์นโยบาย `https://app.getpointie.com/#/privacy` และข้อกำหนด `https://app.getpointie.com/#/terms` → Publish app
+2. **Credentials → Create credentials → OAuth client ID** → Web application
+   - Authorized JavaScript origins: `https://app.getpointie.com`
+   - Authorized redirect URIs: `https://vcerkaqjagvciuxjgktg.supabase.co/auth/v1/callback`
+3. Supabase → Authentication → Sign In / Providers → **Google**: เปิด แล้ววาง Client ID และ Client Secret
+
+**Apple** (Apple Developer → Certificates, Identifiers & Profiles)
+1. **Identifiers → App IDs**: สร้าง (หรือใช้ของแอพ iOS) แล้วติ๊ก **Sign in with Apple**
+2. **Identifiers → Services IDs**: สร้างใหม่ เช่น `com.getpointie.web` → ติ๊ก Sign in with Apple → Configure
+   - Primary App ID: App ID จากข้อ 1
+   - Domains: `vcerkaqjagvciuxjgktg.supabase.co`
+   - Return URLs: `https://vcerkaqjagvciuxjgktg.supabase.co/auth/v1/callback`
+3. **Keys**: สร้าง key ใหม่ ติ๊ก Sign in with Apple → ดาวน์โหลดไฟล์ `.p8` (โหลดได้ครั้งเดียว) จด Key ID และ Team ID (มุมขวาบน)
+4. Supabase → Authentication → Sign In / Providers → **Apple**: เปิด
+   - Client IDs: Services ID จากข้อ 2 (ภายหลังเพิ่ม Bundle ID ของแอพ iOS คั่นด้วยคอมมา)
+   - Secret Key: JWT ที่สร้างจากไฟล์ `.p8` + Key ID + Team ID + Services ID (ใช้เครื่องมือสร้างในเอกสาร Supabase หัวข้อ Login with Apple) — **หมดอายุทุก 6 เดือน ต้องสร้างใหม่**
+- ลูกค้าที่เข้าด้วย Google/Apple ไม่มีเบอร์ในบัญชี (ร้านไม่เห็นเบอร์อยู่แล้ว) ชื่อจาก Google/Apple จะเติมให้ในหน้าสมัคร
+- คนเดียวกันที่เข้าด้วยเบอร์และด้วย Google จะเป็นคนละบัญชี (ยังไม่มีการเชื่อมบัญชี)
+
 ## 3. ตรวจว่าใช้งานได้
 - เปิด `https://app.getpointie.com/` → ถ้าต่อสำเร็จ หน้า ตั้งค่า จะเขียนว่า "ข้อมูลซิงก์กับเซิร์ฟเวอร์"
 - ถ้าต่อไม่ได้ (ยังไม่ได้รัน SQL หรือเน็ตมีปัญหา) แอพจะสลับไปใช้ข้อมูลตัวอย่างในเครื่องเองโดยไม่พัง

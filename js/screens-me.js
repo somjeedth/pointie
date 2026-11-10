@@ -165,7 +165,7 @@ export function privacy() {
   if (getLang() === 'en') {
     return doc('Privacy policy', `<p>${COMPANY.en} (the "<b>Company</b>", "<b>we</b>"), the provider of D Point, respects your privacy. This policy explains how we collect, use, disclose and protect your personal data when you use the D Point customer app (app.getpointie.com), the merchant website (store.getpointie.com) and our website (getpointie.com) (together, the "<b>Service</b>"), in line with Thailand's Personal Data Protection Act B.E. 2562 (2019) ("<b>PDPA</b>"). We are the data controller for the data described here.</p>`, [
       ['Personal data we collect', ul([
-        '<b>Account data:</b> mobile number, nickname, profile picture or avatar.',
+        '<b>Account data:</b> mobile number, nickname, profile picture or avatar; if you sign in with Google or Apple, we receive your name, email address (Apple may give a private relay address) and account ID from that service.',
         '<b>Identity data:</b> first name, last name and date of birth.',
         '<b>Preferences:</b> the places and styles you choose.',
         '<b>Usage data:</b> stamps, shop visits (date and time), rewards and redemption codes, reviews and ratings, badges, level, XP, missions and notifications.',
@@ -185,7 +185,7 @@ export function privacy() {
       ['Who we share it with', ul([
         '<b>Participating shops</b> see your nickname, level, member tier, generation (e.g. Gen Z, not your age or birthday) and your stamps, visits, redemptions and reviews <b>at their shop only</b>. Shops never see your real name, mobile number, birthday, location or activity at other shops.',
         '<b>Other users</b> can see your nickname, level and reviews you publish.',
-        '<b>Service providers</b> acting on our instructions: Supabase (database and authentication), Vercel (hosting) and BoostSMS (sending sign-in codes; it receives only your mobile number and the code).',
+        '<b>Service providers</b> acting on our instructions: Supabase (database and authentication), Vercel (hosting), BoostSMS (sending sign-in codes; it receives only your mobile number and the code), and Google / Apple when you choose to sign in with them.',
         '<b>Authorities</b> where required by law or a court order.',
         'We do <b>not</b> sell your personal data.',
       ])],
@@ -208,7 +208,7 @@ export function privacy() {
   }
   return doc('นโยบายความเป็นส่วนตัว', `<p>${COMPANY.th} (“<b>บริษัท</b>” หรือ “<b>ผู้ให้บริการ</b>”) ในฐานะผู้ให้บริการ D Point ให้ความสำคัญกับความเป็นส่วนตัวของคุณ นโยบายนี้อธิบายวิธีที่บริษัทเก็บรวบรวม ใช้ เปิดเผย และคุ้มครองข้อมูลส่วนบุคคลของคุณ เมื่อคุณใช้แอพ D Point สำหรับลูกค้า (app.getpointie.com) เว็บไซต์สำหรับร้านค้า (store.getpointie.com) และเว็บไซต์ getpointie.com (รวมเรียกว่า “<b>บริการ</b>”) ตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 (“<b>PDPA</b>”) โดยบริษัทเป็นผู้ควบคุมข้อมูลส่วนบุคคลตามนโยบายนี้</p>`, [
     ['ข้อมูลส่วนบุคคลที่เราเก็บรวบรวม', ul([
-      '<b>ข้อมูลบัญชี:</b> เบอร์โทรศัพท์มือถือ ชื่อเล่น รูปโปรไฟล์หรือรูปอวาตาร์',
+      '<b>ข้อมูลบัญชี:</b> เบอร์โทรศัพท์มือถือ ชื่อเล่น รูปโปรไฟล์หรือรูปอวาตาร์ และหากคุณเข้าสู่ระบบด้วย Google หรือ Apple บริษัทจะได้รับชื่อ อีเมล (Apple อาจเป็นอีเมลแบบซ่อน) และรหัสบัญชีจากบริการนั้น',
       '<b>ข้อมูลยืนยันตัวตน:</b> ชื่อ นามสกุล และวันเดือนปีเกิด',
       '<b>ข้อมูลความชอบ:</b> ประเภทสถานที่และสไตล์ที่คุณเลือก',
       '<b>ข้อมูลการใช้บริการ:</b> แสตมป์ การเข้าร้าน (วันและเวลา) รางวัลและรหัสแลกรางวัล รีวิวและคะแนน Badge เลเวล XP ภารกิจ และการแจ้งเตือน',
@@ -228,7 +228,7 @@ export function privacy() {
     ['การเปิดเผยข้อมูลส่วนบุคคล', ul([
       '<b>ร้านค้าที่เข้าร่วม</b> เห็นชื่อเล่น เลเวล ระดับสมาชิก ช่วงวัย (เช่น Gen Z โดยไม่เห็นอายุหรือวันเกิด) และแสตมป์ การมาร้าน การแลกรางวัล และรีวิว <b>เฉพาะที่ร้านของตน</b> ร้านค้าไม่เห็นชื่อจริง เบอร์โทรศัพท์ วันเกิด ตำแหน่ง หรือกิจกรรมของคุณที่ร้านอื่น',
       '<b>ผู้ใช้อื่น</b> เห็นชื่อเล่น เลเวล และรีวิวที่คุณเผยแพร่',
-      '<b>ผู้ให้บริการที่ประมวลผลข้อมูลแทนบริษัท</b> ตามคำสั่งของบริษัท ได้แก่ Supabase (ฐานข้อมูลและระบบยืนยันตัวตน) Vercel (โฮสต์เว็บไซต์) และ BoostSMS (ส่งรหัส OTP โดยได้รับเฉพาะเบอร์โทรศัพท์และรหัส)',
+      '<b>ผู้ให้บริการที่ประมวลผลข้อมูลแทนบริษัท</b> ตามคำสั่งของบริษัท ได้แก่ Supabase (ฐานข้อมูลและระบบยืนยันตัวตน) Vercel (โฮสต์เว็บไซต์) BoostSMS (ส่งรหัส OTP โดยได้รับเฉพาะเบอร์โทรศัพท์และรหัส) และ Google / Apple เมื่อคุณเลือกเข้าสู่ระบบด้วยบริการนั้น',
       '<b>หน่วยงานของรัฐ</b> เมื่อกฎหมายหรือคำสั่งศาลกำหนด',
       'บริษัท<b>ไม่ขาย</b>ข้อมูลส่วนบุคคลของคุณ',
     ])],
