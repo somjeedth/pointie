@@ -6,7 +6,7 @@ import { AVATARS, PLACES, STYLES, AREAS, XP, refreshDistances } from './data.js'
 import { setOrigin } from './geo.js';
 import {
   store, normalizePhone, prettyPhone, isValidPhone, requestOtp, otpInfo, verifyOtp, loginDemo,
-  completeSetup, updateProfile, startOAuth, oauthAvailable, savePrefs, finishPrefs, saveIdentity, ageOf,
+  completeSetup, updateProfile, startOAuth, oauthAvailable, isLinking, savePrefs, finishPrefs, saveIdentity, ageOf,
 } from './store.js';
 
 export const returnTo = {
@@ -21,23 +21,27 @@ const APPLE_LOGO = '<svg width="18" height="20" viewBox="0 0 814 1000" aria-hidd
 
 // ---------- A1 Splash ----------
 export function welcome() {
-  const dots = [[12, 18, 10, '#FFC83D'], [82, 14, 8, '#A592FF'], [88, 40, 12, '#3CC7B2'], [8, 52, 8, '#FF9A5C'], [70, 58, 6, '#F7F7F7']]
-    .map(([x, y, s, c]) => `<span class="confetti-dot" style="left:${x}%;top:${y}%;width:${s}px;height:${s}px;background:${c}"></span>`).join('');
+  const d = normalizePhone(phoneDraft);
+  const social = oauthAvailable();
   return {
-    cls: 'splash',
-    html: `<div class="glow"></div>${dots}
-      <div class="col" style="align-items:center;margin-top:auto;gap:6px;position:relative">
-        <img class="mascot" src="img/pointie-cheer.png" alt="D Point">
-        <h1 class="sr-only">D Point</h1>${wordmark(54)}
-        <div class="muted" style="font-size:16px">แตะ · สะสม · เลเวลอัป</div>
+    cls: 'welcome',
+    html: `<div class="welcome-top">
+        <img class="mascot" src="img/pointie-cheer.png" alt="">
+        ${wordmark(34)}
       </div>
-      <div class="col spacer" style="width:100%;position:relative;gap:10px">
-        ${oauthAvailable() ? `<button class="btn btn-lg btn-google" data-act="oauth" data-p="google">${GOOGLE_G}ดำเนินการต่อด้วย Google</button>
-        <button class="btn btn-lg btn-apple" data-act="oauth" data-p="apple">${APPLE_LOGO}ดำเนินการต่อด้วย Apple</button>` : ''}
-        <a class="btn ${oauthAvailable() ? 'btn-ghost' : 'btn-primary'} btn-lg" href="#/login">${oauthAvailable() ? icon('phone', 20) : ''}${oauthAvailable() ? 'ดำเนินการต่อด้วยเบอร์มือถือ' : 'เริ่มต้นด้วยเบอร์มือถือ'}</a>
+      <h1 class="h1 welcome-title">เริ่มต้นใช้งาน D Point<br>เพื่อเก็บสิทธิพิเศษ</h1>
+      ${phoneFormHtml(d)}
+      <button class="btn btn-primary btn-lg" id="sendOtp" form="phoneForm" ${isValidPhone(d) ? '' : 'disabled'}>ขอรหัส OTP</button>
+      ${social ? `<div class="or-line" role="separator"><span>หรือ</span></div>
+      <div class="col" style="gap:10px">
+        <button class="btn btn-lg btn-google" data-act="oauth" data-p="google">${GOOGLE_G}ดำเนินการต่อด้วย Google</button>
+        <button class="btn btn-lg btn-apple" data-act="oauth" data-p="apple">${APPLE_LOGO}ดำเนินการต่อด้วย Apple</button>
+      </div>` : ''}
+      <div class="col spacer" style="gap:6px">
         <p class="muted xs center">การดำเนินการต่อถือว่าคุณยอมรับ <a class="link-u" href="#/terms">ข้อกำหนดการใช้งาน</a> และ <a class="link-u" href="#/privacy">นโยบายความเป็นส่วนตัว</a></p>
         <button class="btn btn-text" data-act="demo">ลองใช้บัญชีตัวอย่าง</button>
       </div>`,
+    mount(root) { mountPhoneForm(root); },
     actions: {
       async oauth(el) {
         const p = el.dataset.p; const label = el.innerHTML;
@@ -58,32 +62,18 @@ export function welcome() {
   };
 }
 
-// ---------- A2 Phone ----------
-let phoneDraft = '';
-export function login() {
-  const d = normalizePhone(phoneDraft);
-  return {
-    html: `<div class="topbar">${backBtn('/welcome')}${steps(5, 1)}<span style="width:40px"></span></div>
-      <div class="row" style="align-items:flex-start;margin-top:8px">
-        <div class="col" style="gap:8px;flex:1">
-          <h1 class="h1">เบอร์มือถือ<br>ของคุณ</h1>
-          <p class="muted">เราจะส่งรหัส 6 หลักทาง SMS<br>ใช้ทั้งสมัครใหม่และเข้าสู่ระบบ</p>
-        </div>
-        <img src="img/pointie-point.png" alt="" style="width:110px;flex:none;margin-top:-6px">
-      </div>
-      <form class="col" id="phoneForm" style="gap:8px" novalidate>
+// Phone number form shared by the welcome screen and /login (verify number from Profile).
+function phoneFormHtml(d) {
+  return `      <form class="col" id="phoneForm" style="gap:8px" novalidate>
         <label class="field-label" for="phone">เบอร์มือถือ</label>
         <div class="phone-field ${d ? 'on' : ''}" id="pf">
           <span class="cc">TH +66</span>
           <input id="phone" inputmode="numeric" autocomplete="tel" placeholder="08X XXX XXXX" value="${esc(prettyPhone(d))}" maxlength="12">
         </div>
         <p class="alert" id="perr" hidden style="justify-content:flex-start">${icon('alert', 16)}กรอกเบอร์มือถือ 10 หลักให้ถูกต้อง</p>
-      </form>
-      <div class="col spacer">
-        <button class="btn btn-primary" id="sendOtp" form="phoneForm" ${isValidPhone(d) ? '' : 'disabled'}>ขอรหัส OTP</button>
-        <p class="muted xs center">การดำเนินการต่อถือว่าคุณยอมรับ <a class="link-u" href="#/terms">ข้อกำหนดการใช้งาน</a> และ <a class="link-u" href="#/privacy">นโยบายความเป็นส่วนตัว</a></p>
-      </div>`,
-    mount(root) {
+      </form>`;
+}
+function mountPhoneForm(root) {
       const input = root.querySelector('#phone'), btn = root.querySelector('#sendOtp'), pf = root.querySelector('#pf');
       input.addEventListener('input', () => {
         const v = normalizePhone(input.value);
@@ -105,6 +95,29 @@ export function login() {
         resetOtpScreen();
         go('/otp');
       });
+  return input;
+}
+
+// ---------- A2 Phone ----------
+let phoneDraft = '';
+export function login() {
+  const d = normalizePhone(phoneDraft);
+  return {
+    html: `<div class="topbar">${backBtn('/welcome')}${steps(5, 1)}<span style="width:40px"></span></div>
+      <div class="row" style="align-items:flex-start;margin-top:8px">
+        <div class="col" style="gap:8px;flex:1">
+          <h1 class="h1">เบอร์มือถือ<br>ของคุณ</h1>
+          <p class="muted">เราจะส่งรหัส 6 หลักทาง SMS<br>ใช้ทั้งสมัครใหม่และเข้าสู่ระบบ</p>
+        </div>
+        <img src="img/pointie-point.png" alt="" style="width:110px;flex:none;margin-top:-6px">
+      </div>
+      ${phoneFormHtml(d)}
+      <div class="col spacer">
+        <button class="btn btn-primary" id="sendOtp" form="phoneForm" ${isValidPhone(d) ? '' : 'disabled'}>ขอรหัส OTP</button>
+        <p class="muted xs center">การดำเนินการต่อถือว่าคุณยอมรับ <a class="link-u" href="#/terms">ข้อกำหนดการใช้งาน</a> และ <a class="link-u" href="#/privacy">นโยบายความเป็นส่วนตัว</a></p>
+      </div>`,
+    mount(root) {
+      const input = mountPhoneForm(root);
       if (!d) input.focus();
     },
   };
@@ -149,7 +162,7 @@ export function otp() {
     return `<div class="${cls}">${esc(dch)}</div>`;
   }).join('');
   return {
-    html: `<div class="topbar">${backBtn('/login')}${steps(5, 2)}<span style="width:40px"></span></div>
+    html: `<div class="topbar">${backBtn(isLinking() ? '/login' : '/welcome')}${steps(5, 2)}<span style="width:40px"></span></div>
       ${info.real ? '' : `<div class="card-soft row" style="gap:10px;padding:10px 14px">
         ${icon('phone', 18)}<span class="small">SMS (จำลอง): รหัส D Point ของคุณคือ <b style="letter-spacing:.12em">${info.code}</b></span>
       </div>`}
