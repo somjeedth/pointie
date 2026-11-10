@@ -288,11 +288,11 @@ function tapScene() {
   const M = { x: 34, y: 22, w: 112, h: 97 };              // mascot image box
   const star = { x: M.x + M.w * 0.55, y: M.y + M.h * 0.62 }; // star on its chest
   const O = { x: 150, y: 66, w: 100, h: 48, t: 5 };         // phone (plane origin on screen)
-  const kx = O.x + (O.w / 2 + 6 - O.h / 2) * 0.866, ky = O.y + (O.w / 2 + 6 + O.h / 2) * 0.5 - O.t;
+  const cx = O.w / 2 + 6, cy = O.h / 2; // check badge centre, in the phone's plane
   const phone = `${slab(O.x, O.y, O.w, O.h, 9, O.t, '#9FB8E0', '#FFFFFF')}
       <rect transform="${plane(O.x, O.y, O.t)}" x="4" y="4" width="${O.w - 8}" height="${O.h - 8}" rx="6" fill="#EAF8FF" stroke="#082B76" stroke-width=".8"/>
       <rect transform="${plane(O.x, O.y, O.t)}" x="3.5" y="${O.h / 2 - 7}" width="5" height="14" rx="2.5" fill="#082B76"/>
-      <g class="tchk"><ellipse cx="${kx}" cy="${ky}" rx="15" ry="9" fill="#0865F5"/><path d="M${kx - 6} ${ky - 1}l4 4 8-7" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></g>`;
+      <g transform="${plane(O.x, O.y, O.t)}"><g class="tchk"><circle cx="${cx}" cy="${cy}" r="12" fill="#0865F5"/><path d="M${cx + -4.95} ${cy + 4.95} L${cx + 1.41} ${cy + 4.95} L${cx + 0.71} ${cy + -9.19}" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></g></g>`;
   return `<div class="tap-scene"><svg viewBox="0 0 240 150" width="100%" height="100%">
       <ellipse cx="${M.x + M.w * 0.52}" cy="${M.y + M.h - 3}" rx="40" ry="8" fill="rgba(8,43,118,.12)"/>
       <g class="tm"><image href="img/pointie-point.png" x="${M.x}" y="${M.y}" width="${M.w}" height="${M.h}"/></g>
