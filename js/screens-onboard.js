@@ -48,6 +48,7 @@ export function welcome() {
         <img class="mascot" src="img/pointie-cheer.png" alt="">
         ${wordmark(34)}
       </div>
+      ${window.__oauthError ? `<div class="oauth-err" role="alert"><b>${t('เข้าสู่ระบบไม่สำเร็จ', 'Sign-in failed')}</b><span>${esc(window.__oauthError)}</span></div>` : ''}
       <h1 class="welcome-title">${t('เริ่มต้นใช้งาน D Point เพื่อเก็บสิทธิพิเศษ', 'Get started with D Point to collect perks')}</h1>
       ${phoneFormHtml(d)}
       <button class="btn btn-primary btn-lg" id="sendOtp" form="phoneForm" ${isValidPhone(d) ? '' : 'disabled'}>${t('ขอรหัส OTP', 'Get OTP code')}</button>

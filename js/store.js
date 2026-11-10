@@ -192,6 +192,7 @@ export async function startOAuth(provider) {
       options: { redirectTo: location.origin + location.pathname, skipBrowserRedirect: true, ...(provider === 'google' ? { queryParams: { prompt: 'select_account' } } : {}) },
     }));
     if (error) return { ok: false, message: error.message };
+    try { sessionStorage.setItem('dpoint.oauth', JSON.stringify({ provider, at: Date.now() })); } catch { /* ignore */ }
     location.assign(data.url);
     return { ok: true };
   } catch (e) { return { ok: false, message: e.message }; }
@@ -199,7 +200,29 @@ export async function startOAuth(provider) {
 async function finishOAuth() {
   let q; try { q = new URLSearchParams(location.search); } catch { return; }
   const code = q.get('code'); const err = q.get('error_description') || q.get('error');
-  if (!code && !err) return;
+  let pending = null;
+  try { pending = JSON.parse(sessionStorage.getItem('dpoint.oauth')); sessionStorage.removeItem('dpoint.oauth'); } catch { /* ignore */ }
+  // Implicit-flow return (#access_token=…&refresh_token=…), e.g. from an older cached script or some in-app browsers
+  let hp = null; try { hp = new URLSearchParams(location.hash.replace(/^#/, '')); } catch { /* ignore */ }
+  if (!code && !err && hp && hp.get('access_token') && hp.get('refresh_token')) {
+    history.replaceState(null, '', location.pathname);
+    try {
+      const c = remote.client('customer');
+      const { data, error } = await remote.timed(c.auth.setSession({ access_token: hp.get('access_token'), refresh_token: hp.get('refresh_token') }));
+      oauthResult = error ? { ok: false, message: error.message } : { ok: true, provider: data?.session?.user?.app_metadata?.provider };
+    } catch (e) { oauthResult = { ok: false, message: e.message }; }
+    return;
+  }
+  if (!code && !err && hp && (hp.get('error_description') || hp.get('error'))) {
+    history.replaceState(null, '', location.pathname);
+    oauthResult = { ok: false, message: hp.get('error_description') || hp.get('error') };
+    return;
+  }
+  if (!code && !err) {
+    // came back from Google / Apple without a code: say so instead of silently showing the sign-in page again
+    if (pending && Date.now() - pending.at < 10 * 60000) oauthResult = { ok: false, message: `no sign-in code came back from ${pending.provider} (returned to ${location.href})` };
+    return;
+  }
   history.replaceState(null, '', location.pathname + location.hash); // drop ?code=… from the address bar
   if (err) { oauthResult = { ok: false, message: err }; return; }
   try {

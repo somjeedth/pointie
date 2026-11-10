@@ -134,7 +134,7 @@ bootRemote().then((mode) => {
   const oa = takeOAuthResult();
   if (oa?.ok && store.me?.user.setupDone) { const back = returnTo.take(); location.replace('#' + (back || '/home')); }
   render(false);
-  if (oa && !oa.ok) toast(`เข้าสู่ระบบไม่สำเร็จ: ${oa.message || 'ลองใหม่อีกครั้ง'}`, 9000);
+  if (oa && !oa.ok) { window.__oauthError = oa.message || 'unknown'; window.dispatchEvent(new Event('rerender')); toast(`เข้าสู่ระบบไม่สำเร็จ: ${oa.message || 'ลองใหม่อีกครั้ง'}`, 9000); }
   else if (oa?.ok && store.me?.user.setupDone) toast(`ยินดีต้อนรับกลับ ${store.me.user.nick}!`);
   if (mode === 'fallback') toast('ต่อเซิร์ฟเวอร์ไม่ได้ ตอนนี้ใช้ข้อมูลตัวอย่างในเครื่องไปก่อน', 4000);
 });
