@@ -164,12 +164,15 @@ export async function bootRemote() {
     const s = await remote.session('customer');
     let st = s ? await remote.rpc('customer', 'my_state') : null;
     if (!st && s && oauthResult?.ok) {
-      // first Google / Apple sign-in: create the customer row and prefill the name step
+      // first Google / Apple sign-in: create the customer row
+      st = await remote.rpc('customer', 'customer_upsert', { p_nick: '', p_phone: null, p_profile: profilePayload(blankProfile(`u:${s.user.id}`)) });
+    }
+    if (st && s && oauthResult?.ok && !st.profile?.user?.setupDone && !st.identity?.birthDate) {
+      // new, or came back before finishing sign-up: prefill the name step from Google / Apple
       const m = s.user?.user_metadata || {};
       const full = String(m.full_name || m.name || '').trim();
       const first = m.given_name || full.split(/\s+/)[0] || '';
       const last = m.family_name || full.split(/\s+/).slice(1).join(' ') || '';
-      st = await remote.rpc('customer', 'customer_upsert', { p_nick: '', p_phone: null, p_profile: profilePayload(blankProfile(`u:${s.user.id}`)) });
       try { if (first || last) sessionStorage.setItem('dpoint.join', JSON.stringify({ nick: first.slice(0, 20), first, last, bd: '', bm: '', by: '' })); } catch { /* ignore */ }
     }
     if (st) { hydrate(st); ensureWeek(); save(); } else { store.session = null; save(); }
@@ -180,7 +183,7 @@ export async function bootRemote() {
 // ---------- Google / Apple sign-in ----------
 let oauthResult = null; // set when the page was opened as the OAuth redirect: { ok, provider?, message? }
 export const takeOAuthResult = () => { const r = oauthResult; oauthResult = null; return r; };
-export const oauthAvailable = () => remoteOk;
+export const oauthAvailable = () => remote.configured();
 export async function startOAuth(provider) {
   try {
     const c = remote.client('customer');

@@ -749,8 +749,6 @@ button.gen-row svg { color: var(--muted); flex: none; }
 .or-line { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 13px; }
 .or-line::before, .or-line::after { content: ''; flex: 1; height: 1px; background: var(--line); }
 
-/* TH / EN switch (welcome, top right) */
-.lang-switch { position: absolute; top: calc(14px + env(safe-area-inset-top)); right: 16px; z-index: 5; display: flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 4px 12px rgba(8,43,118,.08); }
-.lang-switch button { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border: 0; border-radius: 999px; background: none; color: var(--muted); font: inherit; font-size: 13px; font-weight: 700; }
-.lang-switch button.on { background: var(--primary); color: #fff; }
-.lang-switch .flag { width: 18px; height: 12px; border-radius: 2px; flex: none; box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
+/* small TH/EN language toggle */
+.lang-btn { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 2px 0 8px; border: 0; background: none; color: var(--ink); font: inherit; font-size: 15px; font-weight: 600; min-width: 40px; justify-content: flex-end; }
+.welcome-lang { position: absolute; top: calc(10px + env(safe-area-inset-top)); right: 16px; z-index: 5; }
