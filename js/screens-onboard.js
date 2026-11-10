@@ -29,7 +29,7 @@ export function welcome() {
         <img class="mascot" src="img/pointie-cheer.png" alt="">
         ${wordmark(34)}
       </div>
-      <h1 class="h1 welcome-title">เริ่มต้นใช้งาน D Point<br>เพื่อเก็บสิทธิพิเศษ</h1>
+      <h1 class="welcome-title">เริ่มต้นใช้งาน D Point เพื่อเก็บสิทธิพิเศษ</h1>
       ${phoneFormHtml(d)}
       <button class="btn btn-primary btn-lg" id="sendOtp" form="phoneForm" ${isValidPhone(d) ? '' : 'disabled'}>ขอรหัส OTP</button>
       ${social ? `<div class="or-line" role="separator"><span>หรือ</span></div>
