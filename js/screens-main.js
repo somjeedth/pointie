@@ -212,7 +212,7 @@ export function scan() {
       </div>
       <div class="col spacer"><button class="btn btn-primary" data-act="tab" data-k="qr">${icon('qr', 20)}สแกน QR บนสแตนด์แทน</button><button class="btn btn-ghost" data-act="retry">ลองแตะอีกครั้ง</button></div>`;
   } else if (s.tab === 'nfc') {
-    body = `<div class="nfc-stage"><div class="nfc-stand">สแตนด์ NFC</div><div class="nfc-wave"></div><div class="nfc-phone"></div><img class="mascot" src="img/pointie-point.png" alt=""></div>
+    body = `<div class="tap-stage scan-stage" aria-hidden="true">${tapScene()}</div>
       <div class="col center" style="gap:6px"><h1 class="h1" style="font-size:22px">แตะมือถือที่สแตนด์ NFC</h1>
       <p class="muted small">${hasNfc ? 'กด “เริ่มอ่าน NFC” แล้วแนบด้านหลังมือถือกับสแตนด์ของร้าน' : 'iPhone และ Android แตะสแตนด์ได้เลย ระบบจะเปิดหน้านี้ให้อัตโนมัติ'}</p></div>
       ${hasNfc ? `<button class="btn btn-primary" data-act="nfc" ${s.reading ? 'disabled' : ''}>${icon('nfc', 20)}${s.reading ? 'กำลังรออ่าน NFC…' : 'เริ่มอ่าน NFC'}</button>` : ''}`;

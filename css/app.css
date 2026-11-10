@@ -753,3 +753,4 @@ button.gen-row svg { color: var(--muted); flex: none; }
 .lang-btn { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 2px 0 8px; border: 0; background: none; color: var(--ink); font: inherit; font-size: 15px; font-weight: 600; min-width: 40px; justify-content: flex-end; }
 .welcome-lang { position: absolute; top: calc(10px + env(safe-area-inset-top)); right: 16px; z-index: 5; }
 .oauth-err { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; border-radius: 14px; background: var(--red-soft); color: var(--red); font-size: 13px; word-break: break-all; }
+.tap-stage.scan-stage { padding: 14px 10px 6px; }
