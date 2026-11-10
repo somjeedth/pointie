@@ -37,6 +37,11 @@ async function oauthAction(el) {
         if (!r.ok) { el.disabled = false; el.innerHTML = label; toast(t(`เข้าสู่ระบบด้วย ${name} ไม่ได้: `, `Could not sign in with ${name}: `) + r.message, 9000); }
 }
 
+// Demo account button: hidden from customers; shown with ?demo=1 (remembered for the tab) or in the offline demo build.
+let demoFlag = false;
+try { if (new URLSearchParams(location.search).get('demo') === '1') sessionStorage.setItem('dpoint.demo', '1'); demoFlag = sessionStorage.getItem('dpoint.demo') === '1'; } catch { /* ignore */ }
+const showDemo = () => demoFlag || !oauthAvailable();
+
 // ---------- A1 Splash ----------
 export function welcome() {
   const d = normalizePhone(phoneDraft);
@@ -55,7 +60,7 @@ export function welcome() {
       ${social ? socialHtml() : ''}
       <div class="col spacer" style="gap:6px">
         <p class="muted xs center">${t('การดำเนินการต่อถือว่าคุณยอมรับ', 'By continuing you agree to the')} <a class="link-u" href="#/terms">${t('ข้อกำหนดการใช้งาน', 'Terms of use')}</a> ${t('และ', 'and')} <a class="link-u" href="#/privacy">${t('นโยบายความเป็นส่วนตัว', 'Privacy policy')}</a></p>
-        <button class="btn btn-text" data-act="demo">${t('ลองใช้บัญชีตัวอย่าง', 'Try the demo account')}</button>
+        ${showDemo() ? `<button class="btn btn-text" data-act="demo">${t('ลองใช้บัญชีตัวอย่าง', 'Try the demo account')}</button>` : ''}
       </div>`,
     mount(root) { mountPhoneForm(root); },
     actions: {
