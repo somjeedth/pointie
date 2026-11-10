@@ -150,8 +150,8 @@ const introStart = performance.now();
 function hideIntro() {
   const el = document.getElementById('splash'); if (!el) return;
   const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  const minMs = reduce ? 200 : isNative() ? 1900 : 1100;
-  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 480); }, Math.max(0, minMs - (performance.now() - introStart)));
+  const minMs = reduce ? 200 : isNative() ? 2900 : 1800;
+  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 700); }, Math.max(0, minMs - (performance.now() - introStart)));
 }
 
 
