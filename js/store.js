@@ -187,7 +187,14 @@ export const prettyPhone = (d) => d.length === 10 ? `${d.slice(0, 3)} ${d.slice(
 export const isValidPhone = (d) => /^0[689]\d{8}$/.test(d);
 
 // Real SMS (config SMS_OTP + Supabase) or the on-screen simulated code.
-export const realSms = () => remoteOk && SMS_OTP;
+// ?sms=1 (remembered for the tab) turns real SMS on for testing before SMS_OTP is switched on for everyone; ?sms=0 turns it off.
+let smsForce = null;
+try {
+  const q = new URLSearchParams(location.search).get('sms');
+  if (q === '1' || q === '0') sessionStorage.setItem('dpoint.sms', q);
+  const v = sessionStorage.getItem('dpoint.sms'); if (v === '1' || v === '0') smsForce = v === '1';
+} catch { /* ignore */ }
+export const realSms = () => remoteOk && (smsForce ?? SMS_OTP);
 const e164 = (d) => '+66' + d.slice(1);
 let otp = null; // { phone, code (simulated only), sentAt, expiresAt, tries, real, link }
 const OTP_TTL = 5 * 60000;
