@@ -4,6 +4,7 @@ import { icon } from './icons.js';
 import { esc, go, toast, steps, backBtn, avatarHtml, wordmark } from './ui.js';
 import { AVATARS, PLACES, STYLES, AREAS, XP, refreshDistances } from './data.js';
 import { setOrigin } from './geo.js';
+import { t, getLang, setLang } from './i18n.js';
 import {
   store, normalizePhone, prettyPhone, isValidPhone, requestOtp, otpInfo, verifyOtp, loginDemo,
   completeSetup, updateProfile, startOAuth, oauthAvailable, isLinking, savePrefs, finishPrefs, saveIdentity, ageOf,
@@ -15,6 +16,10 @@ export const returnTo = {
   take() { const v = this.get(); try { sessionStorage.removeItem('pointie.returnTo'); } catch { /* ignore */ } return v; },
 };
 
+// Flags for the TH / EN switch (inline SVG: emoji flags don't show on Windows).
+const FLAG_TH = '<svg class="flag" viewBox="0 0 9 6" aria-hidden="true"><rect width="9" height="6" fill="#A51931"/><rect y="1" width="9" height="4" fill="#F4F5F8"/><rect y="2" width="9" height="2" fill="#2D2A4A"/></svg>';
+const FLAG_EN = '<svg class="flag" viewBox="0 0 60 30" aria-hidden="true"><clipPath id="fgb"><path d="M0,0 v30 h60 v-30 z"/></clipPath><clipPath id="fgt"><path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z"/></clipPath><g clip-path="url(#fgb)"><path d="M0,0 v30 h60 v-30 z" fill="#012169"/><path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 L60,30 M60,0 L0,30" clip-path="url(#fgt)" stroke="#C8102E" stroke-width="4"/><path d="M30,0 v30 M0,15 h60" stroke="#fff" stroke-width="10"/><path d="M30,0 v30 M0,15 h60" stroke="#C8102E" stroke-width="6"/></g></svg>';
+
 // Official-style marks for the sign-in buttons (Google "G", Apple logo).
 const GOOGLE_G = '<svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
 const APPLE_LOGO = '<svg width="18" height="20" viewBox="0 0 814 1000" aria-hidden="true"><path fill="currentColor" d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105.6-57-155.5-127C46.7 790.7 0 663 0 541.8c0-194.4 126.4-297.5 250.8-297.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"/></svg>';
@@ -25,35 +30,40 @@ export function welcome() {
   const social = oauthAvailable();
   return {
     cls: 'welcome',
-    html: `<div class="welcome-top">
+    html: `<div class="lang-switch" role="group" aria-label="Language / ภาษา">
+        <button class="${getLang() === 'th' ? 'on' : ''}" data-act="lang" data-k="th" aria-pressed="${getLang() === 'th'}">${FLAG_TH}TH</button>
+        <button class="${getLang() === 'en' ? 'on' : ''}" data-act="lang" data-k="en" aria-pressed="${getLang() === 'en'}">${FLAG_EN}EN</button>
+      </div>
+      <div class="welcome-top">
         <img class="mascot" src="img/pointie-cheer.png" alt="">
         ${wordmark(34)}
       </div>
-      <h1 class="welcome-title">เริ่มต้นใช้งาน D Point เพื่อเก็บสิทธิพิเศษ</h1>
+      <h1 class="welcome-title">${t('เริ่มต้นใช้งาน D Point เพื่อเก็บสิทธิพิเศษ', 'Get started with D Point to collect perks')}</h1>
       ${phoneFormHtml(d)}
-      <button class="btn btn-primary btn-lg" id="sendOtp" form="phoneForm" ${isValidPhone(d) ? '' : 'disabled'}>ขอรหัส OTP</button>
-      ${social ? `<div class="or-line" role="separator"><span>หรือ</span></div>
+      <button class="btn btn-primary btn-lg" id="sendOtp" form="phoneForm" ${isValidPhone(d) ? '' : 'disabled'}>${t('ขอรหัส OTP', 'Get OTP code')}</button>
+      ${social ? `<div class="or-line" role="separator"><span>${t('หรือ', 'or')}</span></div>
       <div class="col" style="gap:10px">
-        <button class="btn btn-lg btn-google" data-act="oauth" data-p="google">${GOOGLE_G}ดำเนินการต่อด้วย Google</button>
-        <button class="btn btn-lg btn-apple" data-act="oauth" data-p="apple">${APPLE_LOGO}ดำเนินการต่อด้วย Apple</button>
+        <button class="btn btn-lg btn-google" data-act="oauth" data-p="google">${GOOGLE_G}${t('ดำเนินการต่อด้วย Google', 'Continue with Google')}</button>
+        <button class="btn btn-lg btn-apple" data-act="oauth" data-p="apple">${APPLE_LOGO}${t('ดำเนินการต่อด้วย Apple', 'Continue with Apple')}</button>
       </div>` : ''}
       <div class="col spacer" style="gap:6px">
-        <p class="muted xs center">การดำเนินการต่อถือว่าคุณยอมรับ <a class="link-u" href="#/terms">ข้อกำหนดการใช้งาน</a> และ <a class="link-u" href="#/privacy">นโยบายความเป็นส่วนตัว</a></p>
-        <button class="btn btn-text" data-act="demo">ลองใช้บัญชีตัวอย่าง</button>
+        <p class="muted xs center">${t('การดำเนินการต่อถือว่าคุณยอมรับ', 'By continuing you agree to the')} <a class="link-u" href="#/terms">${t('ข้อกำหนดการใช้งาน', 'Terms of use')}</a> ${t('และ', 'and')} <a class="link-u" href="#/privacy">${t('นโยบายความเป็นส่วนตัว', 'Privacy policy')}</a></p>
+        <button class="btn btn-text" data-act="demo">${t('ลองใช้บัญชีตัวอย่าง', 'Try the demo account')}</button>
       </div>`,
     mount(root) { mountPhoneForm(root); },
     actions: {
+      lang(el) { setLang(el.dataset.k); window.dispatchEvent(new Event('rerender')); },
       async oauth(el) {
-        const p = el.dataset.p; const label = el.innerHTML;
-        el.disabled = true; el.textContent = 'กำลังไปหน้า ' + (p === 'apple' ? 'Apple' : 'Google') + '…';
+        const p = el.dataset.p; const label = el.innerHTML; const name = p === 'apple' ? 'Apple' : 'Google';
+        el.disabled = true; el.textContent = t(`กำลังไปหน้า ${name}…`, `Opening ${name}…`);
         const r = await startOAuth(p);
-        if (!r.ok) { el.disabled = false; el.innerHTML = label; toast(`เข้าสู่ระบบด้วย ${p === 'apple' ? 'Apple' : 'Google'} ไม่ได้: ${r.message}`, 9000); }
+        if (!r.ok) { el.disabled = false; el.innerHTML = label; toast(t(`เข้าสู่ระบบด้วย ${name} ไม่ได้: `, `Could not sign in with ${name}: `) + r.message, 9000); }
       },
       async demo(el) {
-        el.disabled = true; el.textContent = 'กำลังเตรียมบัญชีตัวอย่าง…';
+        el.disabled = true; el.textContent = t('กำลังเตรียมบัญชีตัวอย่าง…', 'Preparing the demo account…');
         try { await loginDemo(); } catch (e) {
           console.warn('[pointie] demo sign-in failed', e);
-          el.disabled = false; el.textContent = 'ลองใช้บัญชีตัวอย่าง';
+          el.disabled = false; el.textContent = t('ลองใช้บัญชีตัวอย่าง', 'Try the demo account');
           toast(serverErrorText(e.message), 9000); return;
         }
         toast('เข้าสู่ระบบด้วยบัญชีตัวอย่าง "มายด์"'); go(returnTo.take() || '/home');
@@ -65,12 +75,12 @@ export function welcome() {
 // Phone number form shared by the welcome screen and /login (verify number from Profile).
 function phoneFormHtml(d) {
   return `      <form class="col" id="phoneForm" style="gap:8px" novalidate>
-        <label class="field-label" for="phone">เบอร์มือถือ</label>
+        <label class="field-label" for="phone">${t('เบอร์มือถือ', 'Mobile number')}</label>
         <div class="phone-field ${d ? 'on' : ''}" id="pf">
           <span class="cc">TH +66</span>
           <input id="phone" inputmode="numeric" autocomplete="tel" placeholder="08X XXX XXXX" value="${esc(prettyPhone(d))}" maxlength="12">
         </div>
-        <p class="alert" id="perr" hidden style="justify-content:flex-start">${icon('alert', 16)}กรอกเบอร์มือถือ 10 หลักให้ถูกต้อง</p>
+        <p class="alert" id="perr" hidden style="justify-content:flex-start">${icon('alert', 16)}${t('กรอกเบอร์มือถือ 10 หลักให้ถูกต้อง', 'Enter a valid 10-digit mobile number')}</p>
       </form>`;
 }
 function mountPhoneForm(root) {
@@ -88,9 +98,9 @@ function mountPhoneForm(root) {
         const v = normalizePhone(input.value);
         if (!isValidPhone(v)) { root.querySelector('#perr').hidden = false; return; }
         if (btn.dataset.busy) return;
-        btn.dataset.busy = '1'; btn.disabled = true; btn.textContent = 'กำลังส่งรหัส…';
+        btn.dataset.busy = '1'; btn.disabled = true; btn.textContent = t('กำลังส่งรหัส…', 'Sending code…');
         const r = await requestOtp(v);
-        delete btn.dataset.busy; btn.disabled = false; btn.textContent = 'ขอรหัส OTP';
+        delete btn.dataset.busy; btn.disabled = false; btn.textContent = t('ขอรหัส OTP', 'Get OTP code');
         if (!r.ok) { toast(smsErrorText(r.message) + (smsTestMode() ? ` (${r.message})` : ''), 12000); console.warn('[pointie] OTP request failed:', r.message); return; }
         resetOtpScreen();
         go('/otp');
