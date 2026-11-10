@@ -52,7 +52,7 @@ Supabase เป็นคนสร้างรหัส 6 หลักและ�
 
 **Apple** (Apple Developer → Certificates, Identifiers & Profiles)
 1. **Identifiers → App IDs**: สร้าง (หรือใช้ของแอพ iOS) แล้วติ๊ก **Sign in with Apple**
-2. **Identifiers → Services IDs**: สร้างใหม่ เช่น `com.dpointapp.th.web` → ติ๊ก Sign in with Apple → Configure
+2. **Identifiers → Services IDs**: สร้างใหม่ เช่น `com.dpointapp.web` → ติ๊ก Sign in with Apple → Configure
    - Primary App ID: App ID จากข้อ 1
    - Domains: `vcerkaqjagvciuxjgktg.supabase.co`
    - Return URLs: `https://vcerkaqjagvciuxjgktg.supabase.co/auth/v1/callback`
