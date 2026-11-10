@@ -4,7 +4,7 @@ import {
   esc, go, toast, nav, avatarHtml, wordmark, toneStyle, cardBg, cardBgStyle, hasArt, letterHtml, cardEn, stampGrid, starsHtml, sheet, backBtn,
 } from './ui.js';
 import { t, getLang, setLang } from './i18n.js';
-import { isNative, scanNfcTag, tagUrlToRoute } from './native.js';
+import { isNative, isAndroid, scanNfcTag, stopNfcScan, openNfcSettings, tagUrlToRoute } from './native.js';
 import { siteUrl } from './sites.js';
 import { getOrigin, setOrigin, locateMe, embedFor, mapsUrl } from './geo.js';
 import { SHOPS, CAT, shopById, MISSIONS, BADGES, xpNeed, levelTitle, unlocksFor, totalVisits, catVisitStats, STYLES, TIERS, tierFor, nextTier, refreshDistances } from './data.js';
@@ -187,6 +187,7 @@ export { mapsUrl };
 let scanState = { tab: 'nfc', fail: false, reading: false };
 let nfcAbort = null; let camStream = null; let camLoop = null;
 const stopScan = () => {
+  if (isAndroid() && scanState.reading) stopNfcScan();
   try { nfcAbort?.abort(); } catch { /* ignore */ }
   nfcAbort = null;
   camStream?.getTracks().forEach((t) => t.stop()); camStream = null;
@@ -218,7 +219,7 @@ export function scan() {
   } else if (s.tab === 'nfc') {
     body = `<div class="tap-stage scan-stage" aria-hidden="true">${tapScene()}</div>
       <div class="col center" style="gap:6px"><h1 class="h1" style="font-size:22px">แตะมือถือที่สแตนด์ NFC</h1>
-      <p class="muted small">${hasNfc ? 'กด “เริ่มอ่าน NFC” แล้วแนบด้านหลังมือถือกับสแตนด์ของร้าน' : 'iPhone และ Android แตะสแตนด์ได้เลย ระบบจะเปิดหน้านี้ให้อัตโนมัติ'}</p></div>
+      <p class="muted small">${s.reading ? 'แนบด้านหลังส่วนบนของมือถือกับสแตนด์ของร้าน ค้างไว้ 2 วินาที' : hasNfc ? 'กด “เริ่มอ่าน NFC” แล้วแนบด้านหลังมือถือกับสแตนด์ของร้าน' : 'iPhone และ Android แตะสแตนด์ได้เลย ระบบจะเปิดหน้านี้ให้อัตโนมัติ'}</p></div>
       ${hasNfc ? `<button class="btn btn-primary" data-act="nfc" ${s.reading ? 'disabled' : ''}>${icon('nfc', 20)}${s.reading ? 'กำลังรออ่าน NFC…' : 'เริ่มอ่าน NFC'}</button>` : ''}`;
   } else {
     body = hasQr ? `<div style="position:relative;border-radius:22px;overflow:hidden;background:#000;aspect-ratio:1">
@@ -257,14 +258,23 @@ export function scan() {
       retry() { scanState.fail = false; window.dispatchEvent(new Event('rerender')); },
       async nfc() {
         if (isNative()) {
-          // iOS app: system "Ready to Scan" sheet; the tag holds https://app.getpointie.com/t/<shop>?s=<token>
+          // iOS app: system "Ready to Scan" sheet. Android app: this screen is the prompt, reader mode waits for the tag.
+          // The tag holds https://app.getpointie.com/t/<shop>?s=<token>
+          const android = isAndroid();
+          if (android) { scanState.reading = true; window.dispatchEvent(new Event('rerender')); }
           try {
             const url = await scanNfcTag();
+            scanState.reading = false;
             const route = tagUrlToRoute(url);
             if (route) go(route);
-            else if (url) { scanState = { tab: 'nfc', fail: true, reading: false }; window.dispatchEvent(new Event('rerender')); }
+            else { scanState = { tab: 'nfc', fail: true, reading: false }; window.dispatchEvent(new Event('rerender')); }
           } catch (e) {
-            if (!/cancel/i.test(e?.message || '')) { scanState = { tab: 'nfc', fail: true, reading: false }; window.dispatchEvent(new Event('rerender')); }
+            scanState.reading = false;
+            const code = e?.code || '';
+            if (code === 'NO_NFC') { toast('มือถือเครื่องนี้ไม่มี NFC สแกน QR บนสแตนด์แทนได้เลย', 6000); scanState = { tab: 'qr', fail: false, reading: false }; }
+            else if (code === 'NFC_OFF') { toast('เปิด NFC ในการตั้งค่าก่อน แล้วกลับมากด “เริ่มอ่าน NFC”', 7000); openNfcSettings(); }
+            else if (!/cancel/i.test(`${code} ${e?.message || ''}`)) scanState = { tab: 'nfc', fail: true, reading: false };
+            window.dispatchEvent(new Event('rerender'));
           }
           return;
         }

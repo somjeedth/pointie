@@ -5,7 +5,7 @@ import { esc, go, toast, steps, backBtn, avatarHtml, wordmark } from './ui.js';
 import { AVATARS, PLACES, STYLES, AREAS, XP, refreshDistances } from './data.js';
 import { setOrigin } from './geo.js';
 import { t, getLang, setLang } from './i18n.js';
-import { isNative } from './native.js';
+import { isNative, isAndroid } from './native.js';
 import { GOOGLE_IOS_CLIENT_ID } from './config.js';
 import {
   store, normalizePhone, prettyPhone, isValidPhone, requestOtp, otpInfo, verifyOtp, loginDemo,
@@ -27,7 +27,7 @@ const langBtn = () => `<button class="lang-btn" data-act="lang" aria-label="${t(
 function toggleLang() { setLang(getLang() === 'en' ? 'th' : 'en'); window.dispatchEvent(new Event('rerender')); }
 
 // "or" + Google / Apple, shared by the welcome screen and the phone page.
-const showGoogle = () => !isNative() || !!GOOGLE_IOS_CLIENT_ID;
+const showGoogle = () => !isNative() || isAndroid() || !!GOOGLE_IOS_CLIENT_ID; // Android signs in through a browser tab
 const socialButtons = () => `<div class="col" style="gap:10px">
         ${showGoogle() ? `<button class="btn btn-lg btn-google" data-act="oauth" data-p="google">${GOOGLE_G}${t('ดำเนินการต่อด้วย Google', 'Continue with Google')}</button>` : ''}
         <button class="btn btn-lg btn-apple" data-act="oauth" data-p="apple">${APPLE_LOGO}${t('ดำเนินการต่อด้วย Apple', 'Continue with Apple')}</button>
@@ -40,7 +40,7 @@ const socialHtml = () => `<div class="or-line" role="separator"><span>${t('ห�
 async function oauthAction(el) {
   const p = el.dataset.p; const label = el.innerHTML; const name = p === 'apple' ? 'Apple' : 'Google';
   if (isNative()) {
-    // iOS app: system Sign in with Apple / Google sheet, no browser redirect
+    // iOS app: system Sign in with Apple / Google sheet. Android app: browser tab that returns to the app.
     el.disabled = true;
     const r = await nativeSocialSignIn(p);
     el.disabled = false; el.innerHTML = label;

@@ -1,4 +1,4 @@
-# D Point — แอพ iOS (Capacitor)
+# D Point — แอพ iOS และ Android (Capacitor)
 
 แอพนี้คือแอพลูกค้าเดิม (ไฟล์ที่ root ของ repo) ห่อด้วย Capacitor แล้วเพิ่มส่วนที่เป็นของ iPhone:
 
@@ -61,3 +61,61 @@ Authentication → Sign In / Providers → **Apple** → Client IDs ใส่ `c
 
 ## อัปเดตแอพ
 แก้หน้าเว็บ → `cd mobile && npm run ios` → Xcode: เพิ่ม **Build** (target App → General → Build +1) → Archive → Upload
+
+---
+
+# Android
+
+| ในแอพ | ทำงานอย่างไร |
+|---|---|
+| สแกน NFC | หน้าสแกนของแอพรออ่านแท็กเอง (Android ไม่มีหน้าต่าง Ready to Scan) → `DPointNfcPlugin.java` · NFC ปิดอยู่ = พาไปหน้าตั้งค่า · เครื่องไม่มี NFC = สลับไปสแกน QR |
+| แตะป้ายตอนไม่ได้เปิดแอพ | แท็ก `https://app.getpointie.com/t/…` เปิดแอพตรงหน้ารับแสตมป์ทันที (ไม่ผ่านเบราว์เซอร์) |
+| Google / Apple | เปิดหน้า Google / Apple ในแท็บเบราว์เซอร์ แล้วเด้งกลับเข้าแอพที่ `com.dpointapp.th://auth` |
+| QR ด้วยกล้อง | ลิงก์ `/t/…` เปิดแอพ เมื่อใส่ลายนิ้วมือ key ใน `.well-known/assetlinks.json` แล้ว (ข้อ A6) |
+
+- Package: `com.dpointapp.th` · minSdk 24 (Android 7) · targetSdk 36
+
+## A1. Supabase (ครั้งเดียว ก่อนลองล็อกอินในแอพ)
+Authentication → **URL Configuration** → Redirect URLs → **Add URL** → `com.dpointapp.th://auth` → Save
+
+## A2. เปิดโปรเจกต์บน Mac
+1. ติดตั้ง **Android Studio** (https://developer.android.com/studio) → เปิดครั้งแรก กด Next ไปจนจบ (โหลด Android SDK ให้เอง)
+2. Terminal:
+```bash
+cd pointie && git pull
+cd mobile && npm install
+npm run android      # คัดลอกเว็บเข้าแอพ + sync + เปิด Android Studio
+```
+3. รอแถบล่างของ Android Studio ขึ้น **Gradle sync finished** (ครั้งแรกนานหลายนาที)
+
+## A3. ลงมือถือ Android
+1. มือถือ: Settings → About phone → แตะ **Build number** 7 ครั้ง → กลับไป Settings → System → **Developer options** → เปิด **USB debugging**
+2. เสียบสาย → มือถือถาม Allow USB debugging → Allow
+3. Android Studio: เลือกชื่อมือถือที่แถบบน → กด ▶︎ Run
+
+## A4. สร้างไฟล์ส่ง Play Store (.aab)
+1. Android Studio → **Build → Generate Signed App Bundle or APK** → **Android App Bundle** → Next
+2. Key store path → **Create new…**
+   - เก็บไฟล์ไว้นอกโฟลเดอร์โปรเจกต์ เช่น `~/keys/dpoint-upload.jks`
+   - ตั้งรหัสผ่าน, Alias `upload`, Validity 25 ปี, ชื่อ/บริษัท
+   - **สำรองไฟล์ .jks และรหัสผ่านไว้ในที่ปลอดภัย** (เช่น password manager) — ห้าม commit ลง git ห้ามส่งในแชท
+3. เลือก **release** → Create → ได้ไฟล์ `mobile/android/app/release/app-release.aab`
+4. ส่งเวอร์ชันใหม่ครั้งต่อไป: แก้ `versionCode` (+1) และ `versionName` ใน `mobile/android/app/build.gradle` ก่อน build
+
+## A5. Play Console
+1. **Create app** → ชื่อ `D Point` · ภาษา Thai · App · Free → Create
+2. Testing → **Internal testing** → Create new release → ใช้ **Play App Signing** (ค่าเริ่มต้น) → อัปโหลด `app-release.aab` → เพิ่มอีเมลผู้ทดสอบ → Rollout
+3. หน้า Dashboard ทำ "Set up your app" ให้ครบ:
+   - Privacy policy: `https://app.getpointie.com/#/privacy`
+   - App access: ต้องล็อกอิน → ใส่คำอธิบาย "Sign in with Google or Apple to create an account"
+   - Ads: ไม่มี · Content rating: ตอบแบบสอบถาม · Target audience: 13+
+   - Data safety: เก็บ ชื่อ, อีเมล, เบอร์โทร, วันเกิด, User ID, รีวิว, ประวัติการใช้งานในแอพ · เข้ารหัสระหว่างส่ง · ผู้ใช้ขอลบบัญชีได้ (ในแอพ: โปรไฟล์ → ลบบัญชี)
+4. Store listing: ไอคอน 512×512 = `mobile/android/play-store-icon-512.png` · Feature graphic 1024×500 · ภาพหน้าจอมือถืออย่างน้อย 2 รูป
+5. ทดสอบผ่านแล้ว → Production → Create new release → ส่งรีวิว
+
+## A6. ให้กล้อง / ลิงก์ `/t/…` เปิดแอพ (App Links)
+Play Console → Test and release → **App integrity** → App signing → คัดลอก **SHA-256 certificate fingerprint** ทั้ง 2 อัน (App signing key และ Upload key)
+→ ใส่ใน `sha256_cert_fingerprints` ของ `.well-known/assetlinks.json` แล้ว deploy (ค่านี้ไม่ใช่ความลับ)
+
+## อัปเดตแอพ Android
+แก้หน้าเว็บ → `cd mobile && npm run android` → versionCode +1 → Generate Signed App Bundle → อัปโหลดใน Play Console

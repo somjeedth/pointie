@@ -5,11 +5,29 @@
   "ios": {
     "contentInset": "never",
     "backgroundColor": "#F4F9FF",
-    "scrollEnabled": true
+    "scrollEnabled": true,
+    "includePlugins": [
+      "@capacitor/app",
+      "@capgo/capacitor-social-login"
+    ]
   },
   "plugins": {
     "SocialLogin": {
-      "providers": { "google": true, "apple": true, "facebook": false, "twitter": false }
+      "providers": {
+        "google": true,
+        "apple": true,
+        "facebook": false,
+        "twitter": false
+      }
     }
+  },
+  "android": {
+    "backgroundColor": "#F4F9FF",
+    "adjustMarginsForEdgeToEdge": "auto",
+    "allowMixedContent": false,
+    "includePlugins": [
+      "@capacitor/app",
+      "@capacitor/browser"
+    ]
   }
 }

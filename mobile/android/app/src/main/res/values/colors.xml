@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="dpoint_bg">#F4F9FF</color>
+    <color name="colorPrimary">#0865F5</color>
+    <color name="colorPrimaryDark">#082B76</color>
+    <color name="colorAccent">#FF920F</color>
+</resources>

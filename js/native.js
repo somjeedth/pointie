@@ -1,9 +1,10 @@
 // Bridge to the iOS / Android app (Capacitor). On the web every function here is a no-op or returns null.
-// Plugins: DPointNfc (our own, Core NFC "Ready to Scan" sheet), SocialLogin (@capgo, native Apple/Google),
-// App (@capacitor/app, universal links /t/<shop>).
+// Plugins: DPointNfc (our own: iOS Core NFC "Ready to Scan" sheet / Android reader mode), SocialLogin (@capgo, native
+// Apple/Google on iOS), Browser (@capacitor/browser, Google/Apple sign-in on Android), App (@capacitor/app, links /t/<shop>).
 import { GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID } from './config.js';
 
 export const isNative = () => !!window.Capacitor?.isNativePlatform?.();
+export const isAndroid = () => isNative() && window.Capacitor?.getPlatform?.() === 'android';
 
 let core = null;
 async function plugin(name) {
@@ -13,10 +14,37 @@ async function plugin(name) {
 }
 
 // ---------- NFC: native "Ready to Scan" sheet → the URL written on the tag ----------
+// Android: no system sheet, the scan screen itself is the prompt. Errors carry code NO_NFC / NFC_OFF / CANCELLED.
 export async function scanNfcTag() {
   const nfc = await plugin('DPointNfc');
   const r = await nfc.scan({ message: 'แตะด้านบนของ iPhone ที่ป้าย D Point' });
   return r?.url || '';
+}
+export async function stopNfcScan() {
+  if (!isAndroid()) return;
+  try { await (await plugin('DPointNfc')).stop(); } catch { /* ignore */ }
+}
+export async function openNfcSettings() {
+  try { await (await plugin('DPointNfc')).openSettings(); } catch { /* ignore */ }
+}
+
+// ---------- Android: Google / Apple sign-in in a browser tab that comes back to com.dpointapp.th://auth ----------
+export const APP_AUTH_REDIRECT = 'com.dpointapp.th://auth';
+let authWait = null; // { resolve, reject } while a sign-in tab is open
+export function takeAuthCallback(url) {
+  if (!String(url || '').startsWith(APP_AUTH_REDIRECT) || !authWait) return false;
+  authWait.resolve(url); authWait = null;
+  plugin('Browser').then((b) => b?.close?.()).catch(() => {});
+  return true;
+}
+export async function browserSignIn(url) {
+  const browser = await plugin('Browser');
+  if (authWait) authWait.reject(new Error('cancelled'));
+  const done = new Promise((resolve, reject) => { authWait = { resolve, reject }; });
+  // Closing the tab without finishing = cancelled (wait a moment: the return link can arrive just after the tab closes)
+  const h = await browser.addListener('browserFinished', () => setTimeout(() => { if (authWait) { authWait.reject(new Error('cancelled')); authWait = null; } }, 1500));
+  try { await browser.open({ url, toolbarColor: '#F4F9FF' }); return await done; }
+  finally { h?.remove?.(); }
 }
 
 // ---------- Sign in with Apple / Google (native) → Supabase ID token sign-in ----------
@@ -55,7 +83,7 @@ export function tagUrlToRoute(url) {
 export async function onAppLinks(go) {
   const app = await plugin('App');
   if (!app) return;
-  const open = (url) => { const route = tagUrlToRoute(url); if (route) go(route); };
+  const open = (url) => { if (takeAuthCallback(url)) return; const route = tagUrlToRoute(url); if (route) go(route); };
   app.addListener('appUrlOpen', (e) => open(e.url));
   try { const l = await app.getLaunchUrl(); if (l?.url) open(l.url); } catch { /* ignore */ }
 }

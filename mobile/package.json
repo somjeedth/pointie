@@ -6,10 +6,14 @@
   "type": "module",
   "scripts": {
     "sync-web": "node scripts/sync-web.mjs",
-    "ios": "node scripts/sync-web.mjs && npx cap sync ios && npx cap open ios"
+    "ios": "node scripts/sync-web.mjs && npx cap sync ios && npx cap open ios",
+    "android": "node scripts/sync-web.mjs && npx cap sync android && npx cap open android",
+    "sync": "node scripts/sync-web.mjs && npx cap sync"
   },
   "dependencies": {
+    "@capacitor/android": "^7.6.10",
     "@capacitor/app": "^7.1.2",
+    "@capacitor/browser": "^7.0.5",
     "@capacitor/core": "^7.6.10",
     "@capacitor/ios": "^7.6.10",
     "@capgo/capacitor-social-login": "^7.20.0"
