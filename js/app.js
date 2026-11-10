@@ -1,4 +1,5 @@
 // Router & bootstrap for the D Point customer web app.
+import { isNative, onAppLinks } from './native.js';
 import { store, ensureWeek, peekLevelUp, bootRemote, isLinking, takeOAuthResult } from './store.js';
 import { nav, toast } from './ui.js';
 import { morphChildren, runMount } from './dom.js';
@@ -128,7 +129,11 @@ window.addEventListener('rerender', () => render(true));
 window.addEventListener('themechange', applyTheme);
 window.addEventListener('offline', () => toast('ออฟไลน์อยู่ บางอย่างอาจยังบันทึกไม่ได้'));
 
+// Stand tag link https://app.getpointie.com/t/<shop>?s=<token> (opened in the browser when the app isn't installed)
+{ const m = location.pathname.match(/^\/t\/([a-z0-9-]+)\/?$/i); if (m) history.replaceState(null, '', `/#/tap/${m[1]}${location.search}`); }
+
 applyTheme();
+onAppLinks((route) => { location.hash = route; }); // iOS app: tag tapped / QR scanned with the camera opens the app here
 bootRemote().then((mode) => {
   document.documentElement.dataset.backend = mode;
   const oa = takeOAuthResult();
@@ -139,6 +144,6 @@ bootRemote().then((mode) => {
   if (mode === 'fallback') toast('ต่อเซิร์ฟเวอร์ไม่ได้ ตอนนี้ใช้ข้อมูลตัวอย่างในเครื่องไปก่อน', 4000);
 });
 
-if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+if ('serviceWorker' in navigator && location.protocol !== 'file:' && !isNative()) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 }

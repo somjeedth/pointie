@@ -161,7 +161,8 @@ export async function removeStand(shopId, standId) {
   const s = getShop(shopId);
   patchShop(shopId, { stands: s.stands.filter((x) => x.id !== standId) });
 }
-export const tapUrl = (shopId, stand) => siteUrl('app', `#/tap/${shopId}${stand ? `?s=${stand.token}` : ''}`);
+// Stand link written on NFC tags / QR codes. /t/<shop> opens the D Point app when installed (universal link), else the web app.
+export const tapUrl = (shopId, stand) => siteUrl('app', `t/${shopId}${stand ? `?s=${stand.token}` : ''}`);
 
 // ---------------- events / analytics ----------------
 const DAY = 86400000;

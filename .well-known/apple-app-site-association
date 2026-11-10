@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["8VXGSBRNHW.com.dpointapp.th"],
+        "components": [
+          { "/": "/t/*", "comment": "D Point stand tags (NFC / QR) open the app" }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["8VXGSBRNHW.com.dpointapp.th"]
+  }
+}

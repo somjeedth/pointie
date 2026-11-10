@@ -6,7 +6,7 @@ const PROD = {
   store: 'https://store.getpointie.com/',
 };
 const LOCAL = { landing: '/business/', app: '/', store: '/merchant/' };
-export const onProd = () => /(^|\.)getpointie\.com$/i.test(location.hostname);
+export const onProd = () => /(^|\.)getpointie\.com$/i.test(location.hostname) || !!window.Capacitor?.isNativePlatform?.();
 // siteUrl('app', '#/tap/baan') → absolute URL of that site (+ optional hash/path)
 export function siteUrl(site, suffix = '') {
   const base = onProd() ? PROD[site] : location.origin + LOCAL[site];

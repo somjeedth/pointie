@@ -6,6 +6,7 @@ import { SHOPS, shopById, xpNeed, MISSIONS, BADGES, XP, levelTitle, replaceShops
 import { logEvent } from './catalog.js';
 import * as remote from './remote.js';
 import { SMS_OTP } from './config.js';
+import { nativeSignIn } from './native.js';
 
 const KEY_ACCOUNTS = 'pointie.accounts.v1';
 const KEY_SESSION = 'pointie.session.v1';
@@ -236,6 +237,30 @@ async function finishOAuth() {
     oauthResult = error ? { ok: false, message: error.message } : { ok: true, provider: data?.session?.user?.app_metadata?.provider };
   } catch (e) { oauthResult = { ok: false, message: e.message }; }
 }
+// In the iOS app: native Sign in with Apple / Google → Supabase signInWithIdToken → same set-up as the web return.
+export async function nativeSocialSignIn(provider) {
+  let n;
+  try { n = await nativeSignIn(provider); } catch (e) { return { ok: false, cancelled: /cancel/i.test(e?.message || ''), message: e?.message || String(e) }; }
+  if (!n?.idToken) return { ok: false, message: 'no ID token from ' + provider };
+  try {
+    const c = remote.client('customer');
+    const { data, error } = await remote.timed(c.auth.signInWithIdToken({ provider, token: n.idToken, nonce: n.nonce }));
+    if (error) return { ok: false, message: error.message };
+    const s = data.session;
+    let st = await remote.rpc('customer', 'my_state');
+    if (!st) st = await remote.rpc('customer', 'customer_upsert', { p_nick: '', p_phone: null, p_profile: profilePayload(blankProfile(`u:${s.user.id}`)) });
+    if (!st.profile?.user?.setupDone && !st.identity?.birthDate) {
+      const m = s.user?.user_metadata || {};
+      const full = String(n.name || m.full_name || m.name || '').trim();
+      const first = n.givenName || m.given_name || full.split(/\s+/)[0] || '';
+      const last = n.familyName || m.family_name || full.split(/\s+/).slice(1).join(' ') || '';
+      try { if (first || last) sessionStorage.setItem('dpoint.join', JSON.stringify({ nick: first.slice(0, 20), first, last, bd: '', bm: '', by: '' })); } catch { /* ignore */ }
+    }
+    hydrate(st); ensureWeek(); commit();
+    return { ok: true, isNew: !store.me.user.setupDone };
+  } catch (e) { return { ok: false, message: e.message }; }
+}
+
 // How this account signs in, for the profile page: { provider, email }
 export async function signInMethod() {
   if (!remoteOk) return null;

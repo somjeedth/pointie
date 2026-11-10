@@ -4,6 +4,8 @@ import {
   esc, go, toast, nav, avatarHtml, wordmark, toneStyle, cardBg, cardBgStyle, hasArt, letterHtml, cardEn, stampGrid, starsHtml, sheet, backBtn,
 } from './ui.js';
 import { t, getLang, setLang } from './i18n.js';
+import { isNative, scanNfcTag, tagUrlToRoute } from './native.js';
+import { siteUrl } from './sites.js';
 import { getOrigin, setOrigin, locateMe, embedFor, mapsUrl } from './geo.js';
 import { SHOPS, CAT, shopById, MISSIONS, BADGES, xpNeed, levelTitle, unlocksFor, totalVisits, catVisitStats, STYLES, TIERS, tierFor, nextTier, refreshDistances } from './data.js';
 import {
@@ -191,12 +193,14 @@ const stopScan = () => {
   cancelAnimationFrame(camLoop);
 };
 export function parseTagUrl(text) {
-  const m = String(text).match(/#\/tap\/([a-z0-9-]+)/i) || String(text).match(/^pointie:([a-z0-9-]+)$/i);
+  const m = String(text).match(/\/t\/([a-z0-9-]+)(?:[/?#]|$)/i) || String(text).match(/#\/tap\/([a-z0-9-]+)/i) || String(text).match(/^pointie:([a-z0-9-]+)$/i);
   return m && shopById(m[1]) ? m[1] : null;
 }
+let nativeAutoStarted = false;
 export function scan() {
   const s = scanState;
-  const hasNfc = 'NDEFReader' in window;
+  const native = isNative();
+  const hasNfc = native || 'NDEFReader' in window;
   const hasQr = 'BarcodeDetector' in window && navigator.mediaDevices?.getUserMedia;
   const tabs = `<div class="tabs" role="tablist" style="flex:1">
     <button role="tab" aria-selected="${s.tab === 'nfc'}" class="${s.tab === 'nfc' ? 'on' : ''}" data-act="tab" data-k="nfc">แตะ NFC</button>
@@ -227,6 +231,7 @@ export function scan() {
     nav: 'scan',
     html: `<div class="topbar">${'<a class="icon-btn" href="#/home" aria-label="ปิด">' + icon('close') + '</a>'}${tabs}</div>${body}`,
     mount(root) {
+      if (native && s.tab === 'nfc' && !s.fail && !nativeAutoStarted) { nativeAutoStarted = true; setTimeout(() => this.actions.nfc(), 250); }
       if (s.tab === 'qr' && hasQr) {
         const video = root.querySelector('#cam'); const msg = root.querySelector('#camMsg');
         navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then((stream) => {
@@ -251,6 +256,18 @@ export function scan() {
       tab(el) { stopScan(); scanState = { tab: el.dataset.k, fail: false, reading: false }; window.dispatchEvent(new Event('rerender')); },
       retry() { scanState.fail = false; window.dispatchEvent(new Event('rerender')); },
       async nfc() {
+        if (isNative()) {
+          // iOS app: system "Ready to Scan" sheet; the tag holds https://app.getpointie.com/t/<shop>?s=<token>
+          try {
+            const url = await scanNfcTag();
+            const route = tagUrlToRoute(url);
+            if (route) go(route);
+            else if (url) { scanState = { tab: 'nfc', fail: true, reading: false }; window.dispatchEvent(new Event('rerender')); }
+          } catch (e) {
+            if (!/cancel/i.test(e?.message || '')) { scanState = { tab: 'nfc', fail: true, reading: false }; window.dispatchEvent(new Event('rerender')); }
+          }
+          return;
+        }
         try {
           const reader = new window.NDEFReader();
           nfcAbort = new AbortController();
@@ -270,7 +287,7 @@ export function scan() {
         }
       },
     },
-    leave() { stopScan(); scanState.reading = false; },
+    leave() { stopScan(); scanState.reading = false; nativeAutoStarted = false; },
   };
 }
 
@@ -519,7 +536,7 @@ export function profile() {
     },
     actions: {
       qr() {
-        const url = `${location.origin}${location.pathname}#/u/${u.handle}`;
+        const url = siteUrl('app', `#/u/${u.handle}`);
         document.querySelector('.app').insertAdjacentHTML('beforeend', sheet(`<h2 class="h2 center">นามบัตรของ ${esc(u.nick)}</h2>${qrSvg(u.handle)}<p class="center muted small">ให้เพื่อนสแกนเพื่อดูนามบัตรและ Badge ของคุณ</p>
           <button class="btn btn-primary" data-act="shareCard" data-url="${esc(url)}">${icon('share', 18)}แชร์ลิงก์นามบัตร</button>`));
       },

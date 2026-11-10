@@ -13,6 +13,14 @@
       "continue": true
     },
     {
+      "src": "/.well-known/apple-app-site-association",
+      "headers": {
+        "Content-Type": "application/json",
+        "Cache-Control": "public, max-age=3600"
+      },
+      "continue": true
+    },
+    {
       "src": "/sw.js",
       "headers": {
         "Cache-Control": "no-cache"
@@ -48,6 +56,10 @@
         }
       ],
       "dest": "/merchant/index.html"
+    },
+    {
+      "src": "/t/([^/]+)/?",
+      "dest": "/index.html"
     }
   ]
 }

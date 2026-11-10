@@ -5,9 +5,11 @@ import { esc, go, toast, steps, backBtn, avatarHtml, wordmark } from './ui.js';
 import { AVATARS, PLACES, STYLES, AREAS, XP, refreshDistances } from './data.js';
 import { setOrigin } from './geo.js';
 import { t, getLang, setLang } from './i18n.js';
+import { isNative } from './native.js';
+import { GOOGLE_IOS_CLIENT_ID } from './config.js';
 import {
   store, normalizePhone, prettyPhone, isValidPhone, requestOtp, otpInfo, verifyOtp, loginDemo,
-  completeSetup, updateProfile, startOAuth, oauthAvailable, isLinking, realSms, savePrefs, finishPrefs, saveIdentity, ageOf,
+  completeSetup, updateProfile, startOAuth, oauthAvailable, isLinking, realSms, nativeSocialSignIn, savePrefs, finishPrefs, saveIdentity, ageOf,
 } from './store.js';
 
 export const returnTo = {
@@ -25,20 +27,30 @@ const langBtn = () => `<button class="lang-btn" data-act="lang" aria-label="${t(
 function toggleLang() { setLang(getLang() === 'en' ? 'th' : 'en'); window.dispatchEvent(new Event('rerender')); }
 
 // "or" + Google / Apple, shared by the welcome screen and the phone page.
+const showGoogle = () => !isNative() || !!GOOGLE_IOS_CLIENT_ID;
 const socialButtons = () => `<div class="col" style="gap:10px">
-        <button class="btn btn-lg btn-google" data-act="oauth" data-p="google">${GOOGLE_G}${t('ดำเนินการต่อด้วย Google', 'Continue with Google')}</button>
+        ${showGoogle() ? `<button class="btn btn-lg btn-google" data-act="oauth" data-p="google">${GOOGLE_G}${t('ดำเนินการต่อด้วย Google', 'Continue with Google')}</button>` : ''}
         <button class="btn btn-lg btn-apple" data-act="oauth" data-p="apple">${APPLE_LOGO}${t('ดำเนินการต่อด้วย Apple', 'Continue with Apple')}</button>
       </div>`;
 const socialHtml = () => `<div class="or-line" role="separator"><span>${t('หรือ', 'or')}</span></div>
       <div class="col" style="gap:10px">
-        <button class="btn btn-lg btn-google" data-act="oauth" data-p="google">${GOOGLE_G}${t('ดำเนินการต่อด้วย Google', 'Continue with Google')}</button>
+        ${showGoogle() ? `<button class="btn btn-lg btn-google" data-act="oauth" data-p="google">${GOOGLE_G}${t('ดำเนินการต่อด้วย Google', 'Continue with Google')}</button>` : ''}
         <button class="btn btn-lg btn-apple" data-act="oauth" data-p="apple">${APPLE_LOGO}${t('ดำเนินการต่อด้วย Apple', 'Continue with Apple')}</button>
       </div>`;
 async function oauthAction(el) {
-        const p = el.dataset.p; const label = el.innerHTML; const name = p === 'apple' ? 'Apple' : 'Google';
-        el.disabled = true; el.textContent = t(`กำลังไปหน้า ${name}…`, `Opening ${name}…`);
-        const r = await startOAuth(p);
-        if (!r.ok) { el.disabled = false; el.innerHTML = label; toast(t(`เข้าสู่ระบบด้วย ${name} ไม่ได้: `, `Could not sign in with ${name}: `) + r.message, 9000); }
+  const p = el.dataset.p; const label = el.innerHTML; const name = p === 'apple' ? 'Apple' : 'Google';
+  if (isNative()) {
+    // iOS app: system Sign in with Apple / Google sheet, no browser redirect
+    el.disabled = true;
+    const r = await nativeSocialSignIn(p);
+    el.disabled = false; el.innerHTML = label;
+    if (r.ok) { if (r.isNew) go('/join/name'); else { toast(t(`ยินดีต้อนรับกลับ ${store.me.user.nick}!`, `Welcome back, ${store.me.user.nick}!`)); go(returnTo.take() || '/home'); } }
+    else if (!r.cancelled) toast(t(`เข้าสู่ระบบด้วย ${name} ไม่ได้: `, `Could not sign in with ${name}: `) + r.message, 9000);
+    return;
+  }
+  el.disabled = true; el.textContent = t(`กำลังไปหน้า ${name}…`, `Opening ${name}…`);
+  const r = await startOAuth(p);
+  if (!r.ok) { el.disabled = false; el.innerHTML = label; toast(t(`เข้าสู่ระบบด้วย ${name} ไม่ได้: `, `Could not sign in with ${name}: `) + r.message, 9000); }
 }
 
 // Demo account button: hidden from customers; shown with ?demo=1 (remembered for the tab) or in the offline demo build.
