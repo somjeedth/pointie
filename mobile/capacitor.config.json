@@ -1,0 +1,15 @@
+{
+  "appId": "com.dpointapp.th",
+  "appName": "D Point",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#F4F9FF",
+    "scrollEnabled": true
+  },
+  "plugins": {
+    "SocialLogin": {
+      "providers": { "google": true, "apple": true, "facebook": false, "twitter": false }
+    }
+  }
+}
