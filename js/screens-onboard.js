@@ -7,7 +7,7 @@ import { setOrigin } from './geo.js';
 import { t, getLang, setLang } from './i18n.js';
 import {
   store, normalizePhone, prettyPhone, isValidPhone, requestOtp, otpInfo, verifyOtp, loginDemo,
-  completeSetup, updateProfile, startOAuth, oauthAvailable, isLinking, savePrefs, finishPrefs, saveIdentity, ageOf,
+  completeSetup, updateProfile, startOAuth, oauthAvailable, isLinking, realSms, savePrefs, finishPrefs, saveIdentity, ageOf,
 } from './store.js';
 
 export const returnTo = {
@@ -25,6 +25,10 @@ const langBtn = () => `<button class="lang-btn" data-act="lang" aria-label="${t(
 function toggleLang() { setLang(getLang() === 'en' ? 'th' : 'en'); window.dispatchEvent(new Event('rerender')); }
 
 // "or" + Google / Apple, shared by the welcome screen and the phone page.
+const socialButtons = () => `<div class="col" style="gap:10px">
+        <button class="btn btn-lg btn-google" data-act="oauth" data-p="google">${GOOGLE_G}${t('ดำเนินการต่อด้วย Google', 'Continue with Google')}</button>
+        <button class="btn btn-lg btn-apple" data-act="oauth" data-p="apple">${APPLE_LOGO}${t('ดำเนินการต่อด้วย Apple', 'Continue with Apple')}</button>
+      </div>`;
 const socialHtml = () => `<div class="or-line" role="separator"><span>${t('หรือ', 'or')}</span></div>
       <div class="col" style="gap:10px">
         <button class="btn btn-lg btn-google" data-act="oauth" data-p="google">${GOOGLE_G}${t('ดำเนินการต่อด้วย Google', 'Continue with Google')}</button>
@@ -46,8 +50,10 @@ const showDemo = () => demoFlag || !oauthAvailable();
 export function welcome() {
   const d = normalizePhone(phoneDraft);
   const social = oauthAvailable();
+  // Phone sign-in only once real SMS is on (or with ?sms=1 for testing); offline demo build keeps it.
+  const phone = !social || realSms();
   return {
-    cls: 'welcome',
+    cls: phone ? 'welcome' : 'welcome no-phone',
     html: `<div class="welcome-lang">${langBtn()}</div>
       <div class="welcome-top">
         <img class="mascot" src="img/pointie-cheer.png" alt="">
@@ -55,14 +61,14 @@ export function welcome() {
       </div>
       ${window.__oauthError ? `<div class="oauth-err" role="alert"><b>${t('เข้าสู่ระบบไม่สำเร็จ', 'Sign-in failed')}</b><span>${esc(window.__oauthError)}</span></div>` : ''}
       <h1 class="welcome-title">${t('เริ่มต้นใช้งาน D Point เพื่อเก็บสิทธิพิเศษ', 'Get started with D Point to collect perks')}</h1>
-      ${phoneFormHtml(d)}
-      <button class="btn btn-primary btn-lg" id="sendOtp" form="phoneForm" ${isValidPhone(d) ? '' : 'disabled'}>${t('ขอรหัส OTP', 'Get OTP code')}</button>
-      ${social ? socialHtml() : ''}
-      <div class="col spacer" style="gap:6px">
+      ${phone ? `${phoneFormHtml(d)}
+      <button class="btn btn-primary btn-lg" id="sendOtp" form="phoneForm" ${isValidPhone(d) ? '' : 'disabled'}>${t('ขอรหัส OTP', 'Get OTP code')}</button>` : ''}
+      <div class="col spacer" style="gap:10px">
+        ${social ? (phone ? socialHtml() : socialButtons()) : ''}
         <p class="muted xs center">${t('การดำเนินการต่อถือว่าคุณยอมรับ', 'By continuing you agree to the')} <a class="link-u" href="#/terms">${t('ข้อกำหนดการใช้งาน', 'Terms of use')}</a> ${t('และ', 'and')} <a class="link-u" href="#/privacy">${t('นโยบายความเป็นส่วนตัว', 'Privacy policy')}</a></p>
         ${showDemo() ? `<button class="btn btn-text" data-act="demo">${t('ลองใช้บัญชีตัวอย่าง', 'Try the demo account')}</button>` : ''}
       </div>`,
-    mount(root) { mountPhoneForm(root); },
+    mount(root) { if (root.querySelector('#phoneForm')) mountPhoneForm(root); },
     actions: {
       lang: toggleLang,
       oauth: oauthAction,
