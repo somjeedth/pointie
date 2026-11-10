@@ -41,7 +41,7 @@ export function home() {
       </div></div>`;
   }).join('');
 
-  const events = SHOPS.filter((s) => s.promo || s.event).flatMap((s) => [
+  const events = SHOPS.filter((s) => s.sample === false && (s.promo || s.event)).flatMap((s) => [
     s.promo && { day: s.promoRule?.days?.length === 1 ? 'ทุก' : '★', mon: s.promoRule?.days?.length === 1 ? 'วัน' + ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'][s.promoRule.days[0]] : 'โปร', tag: 'โปร', tone: 'soft', title: s.promoText, shop: s },
     s.event && { day: s.event.day, mon: s.event.mon, tag: 'กิจกรรม', tone: 'teal', title: s.event.title, shop: s },
   ].filter(Boolean)).slice(0, 4);
@@ -72,13 +72,13 @@ export function home() {
         <div class="section-h"><h2>ภารกิจประจำสัปดาห์</h2><span class="pill soft">เหลือ ${daysLeftInWeek()} วัน</span></div>
         ${missions}
       </section>
-      <section class="col">
+      ${events.length ? `<section class="col">
         <div class="section-h"><h2>โปรโมชั่นและกิจกรรม</h2></div>
         ${events.map((e) => `<a class="card event" href="#/store/${e.shop.id}">
           <div class="date"><b>${e.day}</b><span>${e.mon}</span></div>
           <div class="col" style="flex:1;min-width:0;gap:3px"><span class="tag" style="${toneStyle(e.tone)}">${e.tag}</span><span class="semi">${esc(e.title)}</span><span class="small muted">${esc(e.shop.name)}</span></div>
           <span class="muted">${icon('chev', 18)}</span></a>`).join('')}
-      </section>`,
+      </section>` : ''}`,
     mount(root) {
       const list = root.querySelector('#shopList'); if (!list) return; // shop list hidden for now
       const draw = () => {
@@ -201,9 +201,6 @@ export function scan() {
   const tabs = `<div class="tabs" role="tablist" style="flex:1">
     <button role="tab" aria-selected="${s.tab === 'nfc'}" class="${s.tab === 'nfc' ? 'on' : ''}" data-act="tab" data-k="nfc">แตะ NFC</button>
     <button role="tab" aria-selected="${s.tab === 'qr'}" class="${s.tab === 'qr' ? 'on' : ''}" data-act="tab" data-k="qr">สแกน QR</button></div>`;
-  const shopsList = `<div class="col" style="gap:8px">${SHOPS.map((sh) => `<button class="shop-pick" data-act="pickShop" data-id="${sh.id}">
-      <span class="initials sm ${cardBg(sh.card)}" style="${cardBgStyle(sh.card)}color:${sh.card.letter}">${sh.initials}</span>
-      <span class="col" style="gap:0;flex:1"><b style="font-size:14px">${esc(sh.name)}</b><span class="xs muted">${CAT[sh.cat].label} · ${sh.dist}</span></span>${icon('chev', 18)}</button>`).join('')}</div>`;
   let body;
   if (s.tab === 'nfc' && s.fail) {
     body = `<div class="nfc-stage"><div class="nfc-stand">สแตนด์ NFC</div><div class="nfc-phone" style="animation:none;transform:rotate(-14deg) translate(-30px,0)"></div><img class="mascot" src="img/pointie-wow.png" alt=""></div>
@@ -218,16 +215,13 @@ export function scan() {
     body = `<div class="nfc-stage"><div class="nfc-stand">สแตนด์ NFC</div><div class="nfc-wave"></div><div class="nfc-phone"></div><img class="mascot" src="img/pointie-point.png" alt=""></div>
       <div class="col center" style="gap:6px"><h1 class="h1" style="font-size:22px">แตะมือถือที่สแตนด์ NFC</h1>
       <p class="muted small">${hasNfc ? 'กด “เริ่มอ่าน NFC” แล้วแนบด้านหลังมือถือกับสแตนด์ของร้าน' : 'iPhone และ Android แตะสแตนด์ได้เลย ระบบจะเปิดหน้านี้ให้อัตโนมัติ'}</p></div>
-      ${hasNfc ? `<button class="btn btn-primary" data-act="nfc" ${s.reading ? 'disabled' : ''}>${icon('nfc', 20)}${s.reading ? 'กำลังรออ่าน NFC…' : 'เริ่มอ่าน NFC'}</button>` : ''}
-      <div class="col" style="gap:8px"><div class="between"><span class="semi">จำลองการแตะที่ร้าน (เดโม)</span><button class="link" data-act="simFail">จำลองอ่านไม่ติด</button></div>${shopsList}</div>`;
+      ${hasNfc ? `<button class="btn btn-primary" data-act="nfc" ${s.reading ? 'disabled' : ''}>${icon('nfc', 20)}${s.reading ? 'กำลังรออ่าน NFC…' : 'เริ่มอ่าน NFC'}</button>` : ''}`;
   } else {
     body = hasQr ? `<div style="position:relative;border-radius:22px;overflow:hidden;background:#000;aspect-ratio:1">
         <video id="cam" playsinline muted style="width:100%;height:100%;object-fit:cover"></video>
         <div style="position:absolute;inset:18%;border:3px solid var(--primary);border-radius:18px;box-shadow:0 0 0 999px rgba(0,0,0,.35)"></div></div>
-        <p class="center muted small" id="camMsg">เล็งกล้องไปที่ QR บนสแตนด์ของร้าน</p>
-        <div class="col" style="gap:8px"><span class="semi">หรือเลือกร้าน (เดโม)</span>${shopsList}</div>`
-      : `<div class="card col center" style="align-items:center;gap:8px">${icon('qr', 40)}<b>สแกน QR บนสแตนด์ของร้าน</b><p class="muted small">ใช้แอพกล้องของมือถือสแกน QR ได้เลย ลิงก์จะพามาที่หน้านี้</p></div>
-         <div class="col" style="gap:8px"><span class="semi">เลือกร้าน (เดโม)</span>${shopsList}</div>`;
+        <p class="center muted small" id="camMsg">เล็งกล้องไปที่ QR บนสแตนด์ของร้าน</p>`
+      : `<div class="card col center" style="align-items:center;gap:8px">${icon('qr', 40)}<b>สแกน QR บนสแตนด์ของร้าน</b><p class="muted small">ใช้แอพกล้องของมือถือสแกน QR ได้เลย ลิงก์จะพามาที่หน้านี้</p></div>`;
   }
   return {
     nav: 'scan',
@@ -249,15 +243,13 @@ export function scan() {
             camLoop = requestAnimationFrame(loop);
           };
           loop();
-        }).catch(() => { msg.textContent = 'เปิดกล้องไม่ได้ ใช้แอพกล้องสแกน หรือเลือกร้านด้านล่างแทน'; });
+        }).catch(() => { msg.textContent = 'เปิดกล้องไม่ได้ ใช้แอพกล้องของมือถือสแกน QR แทน'; });
       }
       return stopScan;
     },
     actions: {
       tab(el) { stopScan(); scanState = { tab: el.dataset.k, fail: false, reading: false }; window.dispatchEvent(new Event('rerender')); },
       retry() { scanState.fail = false; window.dispatchEvent(new Event('rerender')); },
-      simFail() { scanState.fail = true; window.dispatchEvent(new Event('rerender')); },
-      pickShop(el) { stopScan(); go('/tap/' + el.dataset.id); },
       async nfc() {
         try {
           const reader = new window.NDEFReader();
