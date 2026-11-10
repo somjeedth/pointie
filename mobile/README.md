@@ -6,7 +6,7 @@
 |---|---|
 | สแกน NFC | เปิดหน้าสแกนแล้วขึ้นหน้าต่าง **Ready to Scan** ของ iOS เอง (`DPointNfcPlugin.swift`) |
 | Sign in with Apple | หน้าต่าง Apple ในเครื่อง → `supabase.auth.signInWithIdToken` |
-| Google | หน้าต่าง Google ในเครื่อง (ต้องใส่ iOS Client ID ก่อน ดูข้อ 5) |
+| Google | หน้าต่างล็อกอินของระบบ (ASWebAuthenticationSession) เปิดหน้า Google แล้วกลับเข้าแอพที่ `com.dpointapp.th://auth` — ใช้ได้เลย ไม่ต้องตั้งค่าเพิ่ม |
 | แตะป้าย / สแกน QR ด้วยกล้อง | ลิงก์ `https://app.getpointie.com/t/<ร้าน>?s=<รหัส>` เปิดแอพตรงหน้ารับแสตมป์ (Universal Links) |
 
 - Bundle ID: `com.dpointapp.th` · Team: `8VXGSBRNHW` · ชื่อแอพ: D Point

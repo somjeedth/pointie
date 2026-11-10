@@ -6,7 +6,7 @@ import { SHOPS, shopById, xpNeed, MISSIONS, BADGES, XP, levelTitle, replaceShops
 import { logEvent } from './catalog.js';
 import * as remote from './remote.js';
 import { SMS_OTP } from './config.js';
-import { nativeSignIn, isAndroid, browserSignIn, APP_AUTH_REDIRECT } from './native.js';
+import { nativeSignIn, isAndroid, isIOS, browserSignIn, APP_AUTH_REDIRECT } from './native.js';
 
 const KEY_ACCOUNTS = 'pointie.accounts.v1';
 const KEY_SESSION = 'pointie.session.v1';
@@ -238,8 +238,8 @@ async function finishOAuth() {
   } catch (e) { oauthResult = { ok: false, message: e.message }; }
 }
 // In the iOS app: native Sign in with Apple / Google → Supabase signInWithIdToken → same set-up as the web return.
-// Android app: Google / Apple page in a browser tab → back to com.dpointapp.th://auth#access_token=… → same set-up.
-async function androidSocialSignIn(provider) {
+// Android app (Google, Apple) and iOS app (Google): the provider's web page → back to com.dpointapp.th://auth#access_token=… → same set-up.
+async function webSocialSignIn(provider) {
   let back;
   try {
     const c = remote.client('customer');
@@ -265,7 +265,7 @@ async function androidSocialSignIn(provider) {
   } catch (e) { return { ok: false, message: e.message }; }
 }
 export async function nativeSocialSignIn(provider) {
-  if (isAndroid()) return androidSocialSignIn(provider);
+  if (isAndroid() || (isIOS() && provider === 'google')) return webSocialSignIn(provider);
   let n;
   try { n = await nativeSignIn(provider); } catch (e) { return { ok: false, cancelled: /cancel/i.test(e?.message || ''), message: e?.message || String(e) }; }
   if (!n?.idToken) return { ok: false, message: 'no ID token from ' + provider };

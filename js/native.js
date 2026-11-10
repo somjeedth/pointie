@@ -5,6 +5,7 @@ import { GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID } from './config.js';
 
 export const isNative = () => !!window.Capacitor?.isNativePlatform?.();
 export const isAndroid = () => isNative() && window.Capacitor?.getPlatform?.() === 'android';
+export const isIOS = () => isNative() && window.Capacitor?.getPlatform?.() === 'ios';
 
 let core = null;
 const proxies = {};
@@ -32,7 +33,7 @@ export async function openNfcSettings() {
   try { await ((await plugin('DPointNfc'))?.p).openSettings(); } catch { /* ignore */ }
 }
 
-// ---------- Android: Google / Apple sign-in in a browser tab that comes back to com.dpointapp.th://auth ----------
+// ---------- Google (iOS, Android) / Apple (Android) sign-in on the web page, back to com.dpointapp.th://auth ----------
 export const APP_AUTH_REDIRECT = 'com.dpointapp.th://auth';
 let authWait = null; // { resolve, reject } while a sign-in tab is open
 export function takeAuthCallback(url) {
@@ -42,6 +43,12 @@ export function takeAuthCallback(url) {
   return true;
 }
 export async function browserSignIn(url) {
+  if (isIOS()) {
+    // iOS: system sign-in sheet (ASWebAuthenticationSession) hands back the com.dpointapp.th://auth link itself
+    const auth = (await plugin('DPointAuth'))?.p;
+    const r = await auth.start({ url, callbackScheme: 'com.dpointapp.th' });
+    return r?.url || '';
+  }
   const browser = (await plugin('Browser'))?.p;
   if (authWait) authWait.reject(new Error('cancelled'));
   const done = new Promise((resolve, reject) => { authWait = { resolve, reject }; });
