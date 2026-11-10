@@ -17,7 +17,19 @@
   <link rel="stylesheet" href="/css/app.css">
 </head>
 <body>
-  <div id="app" class="app" aria-live="polite"><div class="boot" role="status"><img src="/img/pointie-cheer.png" alt=""><span>กำลังโหลด…</span></div></div>
+  <div id="app" class="app" aria-live="polite"></div>
+  <!-- Animated intro: plays while the app boots (the iOS launch screen is the same plain background) -->
+  <div id="splash" class="intro" role="status" aria-label="กำลังเปิด D Point">
+    <div class="intro-glow"></div>
+    <div class="intro-stage">
+      <span class="intro-spark s1"></span><span class="intro-spark s2"></span><span class="intro-spark s3"></span><span class="intro-spark s4"></span><span class="intro-spark s5"></span>
+      <span class="intro-shadow"></span>
+      <img class="intro-mascot" src="/img/pointie-cheer.png" alt="">
+    </div>
+    <img class="intro-logo" src="/img/logo-dpoint.png" alt="D Point">
+    <p class="intro-tag">แตะ · สะสม · เลเวลอัป</p>
+    <div class="intro-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+  </div>
   <div id="toast" class="toast" role="status" hidden></div>
   <script src="/js/vendor/supabase.js"></script>
   <script type="module" src="/js/app.js"></script>

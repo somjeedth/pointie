@@ -136,6 +136,7 @@ applyTheme();
 onAppLinks((route) => { location.hash = route; }); // iOS app: tag tapped / QR scanned with the camera opens the app here
 bootRemote().then((mode) => {
   document.documentElement.dataset.backend = mode;
+  hideIntro();
   const oa = takeOAuthResult();
   if (oa?.ok && store.me?.user.setupDone) { const back = returnTo.take(); location.replace('#' + (back || '/home')); }
   render(false);
@@ -143,6 +144,16 @@ bootRemote().then((mode) => {
   else if (oa?.ok && store.me?.user.setupDone) toast(`ยินดีต้อนรับกลับ ${store.me.user.nick}!`);
   if (mode === 'fallback') toast('ต่อเซิร์ฟเวอร์ไม่ได้ ตอนนี้ใช้ข้อมูลตัวอย่างในเครื่องไปก่อน', 4000);
 });
+
+// Animated intro: keep it on long enough to finish its little show (longer in the app), then fade it away.
+const introStart = performance.now();
+function hideIntro() {
+  const el = document.getElementById('splash'); if (!el) return;
+  const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const minMs = reduce ? 200 : isNative() ? 1900 : 1100;
+  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 480); }, Math.max(0, minMs - (performance.now() - introStart)));
+}
+
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:' && !isNative()) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
