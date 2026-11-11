@@ -117,15 +117,24 @@ let remoteOk = false;
 export const isRemote = () => remoteOk;
 const PROFILE_KEYS = ['favs', 'badges', 'pinned', 'week', 'notifications'];
 const profilePayload = (acc) => ({ user: acc.user, ...Object.fromEntries(PROFILE_KEYS.map((k) => [k, k === 'notifications' ? acc[k].slice(0, 30) : acc[k]])) });
-let pushTimer;
+let pushTimer = null;
+function pushNow() {
+  clearTimeout(pushTimer); pushTimer = null;
+  const me = store.me; if (!me) return;
+  remote.rpc('customer', 'save_profile', { p_profile: profilePayload(me), p_nick: me.user.nick || null })
+    .then((lvl) => { if (lvl?.lv && syncLevel(lvl)) { save(); window.dispatchEvent(new Event('rerender')); } })
+    .catch((e) => console.warn('[pointie] save_profile failed', e));
+}
 function schedulePush() {
   clearTimeout(pushTimer);
-  pushTimer = setTimeout(() => {
-    const me = store.me; if (!me) return;
-    remote.rpc('customer', 'save_profile', { p_profile: profilePayload(me), p_nick: me.user.nick || null })
-      .then((lvl) => { if (lvl?.lv && syncLevel(lvl)) { save(); window.dispatchEvent(new Event('rerender')); } })
-      .catch((e) => console.warn('[pointie] save_profile failed', e));
-  }, 700);
+  pushTimer = setTimeout(pushNow, 700);
+}
+// Send a waiting profile save at once (sign-up finished, or the app is going to the background / closing),
+// so a quick close right after sign-up does not lose "setup done".
+export function flushProfilePush() { if (pushTimer) pushNow(); }
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushProfilePush(); });
+  window.addEventListener('pagehide', flushProfilePush);
 }
 // Server state → local account object (keeps the same shape the screens use).
 function hydrate(st) {
@@ -145,6 +154,8 @@ function hydrate(st) {
   acc.reviews = (st.reviews || []).map((r) => ({ shopId: r.shopId, stars: r.stars, text: r.text, date: r.date, reply: r.reply }));
   acc.pending = prev?.pending || {};
   acc.remoteId = st.id;
+  acc.reported = Array.isArray(st.reported) ? st.reported : [];   // review ids this user reported (hidden for them)
+  acc.blocked = Array.isArray(st.blocked) ? st.blocked : [];      // [{ id, nick }] users whose reviews are hidden for them
   acc.identity = st.identity ? { firstName: st.identity.firstName, lastName: st.identity.lastName, birthDate: st.identity.birthDate } : prev?.identity || null;
   if (st.level) Object.assign(acc.user, { lv: st.level.lv, xp: st.level.inLevel, totalXp: st.level.xp, tier: st.level.tier });
   store.accounts[phone] = acc;
@@ -289,6 +300,40 @@ async function afterSocialSession(s, n) {
   }
   hydrate(st); ensureWeek(); commit();
   return { ok: true, isNew: !store.me.user.setupDone };
+}
+
+// ---------- reviews by other people: report / block (App Store 1.2, Google Play UGC) ----------
+export const reportedReviews = () => store.me?.reported || [];
+export const blockedUsers = () => store.me?.blocked || [];
+export async function reportReview(reviewId, reason) {
+  const me = store.me; if (!me) return { ok: false };
+  if (remoteOk) {
+    try { const r = await remote.rpc('customer', 'report_review', { p_review: reviewId, p_reason: reason || '' }); if (!r?.ok) return r || { ok: false }; }
+    catch (e) { return { ok: false, reason: 'server', message: e.message }; }
+  }
+  me.reported = [...new Set([...(me.reported || []), reviewId])]; commit();
+  return { ok: true };
+}
+export async function blockReviewAuthor(review) {
+  const me = store.me; if (!me) return { ok: false };
+  let blocked = review.customerId ? { id: review.customerId, nick: review.name || 'ผู้ใช้' } : null;
+  if (remoteOk) {
+    try { const r = await remote.rpc('customer', 'block_review_author', { p_review: review.id }); if (!r?.ok) return r || { ok: false }; blocked = r.blocked || null; }
+    catch (e) { return { ok: false, reason: 'server', message: e.message }; }
+  }
+  if (blocked) me.blocked = [...(me.blocked || []).filter((b) => b.id !== blocked.id), blocked];
+  else me.reported = [...new Set([...(me.reported || []), review.id])]; // review without an author: hide that review
+  commit();
+  return { ok: true, blocked };
+}
+export async function unblockUser(customerId) {
+  const me = store.me; if (!me) return { ok: false };
+  if (remoteOk) {
+    try { await remote.rpc('customer', 'unblock_user', { p_customer: customerId }); }
+    catch (e) { return { ok: false, reason: 'server', message: e.message }; }
+  }
+  me.blocked = (me.blocked || []).filter((b) => b.id !== customerId); commit();
+  return { ok: true };
 }
 
 // How this account signs in, for the profile page: { provider, email }
@@ -468,9 +513,9 @@ export function completeSetup({ nick, avatar }) {
   me.user.avatar = avatar;
   me.user.handle = me.user.handle || ('pointie' + me.phone.slice(-4));
   if (!me.user.setupDone) { me.user.setupDone = true; addXp(XP.signup); }
-  commit();
+  commit(); flushProfilePush();
 }
-export function updateProfile(patch) { Object.assign(store.me.user, patch); commit(); }
+export function updateProfile(patch) { Object.assign(store.me.user, patch); commit(); if ('setupDone' in patch) flushProfilePush(); }
 export function savePrefs(part) {
   const me = store.me; if (!me) return;
   Object.assign(me.user.prefs, part);
@@ -583,6 +628,7 @@ export function cardFor(shopId) { return store.me?.cards[shopId]; }
 export function canStampToday(shopId) { return cardFor(shopId)?.lastStamp !== todayKey(); }
 export const isDoubleDay = (shop) => !!(shop.promo && shop.promoRule?.type === 'double' && shop.promoRule.days?.includes(new Date().getDay()));
 
+const lastLocalStamp = {};
 export async function collectStamp(shopId, token) {
   const me = store.me; const shop = shopById(shopId);
   if (!me || !shop) return { ok: false, reason: 'unknown' };
@@ -604,8 +650,10 @@ export async function collectStamp(shopId, token) {
     if (r.level) { const lvBefore = me.user.lv; syncLevel(r.level); res.leveled = me.user.lv > lvBefore; save(); }
     return { ...res, tierBonus: r.tierBonus || 0 };
   }
-  if (c && c.lastStamp === todayKey()) return { ok: false, reason: 'already' };
+  // no daily limit, only the same 5-second guard as the server against a double tap
+  if (Date.now() - (lastLocalStamp[shopId] || 0) < 5000) return { ok: false, reason: 'too_fast' };
   if (c && c.have >= shop.card.need) return { ok: false, reason: 'full' };
+  lastLocalStamp[shopId] = Date.now();
   const isNewShop = !c;
   if (!c) c = me.cards[shopId] = { have: 0, visits: 0, first: todayKey(), last: null, lastStamp: null, redeemedCount: 0 };
   const tierBonus = isNewShop && tierFor(me.user.lv).id !== 'explorer' ? 1 : 0; // Regular+ perk
@@ -658,9 +706,13 @@ export async function redeem(shopId) {
 // ---------- reviews / favourites ----------
 export const hasVisited = (shopId) => !!cardFor(shopId)?.visits;
 export const myReview = (shopId) => store.me?.reviews.find((r) => r.shopId === shopId);
+// Same word list as public._is_offensive on the server (the server is the one that counts).
+const OFFENSIVE = /(เหี้ย|ควย|สัส|เย็ด|แตด|ส้นตีน|ตีนผี|อีดอก|อีตอแหล|ระยำ|ชาติชั่ว|พ่อมึงตาย|แม่มึงตาย|ไอ้สัตว์|อีสัตว์|fuck|fck|shit|bitch|cunt|dick|pussy|asshole|bastard|nigger|nigga|whore|slut)/i;
+export const isOffensive = (t) => OFFENSIVE.test(String(t || '').toLowerCase().replace(/[\s.\-_*]+/g, ''));
 export async function addReview(shopId, stars, text) {
   const me = store.me;
   if (!hasVisited(shopId)) return { ok: false };
+  if (isOffensive(text)) return { ok: false, reason: 'offensive' };
   ensureWeek();
   const existing = myReview(shopId);
   if (remoteOk) {

@@ -68,7 +68,7 @@ export const letterHtml = (card, size) => hasArt(card)
   : `<div class="letter" style="color:${card.letter};${size ? `font-size:${size}px;` : ''}">${esc(card.l1)}<br><span class="l2">${esc(card.l2)}</span></div>`;
 export const cardEn = (card) => hasArt(card) ? '' : esc(card.en);
 
-export function stampGrid(card, have, { newIdx = -1, todayIdx = -1, sizeClass = '' } = {}) {
+export function stampGrid(card, have, { newIdx = -1, todayIdx = -1, pendingIdx = -1, sizeClass = '' } = {}) {
   const need = card.need;
   const cols = need <= 5 ? need : need === 6 ? 3 : need === 8 ? 4 : 5;
   let cells = '';
@@ -76,7 +76,7 @@ export function stampGrid(card, have, { newIdx = -1, todayIdx = -1, sizeClass = 
     const filled = i <= have;
     const gift = !filled && i === need && need >= 8;
     const glyph = filled ? (card.glyph === 'cup' ? cupStamp(need > 8 ? 30 : 32) : starStamp(26)) : gift ? giftStamp() : '';
-    cells += `<div class="stamp ${sizeClass} ${filled ? '' : 'empty'} ${i === newIdx ? 'new' : ''}">${glyph}${i === todayIdx ? '<span class="today">วันนี้</span>' : ''}</div>`;
+    cells += `<div class="stamp ${sizeClass} ${filled ? '' : 'empty'} ${i === newIdx ? 'new' : ''} ${i === pendingIdx ? 'pending' : ''}">${glyph}${i === todayIdx ? '<span class="today">วันนี้</span>' : ''}</div>`;
   }
   return `<div class="stamps" style="grid-template-columns: repeat(${cols}, minmax(0,1fr))">${cells}</div>`;
 }
@@ -87,7 +87,7 @@ export function bigStampCard(shop, have, opts = {}) {
   const c = shop.card;
   return `<div class="stampcard">
     <div class="bgfill ${cardBg(c)}" style="${cardBgStyle(c)}"></div>
-    ${opts.tag ? `<div class="full-tag">${esc(opts.tag)}</div>` : c.photo && !hasArt(c) ? '<div class="photo-tag">[รูปหน้าร้าน]</div>' : ''}
+    ${opts.tag ? `<div class="full-tag">${esc(opts.tag)}</div>` : ''}
     <div class="shade"></div>
     <div class="en">${cardEn(c)}</div>
     ${letterHtml(c)}

@@ -817,3 +817,16 @@ button.gen-row svg { color: var(--muted); flex: none; }
 .minicard .mini-scale { position: absolute; left: 0; top: 0; width: 290px; height: 430px; transform-origin: 0 0; transform: scale(var(--k, .36)); pointer-events: none; }
 .minicard .mini-scale .stampcard { margin: 0; box-shadow: none; }
 .bigcard .stampcard .stamp { width: min(100%, 62px); height: auto; }
+
+/* tap page: the next stamp pulses while it is being pressed */
+.stamp.pending { animation: stamp-wait 1s ease-in-out infinite; box-shadow: 0 0 0 3px rgba(255,255,255,.85); }
+@keyframes stamp-wait { 0%, 100% { transform: scale(1); } 50% { transform: scale(.88); } }
+
+/* No zooming (feedback 7): no double-tap / pinch zoom, and iPhone must not zoom into fields when they get focus
+   (Safari zooms on inputs whose text is smaller than 16px). */
+html { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+@supports (-webkit-touch-callout: none) {
+  input, select, textarea { font-size: max(16px, 1em) !important; }
+}
+/* ⋯ menu on other people's reviews (report / block) */
+.review .rev-more { width: 32px; height: 32px; min-width: 32px; font-size: 20px; line-height: 1; letter-spacing: 1px; color: var(--muted); }

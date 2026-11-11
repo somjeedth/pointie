@@ -2,7 +2,7 @@
 import { icon } from './icons.js';
 import { esc, go, toast, backBtn } from './ui.js';
 import { PLACES, STYLES } from './data.js';
-import { store, saveIdentity, ageOf, savePrefs, updateProfile } from './store.js';
+import { store, saveIdentity, ageOf, savePrefs, updateProfile, blockedUsers, unblockUser } from './store.js';
 import { serverErrorText } from './screens-onboard.js';
 import { t, getLang } from './i18n.js';
 
@@ -263,7 +263,7 @@ export function terms() {
         'Goods and services are provided by the participating shop, which is responsible for their quality. The Company is not a party to your purchase.',
       ])],
       ['Levels, tiers and badges', '<p>XP, levels, member tiers and badges are calculated by the system from your real activity. We may adjust how they are calculated to keep them fair; perks of each tier are set by participating shops.</p>'],
-      ['Reviews and your content', ul(['Only customers who have visited a shop can review it. Reviews must be honest, respectful and about your own experience.', 'You keep ownership of your reviews and allow the Company and the shop to display them in the Service.', 'We may remove content that is false, offensive, unlawful, infringes others\' rights or is off-topic.'])],
+      ['Reviews and your content', ul(['Only customers who have visited a shop can review it. Reviews must be honest, respectful and about your own experience.', 'You keep ownership of your reviews and allow the Company and the shop to display them in the Service.', 'We may remove content that is false, offensive, unlawful, infringes others\' rights or is off-topic.', '<b>Zero tolerance:</b> objectionable content (hate speech, harassment, threats, sexual content, profanity or other people\'s personal data) and abusive users are not tolerated. Offensive words are filtered, and accounts that break this rule may be suspended or removed.', 'Every review has a "⋯" menu to <b>report</b> it or <b>block</b> its author. A reported review is hidden from you at once; our team reviews every report within 24 hours and removes the content and, where needed, the user. You can unblock users in Profile > Blocked users.'])],
       ['Prohibited use', ul(['Collecting stamps without a real visit, or sharing, copying or reusing stand links or QR codes', 'Using bots, scripts or multiple accounts, or interfering with the Service', 'Impersonating others or using other people\'s data', 'Reverse engineering or copying the Service'])],
       ['Suspension and termination', '<p>We may remove stamps or rewards obtained improperly, and suspend or close accounts that break these terms. You can delete your account at any time in Profile; unredeemed stamps and rewards are then lost.</p>'],
       ['Intellectual property', '<p>The D Point name, logo, mascot, design and software belong to the Company or its licensors. Shop names and artwork belong to the respective shops.</p>'],
@@ -284,7 +284,7 @@ export function terms() {
       'สินค้าและบริการเป็นของร้านค้าที่เข้าร่วม ซึ่งรับผิดชอบต่อคุณภาพของสินค้าและบริการนั้น บริษัทไม่ได้เป็นคู่สัญญาในการซื้อขายระหว่างคุณกับร้านค้า',
     ])],
     ['เลเวล ระดับสมาชิก และ Badge', '<p>XP เลเวล ระดับสมาชิก และ Badge คำนวณโดยระบบจากกิจกรรมจริงของคุณ บริษัทอาจปรับวิธีคำนวณเพื่อความเป็นธรรม ส่วนสิทธิประโยชน์ของแต่ละระดับกำหนดโดยร้านค้าที่เข้าร่วม</p>'],
-    ['รีวิวและเนื้อหาของผู้ใช้', ul(['รีวิวได้เฉพาะลูกค้าที่เคยมาร้านจริง รีวิวต้องตรงความจริง สุภาพ และมาจากประสบการณ์ของคุณเอง', 'คุณยังเป็นเจ้าของรีวิวของคุณ และอนุญาตให้บริษัทและร้านค้าแสดงรีวิวนั้นในบริการ', 'บริษัทอาจลบเนื้อหาที่ไม่เป็นความจริง หยาบคาย ผิดกฎหมาย ละเมิดสิทธิผู้อื่น หรือไม่เกี่ยวข้อง'])],
+    ['รีวิวและเนื้อหาของผู้ใช้', ul(['รีวิวได้เฉพาะลูกค้าที่เคยมาร้านจริง รีวิวต้องตรงความจริง สุภาพ และมาจากประสบการณ์ของคุณเอง', 'คุณยังเป็นเจ้าของรีวิวของคุณ และอนุญาตให้บริษัทและร้านค้าแสดงรีวิวนั้นในบริการ', 'บริษัทอาจลบเนื้อหาที่ไม่เป็นความจริง หยาบคาย ผิดกฎหมาย ละเมิดสิทธิผู้อื่น หรือไม่เกี่ยวข้อง', '<b>ไม่ยอมรับเนื้อหาไม่เหมาะสมทุกกรณี:</b> เนื้อหาที่สร้างความเกลียดชัง คุกคาม ข่มขู่ ลามกอนาจาร คำหยาบ หรือเปิดเผยข้อมูลส่วนตัวของผู้อื่น รวมถึงผู้ใช้ที่มีพฤติกรรมไม่เหมาะสม ระบบจะกรองคำไม่สุภาพ และบริษัทอาจระงับหรือลบบัญชีที่ฝ่าฝืน', 'รีวิวทุกรายการมีเมนู "⋯" ให้<b>รายงาน</b>รีวิวหรือ<b>บล็อก</b>ผู้เขียน รีวิวที่รายงานจะถูกซ่อนจากคุณทันที ทีมงานตรวจสอบทุกรายงานภายใน 24 ชั่วโมง และลบเนื้อหาหรือผู้ใช้ที่ฝ่าฝืน ปลดบล็อกได้ที่ โปรไฟล์ → ผู้ใช้ที่บล็อก'])],
     ['ข้อห้ามในการใช้งาน', ul(['เก็บแสตมป์โดยไม่ได้ไปร้านจริง หรือแชร์ คัดลอก หรือนำลิงก์และ QR ของสแตนด์ไปใช้ซ้ำ', 'ใช้บอท สคริปต์ หรือหลายบัญชี หรือรบกวนการทำงานของบริการ', 'แอบอ้างเป็นผู้อื่นหรือใช้ข้อมูลของผู้อื่น', 'ทำวิศวกรรมย้อนกลับหรือคัดลอกบริการ'])],
     ['การระงับและยกเลิกบัญชี', '<p>บริษัทอาจลบแสตมป์หรือรางวัลที่ได้มาโดยไม่ถูกต้อง และระงับหรือปิดบัญชีที่ฝ่าฝืนข้อกำหนดนี้ คุณลบบัญชีได้ทุกเมื่อที่หน้าโปรไฟล์ โดยแสตมป์และรางวัลที่ยังไม่ได้แลกจะสิ้นสุดลง</p>'],
     ['ทรัพย์สินทางปัญญา', '<p>ชื่อ D Point โลโก้ มาสคอต การออกแบบ และซอฟต์แวร์เป็นของบริษัทหรือผู้อนุญาตให้ใช้สิทธิ ชื่อร้านและภาพบนบัตรเป็นของร้านค้าแต่ละราย</p>'],
@@ -293,4 +293,24 @@ export function terms() {
     ['กฎหมายที่ใช้บังคับ', '<p>ข้อกำหนดนี้อยู่ภายใต้กฎหมายไทย และให้ศาลไทยมีเขตอำนาจในการพิจารณาข้อพิพาท</p>'],
     ['ช่องทางติดต่อ', `<p><b>${COMPANY.th}</b><br>ผู้ให้บริการ D Point<br>อีเมล: ${mail}</p>`],
   ]);
+}
+
+// Profile → Blocked users (people whose reviews this user chose not to see).
+export function blockedPage() {
+  const list = blockedUsers();
+  return {
+    html: `<div class="topbar">${backBtn('/profile')}<h1 class="h1" style="font-size:20px;flex:1">${t('ผู้ใช้ที่บล็อก', 'Blocked users')}</h1></div>
+      <p class="small muted">${t('คุณจะไม่เห็นรีวิวจากผู้ใช้เหล่านี้ บล็อกได้จากเมนู ⋯ บนรีวิว', 'You don\'t see reviews from these users. Block someone from the ⋯ menu on a review.')}</p>
+      ${list.length ? `<div class="card menu-card"><div class="menu-list">${list.map((b) => `<div class="row" style="padding:12px 4px;gap:12px"><span class="initials sm" style="border-radius:50%">${esc((b.nick || '?')[0])}</span><span style="flex:1"><b>${esc(b.nick || 'ผู้ใช้')}</b></span><button class="btn btn-ghost btn-sm" data-act="unblock" data-id="${esc(b.id)}">${t('ปลดบล็อก', 'Unblock')}</button></div>`).join('')}</div></div>`
+        : `<div class="empty-note">${t('ยังไม่ได้บล็อกใคร', 'You haven\'t blocked anyone.')}</div>`}`,
+    actions: {
+      async unblock(el) {
+        el.disabled = true;
+        const r = await unblockUser(el.dataset.id);
+        if (!r.ok) { el.disabled = false; toast(t('ปลดบล็อกไม่สำเร็จ ลองใหม่อีกครั้ง', 'Could not unblock. Try again.')); return; }
+        toast(t('ปลดบล็อกแล้ว', 'Unblocked'));
+        window.dispatchEvent(new Event('rerender'));
+      },
+    },
+  };
 }

@@ -207,3 +207,9 @@ details.sub summary { cursor: pointer; font-weight: 600; }
 .hero-logo { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .contact-admin { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 14px; border-radius: 14px; border: 1px dashed var(--line); }
 .contact-admin .btn { width: auto; }
+
+/* no zooming on phones (same as the customer app) */
+html { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+@supports (-webkit-touch-callout: none) {
+  input, select, textarea { font-size: max(16px, 1em) !important; }
+}

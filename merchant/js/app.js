@@ -9,6 +9,8 @@ import { embedUrl, embedFor, parseLatLng, isShortMapsLink, hasCoords, locateMe }
 import { TIERS, tierById, GENS, GEN_ORDER, genEmoji, genMood } from '../../js/data.js';
 
 const root = document.getElementById('m-app');
+// No pinch-zoom (Safari ignores user-scalable=no): cancel the iOS gesture events.
+for (const ev of ['gesturestart', 'gesturechange']) document.addEventListener(ev, (e) => e.preventDefault(), { passive: false });
 const go = (p) => { if (location.hash !== '#' + p) location.hash = p; else render(true); };
 const rerender = () => render(true);
 // Run a save/update, show the outcome, then re-render with fresh data.

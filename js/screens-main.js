@@ -88,7 +88,7 @@ export function home() {
         const shops = SHOPS.filter((s) => (homeCat === 'all' || s.cat === homeCat) && (!q || s.name.includes(q) || CAT[s.cat].label.includes(q) || s.area.includes(q)))
           .sort((a, b) => a.distM - b.distM);
         list.innerHTML = shops.length ? shops.map((s) => `<a class="shopcard" href="#/store/${s.id}">
-          <div class="ph ${cardBg(s.card)}" style="${cardBgStyle(s.card)}"><span>[รูปร้าน]</span>${s.promo ? '<span class="pill primary ph-badge">มีโปร</span>' : ''}</div>
+          <div class="ph ${cardBg(s.card)}" style="${cardBgStyle(s.card)}">${s.promo ? '<span class="pill primary ph-badge">มีโปร</span>' : ''}</div>
           <div class="col" style="padding:12px;gap:4px"><div class="bold" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.name)}</div><div class="small muted">${CAT[s.cat].label} · ${s.dist}</div>
           <div class="row small semi accent" style="gap:6px;margin-top:4px">${icon('star', 14)}<span>${shopStampText(s)}</span></div></div></a>`).join('')
           : `<div class="empty-note">ไม่พบร้านที่ตรงกับ “${esc(q)}”</div>`;
@@ -150,7 +150,7 @@ export function map() {
           <div class="col" style="gap:3px;flex:1;min-width:0">
             <div class="bold" style="font-size:16px">${esc(sel.name)}</div>
             <div class="small muted">${CAT[sel.cat].label} · ${sel.dist || sel.area} ${origin.real ? 'จากคุณ' : 'จาก BTS อารีย์'} · <span class="green semi">${openText(sel)}</span></div>
-            <div class="row small" style="gap:8px"><span class="row semi" style="gap:3px;color:var(--gold)">${icon('star', 14)}${sel.rating}</span><span class="pill soft">${c ? `${c.have}/${sel.card.need} แสตมป์` : 'ยังไม่เคยไป'}</span></div>
+            <div class="row small" style="gap:8px"><span class="row semi" style="gap:3px;color:var(--gold)">${icon('star', 14)}${sel.rating || '–'}</span><span class="pill soft">${c ? `${c.have}/${sel.card.need} แสตมป์` : 'ยังไม่เคยไป'}</span></div>
           </div>
         </div>
         ${sel.promo ? `<div class="row card-soft" style="padding:8px 10px;gap:8px;border-radius:12px"><span class="tag" style="background:var(--primary);color:var(--on-primary)">โปร</span><span class="small semi">${esc(sel.promoText)}</span></div>` : ''}
@@ -215,7 +215,7 @@ export function scan() {
         <div><b class="n">2</b><span>เคสหนาหรือมีแม่เหล็ก ลองถอดเคสก่อน</span></div>
         <div><b class="n">3</b><span>Android: เปิด NFC ในการตั้งค่าก่อน</span></div>
       </div>
-      <div class="col spacer"><button class="btn btn-primary" data-act="tab" data-k="qr">${icon('qr', 20)}สแกน QR บนสแตนด์แทน</button><button class="btn btn-ghost" data-act="retry">ลองแตะอีกครั้ง</button></div>`;
+      <div class="col spacer"><button class="btn btn-primary" data-act="retry">${icon('refresh', 20)}ลองแตะอีกครั้ง</button><button class="btn btn-ghost" data-act="tab" data-k="qr">${icon('qr', 20)}สแกน QR บนสแตนด์แทน</button></div>`;
   } else if (s.tab === 'nfc') {
     body = `<div class="tap-stage scan-stage" aria-hidden="true">${tapScene()}</div>
       <div class="col center" style="gap:6px"><h1 class="h1" style="font-size:22px">แตะมือถือที่สแตนด์ NFC</h1>
@@ -255,7 +255,7 @@ export function scan() {
     },
     actions: {
       tab(el) { stopScan(); scanState = { tab: el.dataset.k, fail: false, reading: false }; window.dispatchEvent(new Event('rerender')); },
-      retry() { scanState.fail = false; window.dispatchEvent(new Event('rerender')); },
+      retry() { scanState.fail = false; window.dispatchEvent(new Event('rerender')); if (isNative() || 'NDEFReader' in window) setTimeout(() => this.nfc(), 150); },
       async nfc() {
         if (isNative()) {
           // iOS app: system "Ready to Scan" sheet. Android app: this screen is the prompt, reader mode waits for the tag.
@@ -514,6 +514,7 @@ export function profile() {
           ${row('#/tiers', 'star', t('ระดับสมาชิกและสถิติ', 'Member tier & stats'), tierFor(u.lv).name)}
           ${row('#/badges', 'sparkle', 'Badge', `${earned.length}/${BADGES.length}`)}
           ${row('#/reviews', 'review', t('รีวิวของฉัน', 'My reviews'), String(me.reviews.length))}
+          ${row('#/blocked', 'lock', t('ผู้ใช้ที่บล็อก', 'Blocked users'), String((me.blocked || []).length))}
         </div></div>
       </section>
       <section class="col">

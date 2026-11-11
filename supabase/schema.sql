@@ -81,6 +81,7 @@ create table if not exists public.events (
 );
 alter table public.events add column if not exists gen text;
 create index if not exists events_shop_time_idx on public.events(shop_id, created_at desc);
+create index if not exists events_customer_shop_time_idx on public.events(customer_id, shop_id, created_at desc);
 
 create table if not exists public.redemptions (
   id           uuid primary key default gen_random_uuid(),
@@ -129,6 +130,26 @@ create table if not exists public.leads (
 );
 create index if not exists leads_created_idx on public.leads(created_at desc);
 alter table public.leads enable row level security;
+
+-- User-generated content safety (App Store 1.2 / Google Play UGC): report a review, block its author.
+alter table public.reviews add column if not exists hidden boolean not null default false; -- hidden for everyone (3+ reports or by the team)
+create table if not exists public.review_reports (
+  id          uuid primary key default gen_random_uuid(),
+  review_id   uuid not null references public.reviews(id) on delete cascade,
+  reporter    uuid not null references public.customers(id) on delete cascade,
+  reason      text not null default '',
+  handled     boolean not null default false,   -- the D Point team checks every report within 24 hours
+  created_at  timestamptz not null default now(),
+  unique (review_id, reporter)
+);
+create table if not exists public.blocked_users (
+  blocker     uuid not null references public.customers(id) on delete cascade,
+  blocked     uuid not null references public.customers(id) on delete cascade,
+  created_at  timestamptz not null default now(),
+  primary key (blocker, blocked)
+);
+alter table public.review_reports enable row level security;
+alter table public.blocked_users  enable row level security;
 revoke all on public.leads from anon, authenticated;
 
 -- deny-all: no policies on purpose, access only through the functions below
@@ -199,14 +220,14 @@ language sql stable security definer set search_path = public as $$
             ) u where gen is not null group by gen) g), '[]'::jsonb)
   )
   from (select
-          (select count(*) from reviews where shop_id = s.id and not sample) as n,
-          (select sum(stars) from reviews where shop_id = s.id and not sample) as sum_stars,
+          (select count(*) from reviews where shop_id = s.id and not sample and not hidden) as n,
+          (select sum(stars) from reviews where shop_id = s.id and not sample and not hidden) as sum_stars,
           (select jsonb_agg(jsonb_build_object('id', x.id, 'customerId', x.customer_id, 'nick', x.nick, 'lv', x.lv, 'stars', x.stars, 'text', x.text,
                                                'reply', x.reply, 'sample', x.sample, 'at', x.created_at, 'gen', x.gen) order by x.sample, x.created_at desc)
              from (select rv.id, rv.customer_id, rv.nick, rv.lv, rv.stars, rv.text, rv.reply, rv.sample, rv.created_at,
                           coalesce(rv.gen, public._gen_of(c.birth_date)) as gen
                    from reviews rv left join customers c on c.id = rv.customer_id
-                   where rv.shop_id = s.id order by rv.sample, rv.created_at desc limit 80) x) as list
+                   where rv.shop_id = s.id and not rv.hidden order by rv.sample, rv.created_at desc limit 80) x) as list
        ) r
 $$;
 
@@ -337,6 +358,9 @@ begin
     'reviews', coalesce((select jsonb_agg(jsonb_build_object('shopId', shop_id, 'stars', stars, 'text', text, 'date', (created_at at time zone 'Asia/Bangkok')::date, 'reply', reply))
                         from reviews where customer_id = u), '[]'::jsonb),
     'today', public._bkk_today(),
+    'reported', coalesce((select jsonb_agg(review_id) from review_reports where reporter = u), '[]'::jsonb),
+    'blocked', coalesce((select jsonb_agg(jsonb_build_object('id', b.blocked, 'nick', coalesce(nullif(c2.nick, ''), 'ผู้ใช้'))) from blocked_users b
+                         left join customers c2 on c2.id = b.blocked where b.blocker = u), '[]'::jsonb),
     'level', public._level_of(u),
     'identity', jsonb_build_object('firstName', c.first_name, 'lastName', c.last_name, 'birthDate', c.birth_date, 'gen', public._gen_of(c.birth_date))
   );
@@ -381,7 +405,11 @@ begin
   if not found then return jsonb_build_object('ok', false, 'reason', 'no_profile'); end if;
   select * into s from shops where id = p_shop;
   if not found or s.paused then return jsonb_build_object('ok', false, 'reason', 'unknown'); end if;
-  if p_token is not null and p_token <> '' and public.check_stand(p_shop, p_token) <> 'ok' then
+  -- Real shops: a stamp only comes from the shop's stand (NFC tag / QR link carries its token).
+  -- Demo shops (sample) can still be stamped without a stand.
+  if coalesce(p_token, '') = '' then
+    if not s.sample then return jsonb_build_object('ok', false, 'reason', 'need_stand'); end if;
+  elsif public.check_stand(p_shop, p_token) <> 'ok' then
     return jsonb_build_object('ok', false, 'reason', 'stand_off');
   end if;
   need := coalesce((s.data #>> '{card,need}')::int, 10);
@@ -391,7 +419,12 @@ begin
     insert into cards (customer_id, shop_id, first_at) values (u, p_shop, today) returning * into c;
     is_new := true;
   end if;
-  if c.last_stamp = today then return jsonb_build_object('ok', false, 'reason', 'already'); end if;
+  -- No daily limit (several stamps per visit are fine, e.g. buying for friends); only a short guard
+  -- against the same tap being counted twice.
+  if exists (select 1 from events where customer_id = u and shop_id = p_shop and type = 'stamp'
+             and created_at > now() - interval '5 seconds') then
+    return jsonb_build_object('ok', false, 'reason', 'too_fast');
+  end if;
   if c.have >= need then return jsonb_build_object('ok', false, 'reason', 'full'); end if;
 
   if coalesce((s.data->>'promo')::boolean, false)
@@ -445,6 +478,9 @@ begin
   if p_stars not between 1 and 5 or length(trim(coalesce(p_text, ''))) < 5 then
     return jsonb_build_object('ok', false, 'reason', 'invalid');
   end if;
+  if public._is_offensive(p_text) then
+    return jsonb_build_object('ok', false, 'reason', 'offensive');
+  end if;
   select * into cu from customers where id = u;
   existed := exists (select 1 from reviews where shop_id = p_shop and customer_id = u);
   insert into reviews (shop_id, customer_id, nick, lv, stars, text)
@@ -454,6 +490,51 @@ begin
     insert into events (shop_id, customer_id, customer_key, nick, type, stars) values (p_shop, u, u::text, cu.nick, 'review', p_stars);
   end if;
   return jsonb_build_object('ok', true, 'updated', existed, 'level', public._level_of(u));
+end $$;
+
+-- Offensive-word filter for reviews (Thai + English); spaces and repeated letters are ignored.
+create or replace function public._is_offensive(p_text text) returns boolean
+language sql immutable set search_path = public as $$
+  select regexp_replace(lower(coalesce(p_text, '')), '[\s\.\-_*]+', '', 'g')
+         ~ '(เหี้ย|ควย|สัส|เย็ด|แตด|ส้นตีน|ตีนผี|อีดอก|อีตอแหล|ระยำ|ชาติชั่ว|พ่อมึงตาย|แม่มึงตาย|ไอ้สัตว์|อีสัตว์|fuck|fck|shit|bitch|cunt|dick|pussy|asshole|bastard|nigger|nigga|whore|slut)'
+$$;
+
+-- Report a review. The reporter stops seeing it at once; 3 different reporters hide it for everyone.
+create or replace function public.report_review(p_review uuid, p_reason text default '') returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare u uuid := public._require_uid(); n int;
+begin
+  if not exists (select 1 from reviews where id = p_review) then return jsonb_build_object('ok', false, 'reason', 'unknown'); end if;
+  insert into review_reports (review_id, reporter, reason) values (p_review, u, left(coalesce(p_reason, ''), 200))
+  on conflict (review_id, reporter) do update set reason = excluded.reason;
+  select count(*) into n from review_reports where review_id = p_review;
+  if n >= 3 then update reviews set hidden = true where id = p_review; end if;
+  return jsonb_build_object('ok', true);
+end $$;
+
+-- Block the author of a review: none of their reviews are shown to this user any more.
+-- Reviews without an author (demo samples) are reported/hidden for this user instead.
+create or replace function public.block_review_author(p_review uuid) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare u uuid := public._require_uid(); a uuid; nk text;
+begin
+  select customer_id, nick into a, nk from reviews where id = p_review;
+  if not found then return jsonb_build_object('ok', false, 'reason', 'unknown'); end if;
+  if a is null then
+    insert into review_reports (review_id, reporter, reason) values (p_review, u, 'blocked') on conflict do nothing;
+    return jsonb_build_object('ok', true, 'blocked', null);
+  end if;
+  if a = u then return jsonb_build_object('ok', false, 'reason', 'self'); end if;
+  insert into blocked_users (blocker, blocked) values (u, a) on conflict do nothing;
+  return jsonb_build_object('ok', true, 'blocked', jsonb_build_object('id', a, 'nick', coalesce(nullif(nk, ''), 'ผู้ใช้')));
+end $$;
+
+create or replace function public.unblock_user(p_customer uuid) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare u uuid := public._require_uid();
+begin
+  delete from blocked_users where blocker = u and blocked = p_customer;
+  return jsonb_build_object('ok', true);
 end $$;
 
 -- Demo only: give the signed-in user the sample cards from the design (sample shops only).
@@ -606,7 +687,7 @@ declare f record;
 begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
            where n.nspname = 'public' and p.proname in (
-             '_uid','_require_uid','_bkk_today','_token','_gen_of','save_identity','_level_info','_xp_of','_level_of','my_level','public_stats','submit_lead','_my_shop_id','_shop_json','get_catalog','check_stand','customer_upsert','my_state','save_profile','collect_stamp','redeem_card','submit_review','seed_demo_cards','delete_my_account',
+             '_uid','_require_uid','_bkk_today','_token','_gen_of','save_identity','_level_info','_xp_of','_level_of','my_level','public_stats','submit_lead','_my_shop_id','_shop_json','get_catalog','check_stand','customer_upsert','my_state','save_profile','collect_stamp','redeem_card','submit_review','seed_demo_cards','delete_my_account','_is_offensive','report_review','block_review_author','unblock_user',
              'merchant_create_shop','merchant_claim_sample','merchant_samples_available','merchant_bundle','merchant_update_shop',
              'merchant_add_stand','merchant_update_stand','merchant_delete_stand','merchant_find_redemption','merchant_set_redemption','merchant_reply_review')
   loop
@@ -618,7 +699,7 @@ grant execute on function public.get_catalog(), public.check_stand(text, text), 
 grant execute on function
   public.customer_upsert(text, text, jsonb), public.my_state(), public.save_profile(jsonb, text), public.my_level(), public.save_identity(text, text, date),
   public.collect_stamp(text, text), public.redeem_card(text), public.submit_review(text, int, text), public.seed_demo_cards(),
-  public.delete_my_account(),
+  public.delete_my_account(), public.report_review(uuid, text), public.block_review_author(uuid), public.unblock_user(uuid),
   -- merchant_create_shop / merchant_claim_sample are NOT granted: shops are opened by the D Point team only
   -- (back office, service role) — no self sign-up from the merchant web.
   public.merchant_bundle(int), public.merchant_update_shop(jsonb),

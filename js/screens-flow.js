@@ -8,8 +8,8 @@ import {
 import { shopById, CAT, SAMPLE_REVIEWS, MISSIONS, XP, levelTitle, unlocksFor, tierFor, tierById, GENS, GEN_ORDER, GEN_MIN_REVIEWS, genEmoji, genMood, genOf, sampleGenReviews, SHOPS } from './data.js';
 import { loadEvents } from './catalog.js';
 import {
-  store, collectStamp, cardFor, canStampToday, untilMidnight, missionProgress, isDoubleDay, setPendingTap, pendingTap, clearPendingTap,
-  hasVisited, myReview, addReview, toggleFav, redeem as doRedeem, thMonthYear, agoText, thDateTime, takeLevelUp, peekLevelUp, isRemote,
+  store, collectStamp, cardFor, missionProgress, isDoubleDay, setPendingTap, pendingTap, clearPendingTap,
+  hasVisited, myReview, addReview, toggleFav, reportReview, blockReviewAuthor, reportedReviews, blockedUsers, redeem as doRedeem, thMonthYear, agoText, thDateTime, takeLevelUp, peekLevelUp, isRemote,
 } from './store.js';
 import { returnTo } from './screens-onboard.js';
 import { openText } from './screens-main.js';
@@ -19,6 +19,8 @@ const brandBar = () => `<div class="topbar"><div class="brand">${wordmark(26)}</
 
 // ================= TAP / COLLECT =================
 let tapResult = null; // { shopId, res }
+let autoStarted = null; // tap link that already started its automatic stamp
+let tapError = null;    // message when the automatic stamp did not go through
 const standOffShops = new Set(); // shops whose stand link the server rejected this session
 export function tap({ id }, query) {
   const shop = shopById(id);
@@ -34,9 +36,9 @@ export function tap({ id }, query) {
           <div style="border-radius:22px;overflow:hidden;transform:rotate(-4deg);opacity:.85">${bigStampCard(shop, 0).replace('class="stampcard"', 'class="stampcard" style="min-height:220px"')}</div>
           <img src="img/pointie-point.png" alt="" style="position:absolute;right:-6px;bottom:-30px;height:150px">
         </div>
-        <div class="col center" style="gap:6px;margin-top:20px"><h1 class="h1" style="font-size:24px">เข้าสู่ระบบเพื่อรับแสตมป์</h1><p class="muted">ใช้เบอร์มือถือ ไม่ต้องโหลดแอพ<br>ใช้เวลาไม่ถึง 1 นาที</p></div>
+        <div class="col center" style="gap:6px;margin-top:20px"><h1 class="h1" style="font-size:24px">เข้าสู่ระบบเพื่อรับแสตมป์</h1><p class="muted">เข้าสู่ระบบด้วย Google หรือ Apple<br>ใช้เวลาไม่ถึง 1 นาที</p></div>
         <div class="card col">${['สะสมแสตมป์ทุกร้านในบัตรเดียว', 'ได้ XP ทำภารกิจ ปลดล็อก Badge', 'แลกรางวัลได้ทันทีเมื่อครบ'].map((t) => `<div class="row small" style="gap:10px"><span class="green">${icon('check', 18, 2.6)}</span>${t}</div>`).join('')}</div>
-        <div class="col spacer"><a class="btn btn-primary" href="#/login">เข้าสู่ระบบ / สมัครด้วยเบอร์มือถือ</a><p class="center xs muted">เข้าสู่ระบบแล้วจะกลับมาที่หน้านี้อัตโนมัติ</p></div>`,
+        <div class="col spacer"><a class="btn btn-primary" href="#/welcome">เข้าสู่ระบบ / สมัครสมาชิก</a><p class="center xs muted">เข้าสู่ระบบแล้วจะกลับมาที่หน้านี้อัตโนมัติ</p></div>`,
     };
   }
 
@@ -49,19 +51,6 @@ export function tap({ id }, query) {
   const justDone = tapResult && tapResult.shopId === id ? tapResult.res : null;
   const card = cardFor(id);
   const need = shop.card.need;
-
-  // E1 — already stamped today
-  if (!justDone && card && !canStampToday(id)) {
-    return {
-      html: `${brandBar()}
-        <div class="stampcard-wrap">${bigStampCard(shop, card.have, { todayIdx: card.have, foot: `ครั้งที่ ${card.visits}` })}</div>
-        <div class="card row" style="align-items:flex-start;gap:10px">
-          <img src="img/pointie-wink.png" alt="" style="height:72px;margin-top:-20px">
-          <div class="col" style="gap:4px"><b style="font-size:17px">วันนี้รับแสตมป์ร้านนี้แล้ว</b><span class="small muted">ร้านละ 1 ดวงต่อวัน กลับมาใหม่ได้อีกใน <b class="accent">${untilMidnight()}</b></span></div>
-        </div>
-        <div class="btns spacer"><a class="btn btn-ghost" href="#/store/${id}?review=1">เขียนรีวิว</a><a class="btn btn-primary grow" href="#/home">ดูภารกิจอื่น</a></div>`,
-    };
-  }
 
   // Card already full — must redeem first
   if (!justDone && card && card.have >= need) {
@@ -103,40 +92,59 @@ export function tap({ id }, query) {
     };
   }
 
+  // Real shops only stamp from their stand (the tag / QR link carries ?s=<token>); demo shops can stamp without one.
+  const canCollect = !!standTok || !!shop.sample;
+  const consumed = query.get('done') === '1'; // this tap link was already used (e.g. navigating back to it)
+  if (!canCollect || consumed) {
+    return {
+      html: `${brandBar().replace('<div class="nfc-ok">แตะ NFC สำเร็จ</div>', '')}
+        <div class="stampcard-wrap">${bigStampCard(shop, have, { foot: card ? `ครั้งที่ ${card.visits}` : '' })}</div>
+        <div class="card row" style="align-items:flex-start;gap:10px">
+          <img src="img/pointie-point.png" alt="" style="height:72px;margin-top:-20px">
+          <div class="col" style="gap:4px"><b style="font-size:17px">แตะป้าย D Point ที่ร้านเพื่อรับแสตมป์</b><span class="small muted">แนบมือถือกับสแตนด์ NFC หรือสแกน QR ที่เคาน์เตอร์ของ ${esc(shop.name)}</span></div>
+        </div>
+        <div class="btns spacer"><a class="btn btn-ghost" href="#/store/${id}">ดูร้าน</a><a class="btn btn-primary grow" href="#/scan">${icon('nfc', 20)}สแกน</a></div>`,
+    };
+  }
+
   let busy = false;
-  const collect = async (btn) => {
+  const collect = async () => {
     if (busy) return;
     if (!navigator.onLine) { setPendingTap(id); go('/offline/' + id); return; }
-    busy = true;
-    const b = btn instanceof Element ? btn : document.querySelector('[data-act="collect"]');
-    if (b) { b.disabled = true; b.querySelector('span:last-child').textContent = 'กำลังบันทึก…'; }
+    busy = true; tapError = null;
+    const b = document.querySelector('[data-act="collect"]');
+    if (b) { b.disabled = true; b.querySelector('span:last-child').textContent = 'กำลังปั๊มแสตมป์…'; }
     const res = await collectStamp(id, standTok);
     busy = false;
     if (!res.ok) {
       if (res.reason === 'offline') { setPendingTap(id); go('/offline/' + id); return; }
       if (res.reason === 'stand_off') standOffShops.add(`${id}|${standTok}`);
-      else if (res.reason === 'already') toast('วันนี้รับแสตมป์ร้านนี้แล้ว');
       else if (res.reason === 'full') toast('บัตรครบแล้ว แลกรางวัลก่อนนะ');
-      else toast('บันทึกแสตมป์ไม่สำเร็จ ลองใหม่อีกครั้ง');
+      else tapError = res.reason === 'too_fast' ? 'เพิ่งปั๊มแสตมป์ไปเมื่อสักครู่ รอสักครู่แล้วกดอีกครั้ง'
+        : res.reason === 'need_stand' ? 'แตะป้าย D Point ที่ร้านเพื่อรับแสตมป์'
+        : 'ปั๊มแสตมป์ไม่สำเร็จ ลองอีกครั้ง';
       window.dispatchEvent(new Event('rerender'));
       return;
     }
     clearPendingTap();
     tapResult = { shopId: id, res };
-    if (navigator.vibrate) navigator.vibrate([30, 40, 60]);
+    // the link is used up: going back to it must not stamp again
+    history.replaceState(null, '', `#/tap/${id}?done=1`);
+    if (navigator.vibrate && navigator.userActivation?.hasBeenActive) navigator.vibrate([30, 40, 60]);
     window.dispatchEvent(new Event('rerender'));
   };
 
+  // #1: the stamp is pressed by itself as soon as the tag / QR opens this page; the button stays only to retry.
+  const autoKey = `${id}|${standTok || ''}|${location.hash}`;
   return {
     html: `${brandBar()}
-      <div class="stampcard-wrap"><img class="peek" src="img/pointie-wink.png" alt="">${bigStampCard(shop, have, { foot: `ครั้งที่ ${visits}` })}</div>
+      <div class="stampcard-wrap stamping"><img class="peek" src="img/pointie-wink.png" alt="">${bigStampCard(shop, have, { pendingIdx: have + 1, foot: `ครั้งที่ ${visits}` })}</div>
       ${dbl ? '<div class="card-soft row small semi" style="padding:10px 14px">' + icon('sparkle', 18) + 'วันนี้แสตมป์ x2 ที่ร้านนี้!</div>' : ''}
-      <div class="card" style="padding:10px 14px"><div class="col" style="gap:6px">
-        <div class="between small"><span class="semi">ภารกิจ: สะสมแสตมป์ ${stampMission.goal} ดวงสัปดาห์นี้</span><span class="bold accent">${mp}/${stampMission.goal}</span></div>
-        <div class="bar" style="height:6px"><i style="width:${(mp / stampMission.goal) * 100}%"></i></div>
-      </div></div>
-      <div class="spacer"><button class="btn btn-primary btn-lg" data-act="collect">${icon('star', 22)}<span>รับแสตมป์</span></button></div>`,
-    mount() { if (query.get('auto') === '1') { history.replaceState(null, '', '#/tap/' + id); collect(); } },
+      ${tapError ? `<div class="card row small semi" style="padding:12px 14px;gap:8px;color:var(--red)">${icon('alert', 18)}<span>${esc(tapError)}</span></div>`
+        : `<div class="col center" style="gap:4px;align-items:center"><b style="font-size:18px">กำลังปั๊มแสตมป์…</b><span class="small muted">${esc(shop.name)}</span></div>`}
+      <div class="spacer"><button class="btn btn-primary btn-lg" data-act="collect" ${tapError ? '' : 'disabled'}>${icon('star', 22)}<span>${tapError ? 'ปั๊มแสตมป์อีกครั้ง' : 'กำลังปั๊มแสตมป์…'}</span></button></div>`,
+    mount() { if (autoStarted !== autoKey) { autoStarted = autoKey; collect(); } },
+    leave() { autoStarted = null; tapError = null; },
     actions: { collect },
   };
 }
@@ -204,6 +212,8 @@ function genReviewList(s, gen) {
   return list;
 }
 let reviewDraft = { stars: 0, text: '' };
+let revTarget = null; // review whose ⋯ menu is open
+const REPORT_REASONS = [['spam', 'สแปม / โฆษณา'], ['offensive', 'คำหยาบ / ไม่สุภาพ / คุกคาม'], ['false', 'ข้อมูลเท็จ / ไม่ได้มาจริง'], ['other', 'อื่นๆ ไม่เหมาะสม']];
 export function storePage({ id }, query) {
   const s = shopById(id);
   if (!s) { go('/home'); return { html: '' }; }
@@ -211,8 +221,11 @@ export function storePage({ id }, query) {
   const fav = me.favs.includes(id);
   const mine = myReview(id);
   // Remote catalogue carries the public reviews (real + sample, with shop replies); local demo uses samples.
+  // Reviews this user reported, or written by someone they blocked, are not shown to them.
+  const hiddenIds = new Set(reportedReviews()); const blockedIds = new Set(blockedUsers().map((b) => b.id));
   const others = Array.isArray(s.reviews)
-    ? s.reviews.filter((r) => !(me.remoteId && r.customerId === me.remoteId)).map((r) => ({ initial: (r.nick || '?')[0], name: r.nick || 'ลูกค้า', lv: r.lv || 1, ago: agoText(String(r.at).slice(0, 10)), stars: r.stars, text: r.text, reply: r.reply }))
+    ? s.reviews.filter((r) => !(me.remoteId && r.customerId === me.remoteId) && !hiddenIds.has(r.id) && !(r.customerId && blockedIds.has(r.customerId)))
+      .map((r) => ({ id: r.id, customerId: r.customerId || null, initial: (r.nick || '?')[0], name: r.nick || 'ลูกค้า', lv: r.lv || 1, ago: agoText(String(r.at).slice(0, 10)), stars: r.stars, text: r.text, reply: r.reply }))
     : (SAMPLE_REVIEWS[id] || []).map((r, i) => ({ ...r, reply: s.replies?.['sample:' + i] }));
   const left = k.need - (c?.have || 0);
   const tags = s.tags.map(([l, n, pos]) => `<span class="pill ${pos ? 'green' : 'soft'}" style="font-size:13px;padding:6px 12px;font-weight:600">${l} · ${n}</span>`).join('');
@@ -220,12 +233,12 @@ export function storePage({ id }, query) {
   const reviewItem = (r, isMine) => `<div class="card review">
       <div class="row" style="gap:10px"><span class="initials sm" style="border-radius:50%">${esc(r.initial)}</span>
         <div class="col" style="gap:0;flex:1"><span><b>${esc(r.name)}</b> <span class="pill violet" style="font-size:11px;padding:0 6px">Lv.${esc(r.lv)}</span>${isMine ? ' <span class="pill soft" style="font-size:11px;padding:0 6px">ของฉัน</span>' : ''}</span>
-        <span class="xs muted">${esc(r.ago)}${r.visits ? ` · มาแล้ว ${r.visits} ครั้ง` : ''}</span></div><span class="real">${icon('check', 11, 3)}ไปจริง</span></div>
+        <span class="xs muted">${esc(r.ago)}${r.visits ? ` · มาแล้ว ${r.visits} ครั้ง` : ''}</span></div><span class="real">${icon('check', 11, 3)}ไปจริง</span>
+        ${!isMine && r.id ? `<button class="icon-btn rev-more" data-act="revMenu" data-id="${esc(r.id)}" aria-label="ตัวเลือกรีวิวของ ${esc(r.name)}: รายงาน หรือบล็อก">⋯</button>` : ''}</div>
       ${starsHtml(r.stars)}<p class="small">${esc(r.text)}</p>${replyHtml(r.reply)}</div>`;
   const open = openText(s);
   const html = `
     <div class="cover ${cardBg(k)}" style="${cardBgStyle(k)}">
-      <span>[รูปปกร้าน]</span>
       <div class="tb"><a class="icon-btn" href="#/back" data-act="back" aria-label="ย้อนกลับ">${icon('back')}</a><span style="flex:1"></span>
         <button class="icon-btn ${fav ? 'fav' : ''}" data-act="fav" aria-pressed="${fav}" aria-label="บันทึกเป็นร้านโปรด">${icon(fav ? 'heart' : 'heart', 20)}</button>
         <button class="icon-btn" data-act="share" aria-label="แชร์ร้าน">${icon('share')}</button></div>
@@ -234,7 +247,7 @@ export function storePage({ id }, query) {
       <div class="store-head">
         <div class="row"><span class="initials" style="${cardBgStyle(k)}${k.photo ? 'background:#2E3A33;' : ''}color:${k.letter}">${s.initials}</span>
           <div class="col" style="gap:2px"><h1 style="font-size:20px">${esc(s.name)}</h1><span class="small muted">${CAT[s.cat].label} · ${s.area}${s.dist ? ` · ${s.dist}` : ''}</span></div></div>
-        <div class="row small" style="gap:10px;flex-wrap:wrap"><span class="row semi" style="gap:4px"><span style="color:var(--gold)">${icon('star', 16)}</span>${s.rating} <span class="muted" style="font-weight:400">(${s.reviewsCount + (mine ? 1 : 0)} รีวิว)</span></span>
+        <div class="row small" style="gap:10px;flex-wrap:wrap"><span class="row semi" style="gap:4px"><span style="color:var(--gold)">${icon('star', 16)}</span>${s.rating || '–'} <span class="muted" style="font-weight:400">(${(s.reviewsCount || 0) + (mine ? 1 : 0)} รีวิว)</span></span>
           <span class="row semi ${open === 'เปิดอยู่' ? 'green' : ''}" style="gap:4px;${open === 'เปิดอยู่' ? '' : 'color:var(--red)'}"><span style="width:8px;height:8px;border-radius:50%;background:currentColor"></span>${open}</span>
           <span class="muted">ปิด ${String(Math.floor(s.closeAt)).padStart(2, '0')}:${s.closeAt % 1 ? '30' : '00'}</span></div>
       </div>
@@ -259,17 +272,13 @@ export function storePage({ id }, query) {
       <section class="col">
         <h2 class="h2">คนพูดถึงร้านนี้ยังไง</h2>
         <div class="card col">
-          <div class="row" style="gap:16px"><div class="col center" style="gap:2px;align-items:center"><span class="rating-big">${s.rating}</span>${starsHtml(s.rating, 12)}<span class="xs muted">${s.reviewsCount} รีวิว</span></div>
-            <div class="col" style="flex:1;gap:4px">${s.dist5.map((p, i) => `<div class="dist-row"><span>${5 - i}</span><div class="bar"><i style="width:${p}%"></i></div></div>`).join('')}</div></div>
-          <div class="ai-sum"><div class="row" style="gap:8px"><img src="img/pointie-point.png" alt=""><span class="xs bold accent">D Point สรุปจากรีวิวของคนที่ไปจริง</span></div><p class="small">${esc(s.summary)}</p></div>
-          <div class="row" style="flex-wrap:wrap;gap:6px">${tags}</div>
+          ${s.reviewsCount ? `<div class="row" style="gap:16px"><div class="col center" style="gap:2px;align-items:center"><span class="rating-big">${s.rating}</span>${starsHtml(s.rating, 12)}<span class="xs muted">${s.reviewsCount} รีวิว</span></div>
+            <div class="col" style="flex:1;gap:4px">${s.dist5.map((p, i) => `<div class="dist-row"><span>${5 - i}</span><div class="bar"><i style="width:${p}%"></i></div></div>`).join('')}</div></div>` : `<p class="small muted">ยังไม่มีรีวิว เป็นคนแรกที่รีวิวร้านนี้หลังรับแสตมป์ได้เลย</p>`}
+          ${s.summary ? `<div class="ai-sum"><div class="row" style="gap:8px"><img src="img/pointie-point.png" alt=""><span class="xs bold accent">D Point สรุปจากรีวิวของคนที่ไปจริง</span></div><p class="small">${esc(s.summary)}</p></div>` : ''}
+          ${s.tags?.length ? `<div class="row" style="flex-wrap:wrap;gap:6px">${tags}</div>` : ''}
         </div>
       </section>
       ${genSection(s)}
-      <section class="col">
-        <div class="section-h"><h2>รูปจากลูกค้า</h2><span class="link">ทั้งหมด ${s.photos}</span></div>
-        <div class="photos">${['[รูป]', '[รูป]', '[รูป]', '[รูป]', '[รูป]', '+' + (s.photos - 5)].map((l) => `<div>${l}</div>`).join('')}</div>
-      </section>
       <section class="col">
         <div class="section-h"><h2>รีวิวล่าสุด</h2></div>
         ${mine ? reviewItem({ initial: (me.user.nick || '?')[0], name: me.user.nick, lv: me.user.lv, ago: agoText(mine.date), visits: c?.visits || 1, stars: mine.stars, text: mine.text, reply: mine.reply ?? s.replies?.[me.phone] }, true) : ''}
@@ -289,7 +298,7 @@ export function storePage({ id }, query) {
     </div>
     <div class="sticky-cta">
       <button class="btn btn-ghost" data-act="review">${icon('edit', 18)}${mine ? 'แก้ไขรีวิว' : 'เขียนรีวิว'}</button>
-      ${c ? `<a class="btn btn-primary grow" href="#/cards?shop=${id}">ดูบัตรสะสมแต้ม</a>` : `<a class="btn btn-primary grow" href="#/tap/${id}">แตะรับแสตมป์ (เดโม)</a>`}
+      ${c ? `<a class="btn btn-primary grow" href="#/cards?shop=${id}">ดูบัตรสะสมแต้ม</a>` : `<a class="btn btn-primary grow" href="${s.sample ? `#/tap/${id}` : '#/scan'}">${s.sample ? 'แตะรับแสตมป์ (ร้านตัวอย่าง)' : 'สแกนรับแสตมป์ที่ร้าน'}</a>`}
     </div>`;
 
   const openReview = () => {
@@ -298,6 +307,7 @@ export function storePage({ id }, query) {
     const draw = () => `<div class="col center" style="gap:4px"><h2 class="h2">รีวิว ${esc(s.name)}</h2><span class="real" style="align-self:center">${icon('check', 11, 3)}ไปจริง ${c?.visits || 1} ครั้ง</span></div>
       <div class="star-input" id="starIn">${[1, 2, 3, 4, 5].map((n) => `<button data-act="star" data-n="${n}" class="${n <= reviewDraft.stars ? 'on' : ''}" aria-label="${n} ดาว">${icon('star', 36)}</button>`).join('')}</div>
       <textarea class="ta" id="revText" maxlength="500" placeholder="เล่าให้เพื่อนฟังหน่อย ชอบอะไร ควรสั่งอะไร">${esc(reviewDraft.text)}</textarea>
+      <p class="xs muted">รีวิวต้องสุภาพและมาจากประสบการณ์จริง ไม่มีคำหยาบ การคุกคาม หรือข้อมูลส่วนตัวของผู้อื่น ตาม<a href="#/terms" class="link-u">ข้อกำหนดการใช้งาน</a></p>
       ${mine ? '' : `<p class="center small"><span class="pill violet">+${XP.review} XP</span> เมื่อส่งรีวิว</p>`}
       <button class="btn btn-primary" data-act="submitReview" id="revSubmit" ${reviewDraft.stars ? '' : 'disabled'}>ส่งรีวิว</button>`;
     document.querySelector('.app').insertAdjacentHTML('beforeend', sheet(draw(), { id: 'reviewSheet' }));
@@ -329,6 +339,38 @@ export function storePage({ id }, query) {
         } catch { /* cancelled */ }
       },
       review: openReview,
+      revMenu(el) {
+        const r = others.find((x) => x.id === el.dataset.id); if (!r) return;
+        revTarget = r;
+        document.getElementById('revMenu')?.remove();
+        document.querySelector('.app').insertAdjacentHTML('beforeend', sheet(`
+          <div class="col" style="gap:4px"><h2 class="h2">รีวิวของ ${esc(r.name)}</h2><span class="small muted">ช่วยให้ D Point ปลอดภัยสำหรับทุกคน</span></div>
+          <div class="col" style="gap:8px">
+            <span class="xs semi muted">รายงานรีวิวนี้ เพราะ…</span>
+            ${REPORT_REASONS.map(([k, l]) => `<button class="btn btn-ghost" style="justify-content:flex-start" data-act="reportReview" data-r="${k}">${icon('alert', 18)}${l}</button>`).join('')}
+            <button class="btn btn-ghost" style="justify-content:flex-start;color:var(--red)" data-act="blockAuthor">${icon('close', 18)}บล็อก ${esc(r.name)} · ไม่ต้องแสดงรีวิวของคนนี้อีก</button>
+          </div>
+          <p class="xs muted center">ทีม D Point ตรวจสอบทุกรายงานภายใน 24 ชั่วโมง</p>`, { id: 'revMenu' }));
+      },
+      async reportReview(el) {
+        const r = revTarget; if (!r) return;
+        el.disabled = true;
+        const res = await reportReview(r.id, el.dataset.r);
+        document.getElementById('revMenu')?.remove();
+        if (!res.ok) { toast('รายงานไม่สำเร็จ ลองใหม่อีกครั้ง'); return; }
+        toast('ขอบคุณที่แจ้ง ซ่อนรีวิวนี้แล้ว และทีมงานจะตรวจสอบภายใน 24 ชั่วโมง', 5000);
+        window.dispatchEvent(new Event('rerender'));
+      },
+      async blockAuthor(el) {
+        const r = revTarget; if (!r) return;
+        if (!confirm(`บล็อก ${r.name}?\nคุณจะไม่เห็นรีวิวของคนนี้อีก (ปลดบล็อกได้ที่ โปรไฟล์ → ผู้ใช้ที่บล็อก)`)) return;
+        el.disabled = true;
+        const res = await blockReviewAuthor(r);
+        document.getElementById('revMenu')?.remove();
+        if (!res.ok) { toast('บล็อกไม่สำเร็จ ลองใหม่อีกครั้ง'); return; }
+        toast(`บล็อก ${r.name} แล้ว`);
+        window.dispatchEvent(new Event('rerender'));
+      },
       star(el) {
         reviewDraft.stars = +el.dataset.n;
         document.querySelectorAll('#starIn button').forEach((b) => b.classList.toggle('on', +b.dataset.n <= reviewDraft.stars));
@@ -340,7 +382,7 @@ export function storePage({ id }, query) {
         if (text.length < 5) { toast('เขียนอีกนิดนะ อย่างน้อย 5 ตัวอักษร'); return; }
         el.disabled = true; el.textContent = 'กำลังส่ง…';
         const r = await addReview(id, reviewDraft.stars, text);
-        if (!r.ok) { el.disabled = false; el.textContent = 'ส่งรีวิว'; toast(r.reason === 'not_visited' ? 'รีวิวได้เฉพาะร้านที่ไปจริง' : 'ส่งรีวิวไม่สำเร็จ ลองใหม่อีกครั้ง'); return; }
+        if (!r.ok) { el.disabled = false; el.textContent = 'ส่งรีวิว'; toast(r.reason === 'not_visited' ? 'รีวิวได้เฉพาะร้านที่ไปจริง' : r.reason === 'offensive' ? 'รีวิวมีคำไม่สุภาพ แก้ไขก่อนส่งนะ' : 'ส่งรีวิวไม่สำเร็จ ลองใหม่อีกครั้ง'); return; }
         document.getElementById('reviewSheet')?.remove();
         toast(r.updated ? 'แก้ไขรีวิวแล้ว' : `ขอบคุณสำหรับรีวิว! +${XP.review} XP`);
         if (peekLevelUp()) go('/levelup'); else window.dispatchEvent(new Event('rerender'));

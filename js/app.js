@@ -6,7 +6,7 @@ import { morphChildren, runMount } from './dom.js';
 import { joinName, joinBirthday, joinLikes, joinTour } from './screens-join.js';
 import { welcome, login, otp, setup, invite, prefPlaces, prefStyle, prefLocation, returnTo, resetOtpScreen } from './screens-onboard.js';
 import { home, notifications, scan, cards, profile, tiersPage, badges, reviews } from './screens-main.js';
-import { editName, editBirthday, editStyle, privacy, terms } from './screens-me.js';
+import { editName, editBirthday, editStyle, privacy, terms, blockedPage } from './screens-me.js';
 import { tap, offline, storePage, redeemPage, levelup } from './screens-flow.js';
 
 const ROUTES = [
@@ -34,6 +34,7 @@ const ROUTES = [
   [/^\/profile$/, profile, {}],
   [/^\/badges$/, badges, {}],
   [/^\/reviews$/, reviews, {}],
+  [/^\/blocked$/, blockedPage, {}],
   [/^\/settings$/, profile, {}],
   [/^\/tiers$/, tiersPage, {}],
   [/^\/me\/name$/, editName, {}],
@@ -133,6 +134,8 @@ window.addEventListener('offline', () => toast('ออฟไลน์อยู�
 { const m = location.pathname.match(/^\/t\/([a-z0-9-]+)\/?$/i); if (m) history.replaceState(null, '', `/#/tap/${m[1]}${location.search}`); }
 
 applyTheme();
+// No pinch-zoom (Safari ignores user-scalable=no): cancel the iOS gesture events.
+for (const ev of ['gesturestart', 'gesturechange']) document.addEventListener(ev, (e) => e.preventDefault(), { passive: false });
 onAppLinks((route) => { location.hash = route; }); // iOS app: tag tapped / QR scanned with the camera opens the app here
 bootRemote().then((mode) => {
   document.documentElement.dataset.backend = mode;
