@@ -28,13 +28,13 @@ function toggleLang() { setLang(getLang() === 'en' ? 'th' : 'en'); window.dispat
 // "or" + Google / Apple, shared by the welcome screen and the phone page.
 const showGoogle = () => true; // web: redirect · iOS: system sign-in sheet · Android: browser tab
 const socialButtons = () => `<div class="col" style="gap:10px">
-        ${showGoogle() ? `<button class="btn btn-lg btn-google" data-act="oauth" data-p="google">${GOOGLE_G}${t('ดำเนินการต่อด้วย Google', 'Continue with Google')}</button>` : ''}
-        <button class="btn btn-lg btn-apple" data-act="oauth" data-p="apple">${APPLE_LOGO}${t('ดำเนินการต่อด้วย Apple', 'Continue with Apple')}</button>
+        ${showGoogle() ? `<button class="btn btn-google" data-act="oauth" data-p="google">${GOOGLE_G}${t('ดำเนินการต่อด้วย Google', 'Continue with Google')}</button>` : ''}
+        <button class="btn btn-apple" data-act="oauth" data-p="apple">${APPLE_LOGO}${t('ดำเนินการต่อด้วย Apple', 'Continue with Apple')}</button>
       </div>`;
 const socialHtml = () => `<div class="or-line" role="separator"><span>${t('หรือ', 'or')}</span></div>
       <div class="col" style="gap:10px">
-        ${showGoogle() ? `<button class="btn btn-lg btn-google" data-act="oauth" data-p="google">${GOOGLE_G}${t('ดำเนินการต่อด้วย Google', 'Continue with Google')}</button>` : ''}
-        <button class="btn btn-lg btn-apple" data-act="oauth" data-p="apple">${APPLE_LOGO}${t('ดำเนินการต่อด้วย Apple', 'Continue with Apple')}</button>
+        ${showGoogle() ? `<button class="btn btn-google" data-act="oauth" data-p="google">${GOOGLE_G}${t('ดำเนินการต่อด้วย Google', 'Continue with Google')}</button>` : ''}
+        <button class="btn btn-apple" data-act="oauth" data-p="apple">${APPLE_LOGO}${t('ดำเนินการต่อด้วย Apple', 'Continue with Apple')}</button>
       </div>`;
 async function oauthAction(el) {
   const p = el.dataset.p; const label = el.innerHTML; const name = p === 'apple' ? 'Apple' : 'Google';
@@ -74,7 +74,7 @@ export function welcome() {
       <h1 class="welcome-title">${t('เริ่มต้นใช้งาน D Point เพื่อเก็บสิทธิพิเศษ', 'Get started with D Point to collect perks')}</h1>
       <div class="col spacer welcome-auth" style="gap:10px">
         ${phone ? `${phoneFormHtml(d)}
-        <button class="btn btn-primary btn-lg" id="sendOtp" form="phoneForm" ${isValidPhone(d) ? '' : 'disabled'}>${t('ขอรหัส OTP', 'Get OTP code')}</button>` : ''}
+        <button class="btn btn-primary" id="sendOtp" form="phoneForm" ${isValidPhone(d) ? '' : 'disabled'}>${t('ขอรหัส OTP', 'Get OTP code')}</button>` : ''}
         ${social ? (phone ? socialHtml() : socialButtons()) : ''}
         <p class="muted xs center">${t('การดำเนินการต่อถือว่าคุณยอมรับ', 'By continuing you agree to the')} <a class="link-u" href="#/terms">${t('ข้อกำหนดการใช้งาน', 'Terms of use')}</a> ${t('และ', 'and')} <a class="link-u" href="#/privacy">${t('นโยบายความเป็นส่วนตัว', 'Privacy policy')}</a></p>
         ${showDemo() ? `<button class="btn btn-text" data-act="demo">${t('ลองใช้บัญชีตัวอย่าง', 'Try the demo account')}</button>` : ''}
@@ -146,7 +146,7 @@ export function login() {
         <img src="img/pointie-point.png" alt="" style="width:110px;flex:none;margin-top:-6px">
       </div>
       ${phoneFormHtml(d)}
-      <button class="btn btn-primary btn-lg" id="sendOtp" form="phoneForm" ${isValidPhone(d) ? '' : 'disabled'}>${t('ขอรหัส OTP', 'Get OTP code')}</button>
+      <button class="btn btn-primary" id="sendOtp" form="phoneForm" ${isValidPhone(d) ? '' : 'disabled'}>${t('ขอรหัส OTP', 'Get OTP code')}</button>
       ${oauthAvailable() && !isLinking() ? socialHtml() : ''}
       <div class="col spacer">
         <p class="muted xs center">${t('การดำเนินการต่อถือว่าคุณยอมรับ', 'By continuing you agree to the')} <a class="link-u" href="#/terms">${t('ข้อกำหนดการใช้งาน', 'Terms of use')}</a> ${t('และ', 'and')} <a class="link-u" href="#/privacy">${t('นโยบายความเป็นส่วนตัว', 'Privacy policy')}</a></p>
