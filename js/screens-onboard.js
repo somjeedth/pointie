@@ -72,9 +72,9 @@ export function welcome() {
       </div>
       ${window.__oauthError ? `<div class="oauth-err" role="alert"><b>${t('เข้าสู่ระบบไม่สำเร็จ', 'Sign-in failed')}</b><span>${esc(window.__oauthError)}</span></div>` : ''}
       <h1 class="welcome-title">${t('เริ่มต้นใช้งาน D Point เพื่อเก็บสิทธิพิเศษ', 'Get started with D Point to collect perks')}</h1>
-      ${phone ? `${phoneFormHtml(d)}
-      <button class="btn btn-primary btn-lg" id="sendOtp" form="phoneForm" ${isValidPhone(d) ? '' : 'disabled'}>${t('ขอรหัส OTP', 'Get OTP code')}</button>` : ''}
-      <div class="col spacer" style="gap:10px">
+      <div class="col spacer welcome-auth" style="gap:10px">
+        ${phone ? `${phoneFormHtml(d)}
+        <button class="btn btn-primary btn-lg" id="sendOtp" form="phoneForm" ${isValidPhone(d) ? '' : 'disabled'}>${t('ขอรหัส OTP', 'Get OTP code')}</button>` : ''}
         ${social ? (phone ? socialHtml() : socialButtons()) : ''}
         <p class="muted xs center">${t('การดำเนินการต่อถือว่าคุณยอมรับ', 'By continuing you agree to the')} <a class="link-u" href="#/terms">${t('ข้อกำหนดการใช้งาน', 'Terms of use')}</a> ${t('และ', 'and')} <a class="link-u" href="#/privacy">${t('นโยบายความเป็นส่วนตัว', 'Privacy policy')}</a></p>
         ${showDemo() ? `<button class="btn btn-text" data-act="demo">${t('ลองใช้บัญชีตัวอย่าง', 'Try the demo account')}</button>` : ''}

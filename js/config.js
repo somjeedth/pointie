@@ -8,7 +8,7 @@ export const SUPABASE_KEY = 'sb_publishable_xz55KJNbqLcp49cn4pcCRQ_Ko7Fl_Kw';
 
 // Real SMS OTP (Supabase Phone sign-in + "Send SMS" hook → boost-sms, see supabase/README.md).
 // false = the on-screen simulated code + an anonymous account per device.
-export const SMS_OTP = false;
+export const SMS_OTP = true;
 
 // Google sign-in inside the iOS app: the iOS OAuth client ID (Google Cloud → Clients → iOS, bundle com.dpointapp.th)
 // and the Web client ID (the one already in Supabase → Google). Empty = the Google button is hidden in the app.

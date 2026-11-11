@@ -830,3 +830,7 @@ html { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adj
 }
 /* ⋯ menu on other people's reviews (report / block) */
 .review .rev-more { width: 32px; height: 32px; min-width: 32px; font-size: 20px; line-height: 1; letter-spacing: 1px; color: var(--muted); }
+
+/* welcome with phone sign-in: logo block centred in the free space, phone + OTP + "หรือ" + Google/Apple grouped at the bottom */
+.screen.welcome:not(.no-phone) .welcome-top { margin-top: auto; }
+.screen.welcome:not(.no-phone) .welcome-auth { margin-top: auto; }
