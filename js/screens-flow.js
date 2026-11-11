@@ -18,8 +18,12 @@ import { embedFor, mapsUrl } from './geo.js';
 const brandBar = () => `<div class="topbar"><div class="brand">${wordmark(26)}</div><div class="nfc-ok">แตะ NFC สำเร็จ</div></div>`;
 
 // ================= TAP / COLLECT =================
-let tapResult = null; // { shopId, res }
-let autoStarted = null; // tap link that already started its automatic stamp
+let tapResult = null; // { shopId, res, seq }
+let autoStarted = null; // arrival (navSeq + link) that already started its automatic stamp
+// Every navigation (hash change, including the same tag link opened again) is a new arrival; re-renders of the
+// same page are not. A tap link stamps once per arrival.
+let navSeq = 0;
+if (typeof window !== 'undefined') window.addEventListener('hashchange', () => { navSeq += 1; }, true);
 let tapError = null;    // message when the automatic stamp did not go through
 const standOffShops = new Set(); // shops whose stand link the server rejected this session
 export function tap({ id }, query) {
@@ -48,7 +52,7 @@ export function tap({ id }, query) {
   if (standOffShops.has(`${id}|${standTok}`) || (standTok && !isRemote() && (!stand || !stand.active))) {
     return { html: `${brandBar().replace('nfc-ok', 'nfc-ok" style="color:var(--red)')}<div class="col center" style="align-items:center;gap:10px;margin-top:40px"><img src="img/pointie-wow.png" alt="" style="height:140px"><h1 class="h1" style="font-size:22px">สแตนด์นี้ปิดใช้งานแล้ว</h1><p class="muted small">ลองแตะสแตนด์อื่นของ ${esc(shop.name)} หรือแจ้งพนักงานร้าน</p></div><a class="btn btn-primary spacer" href="#/home">กลับหน้าแรก</a>` };
   }
-  const justDone = tapResult && tapResult.shopId === id ? tapResult.res : null;
+  const justDone = tapResult && tapResult.shopId === id && tapResult.seq === navSeq ? tapResult.res : null;
   const card = cardFor(id);
   const need = shop.card.need;
 
@@ -127,7 +131,7 @@ export function tap({ id }, query) {
       return;
     }
     clearPendingTap();
-    tapResult = { shopId: id, res };
+    tapResult = { shopId: id, res, seq: navSeq };
     // the link is used up: going back to it must not stamp again
     history.replaceState(null, '', `#/tap/${id}?done=1`);
     if (navigator.vibrate && navigator.userActivation?.hasBeenActive) navigator.vibrate([30, 40, 60]);
@@ -135,7 +139,7 @@ export function tap({ id }, query) {
   };
 
   // #1: the stamp is pressed by itself as soon as the tag / QR opens this page; the button stays only to retry.
-  const autoKey = `${id}|${standTok || ''}|${location.hash}`;
+  const autoKey = `${navSeq}|${location.hash}`;
   return {
     html: `${brandBar()}
       <div class="stampcard-wrap stamping"><img class="peek" src="img/pointie-wink.png" alt="">${bigStampCard(shop, have, { pendingIdx: have + 1, foot: `ครั้งที่ ${visits}` })}</div>

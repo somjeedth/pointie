@@ -1,7 +1,7 @@
 // Router & bootstrap for the D Point customer web app.
 import { isNative, onAppLinks } from './native.js';
 import { store, ensureWeek, peekLevelUp, bootRemote, isLinking, takeOAuthResult } from './store.js';
-import { nav, toast } from './ui.js';
+import { nav, toast, go } from './ui.js';
 import { morphChildren, runMount } from './dom.js';
 import { joinName, joinBirthday, joinLikes, joinTour } from './screens-join.js';
 import { welcome, login, otp, setup, invite, prefPlaces, prefStyle, prefLocation, returnTo, resetOtpScreen } from './screens-onboard.js';
@@ -136,7 +136,7 @@ window.addEventListener('offline', () => toast('ออฟไลน์อยู�
 applyTheme();
 // No pinch-zoom (Safari ignores user-scalable=no): cancel the iOS gesture events.
 for (const ev of ['gesturestart', 'gesturechange']) document.addEventListener(ev, (e) => e.preventDefault(), { passive: false });
-onAppLinks((route) => { location.hash = route; }); // iOS app: tag tapped / QR scanned with the camera opens the app here
+onAppLinks((route) => go(route)); // app: a tag tapped / QR scanned opens the app here; the same link twice still counts as a new tap
 bootRemote().then((mode) => {
   document.documentElement.dataset.backend = mode;
   hideIntro();
