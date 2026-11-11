@@ -47,3 +47,35 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
 }
+
+/// UIScene lifecycle (required from iOS 27: apps without it crash at launch in
+/// _UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption). The window and the Capacitor
+/// view controller come from Main.storyboard (UISceneStoryboardFile in Info.plist); links that open
+/// the app (tag links /t/…, com.dpointapp.th://auth) are handed to Capacitor exactly like the AppDelegate did.
+class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+
+    var window: UIWindow?
+
+    func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
+        guard scene is UIWindowScene else { return }
+        // Some plugins still look for the app delegate's window.
+        (UIApplication.shared.delegate as? AppDelegate)?.window = window
+        // Cold start from a link: pass it on so the App plugin reports it (getLaunchUrl / appUrlOpen).
+        if let url = connectionOptions.urlContexts.first?.url {
+            _ = ApplicationDelegateProxy.shared.application(UIApplication.shared, open: url, options: [:])
+        }
+        if let activity = connectionOptions.userActivities.first(where: { $0.activityType == NSUserActivityTypeBrowsingWeb }) {
+            _ = ApplicationDelegateProxy.shared.application(UIApplication.shared, continue: activity, restorationHandler: { _ in })
+        }
+    }
+
+    func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+        for context in URLContexts {
+            _ = ApplicationDelegateProxy.shared.application(UIApplication.shared, open: context.url, options: [:])
+        }
+    }
+
+    func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
+        _ = ApplicationDelegateProxy.shared.application(UIApplication.shared, continue: userActivity, restorationHandler: { _ in })
+    }
+}
