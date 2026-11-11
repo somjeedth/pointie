@@ -81,16 +81,33 @@ function loginView() {
         <label class="field"><span>อีเมล</span><input class="inp" name="email" type="email" autocomplete="email" required></label>
         <label class="field"><span>รหัสผ่าน</span><input class="inp" name="password" type="password" autocomplete="current-password" required></label>
         <p class="alert" id="err" hidden style="justify-content:flex-start"></p>
-        <button class="btn btn-primary">เข้าสู่ระบบ</button>
+        <button class="btn btn-primary" id="loginBtn">เข้าสู่ระบบ</button>
         ${api.isRemote() ? '' : `<div class="demo-hint">ลองใช้บัญชีตัวอย่างของ <b>บ้านกาแฟริมคลอง</b><br><span class="muted">${api.DEMO.email} / ${api.DEMO.password}</span><br><button type="button" class="link" data-act="demo" style="margin-top:6px">เข้าด้วยบัญชีตัวอย่าง →</button></div>`}
         ${contactAdmin()}
       </form></div></div>`,
     mount(r) {
+      // Every attempt clears the old message and shows its own result (with the attempt time), so a second
+      // "wrong password" is clearly a new answer, not the first one still on screen.
+      let tries = 0;
+      const err = r.querySelector('#err'); const btn = r.querySelector('#loginBtn');
+      r.querySelector('#f').addEventListener('input', () => { err.hidden = true; });
       r.querySelector('#f').addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (btn.disabled) return;
         const fd = new FormData(e.target);
-        const res = await api.login(fd.get('email'), fd.get('password'));
-        if (!res.ok) { const el = r.querySelector('#err'); el.textContent = res.error; el.hidden = false; return; }
+        err.hidden = true; btn.disabled = true; btn.textContent = 'กำลังเข้าสู่ระบบ…';
+        let res;
+        try { res = await api.login(String(fd.get('email') || ''), String(fd.get('password') || '')); }
+        catch (x) { res = { ok: false, error: 'เชื่อมต่อไม่ได้ ลองใหม่อีกครั้ง' }; }
+        btn.disabled = false; btn.textContent = 'เข้าสู่ระบบ';
+        if (!res.ok) {
+          tries += 1;
+          const t = new Date(); const hhmm = `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}:${String(t.getSeconds()).padStart(2, '0')}`;
+          err.innerHTML = `<span><b>${esc(res.error)}</b>${tries > 1 ? ` (ครั้งที่ ${tries})` : ''}<br><span class="xs">ตรวจสอบเมื่อ ${hhmm} · ${tries > 1 ? 'ลืมรหัสผ่าน หรือยังไม่มีบัญชี ติดต่อทีม D Point ด้านล่าง' : 'เช็กตัวพิมพ์เล็ก-ใหญ่ และภาษาของแป้นพิมพ์'}</span></span>`;
+          err.hidden = false; err.classList.remove('shake'); void err.offsetWidth; err.classList.add('shake');
+          r.querySelector('[name=password]').select();
+          return;
+        }
         go('/dashboard');
       });
     },
