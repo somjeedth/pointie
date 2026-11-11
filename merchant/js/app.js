@@ -86,28 +86,19 @@ function loginView() {
         ${contactAdmin()}
       </form></div></div>`,
     mount(r) {
-      // Every attempt clears the old message and shows its own result (with the attempt time), so a second
-      // "wrong password" is clearly a new answer, not the first one still on screen.
-      let tries = 0;
+      // Typing again clears the old message; the next attempt shows its own result.
       const err = r.querySelector('#err'); const btn = r.querySelector('#loginBtn');
       r.querySelector('#f').addEventListener('input', () => { err.hidden = true; });
       r.querySelector('#f').addEventListener('submit', async (e) => {
         e.preventDefault();
         if (btn.disabled) return;
         const fd = new FormData(e.target);
-        err.hidden = true; btn.disabled = true; btn.textContent = 'กำลังเข้าสู่ระบบ…';
+        err.hidden = true; btn.disabled = true;
         let res;
         try { res = await api.login(String(fd.get('email') || ''), String(fd.get('password') || '')); }
-        catch (x) { res = { ok: false, error: 'เชื่อมต่อไม่ได้ ลองใหม่อีกครั้ง' }; }
-        btn.disabled = false; btn.textContent = 'เข้าสู่ระบบ';
-        if (!res.ok) {
-          tries += 1;
-          const t = new Date(); const hhmm = `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}:${String(t.getSeconds()).padStart(2, '0')}`;
-          err.innerHTML = `<span><b>${esc(res.error)}</b>${tries > 1 ? ` (ครั้งที่ ${tries})` : ''}<br><span class="xs">ตรวจสอบเมื่อ ${hhmm} · ${tries > 1 ? 'ลืมรหัสผ่าน หรือยังไม่มีบัญชี ติดต่อทีม D Point ด้านล่าง' : 'เช็กตัวพิมพ์เล็ก-ใหญ่ และภาษาของแป้นพิมพ์'}</span></span>`;
-          err.hidden = false; err.classList.remove('shake'); void err.offsetWidth; err.classList.add('shake');
-          r.querySelector('[name=password]').select();
-          return;
-        }
+        catch { res = { ok: false, error: 'เชื่อมต่อไม่ได้ ลองใหม่อีกครั้ง' }; }
+        btn.disabled = false;
+        if (!res.ok) { err.textContent = res.error; err.hidden = false; return; }
         go('/dashboard');
       });
     },
