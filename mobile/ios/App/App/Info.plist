@@ -31,6 +31,10 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>D Point ใช้กล้องเพื่อถ่ายรูปโปรไฟล์ของคุณ และสแกน QR code ที่ร้านค้าเพื่อรับแสตมป์</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>D Point ใช้รูปภาพในเครื่องเมื่อคุณเลือกรูปมาตั้งเป็นรูปโปรไฟล์</string>
 	<key>NFCReaderUsageDescription</key>
 	<string>D Point ใช้ NFC เพื่ออ่านป้ายของร้านค้าและรับแสตมป์สะสมแต้ม</string>
 	<key>UIApplicationSceneManifest</key>
